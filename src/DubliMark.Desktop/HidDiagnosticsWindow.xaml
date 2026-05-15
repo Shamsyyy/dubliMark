@@ -1,0 +1,54 @@
+<Window x:Class="DubliMark.Desktop.HidDiagnosticsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Диагностика HID" Height="640" Width="900"
+        Background="#1e1e1e" Foreground="White" FontFamily="Consolas"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" FontSize="13" LineHeight="20" Margin="0,0,0,12">
+            Отсканируйте код Честного ЗНАКа. Ниже — все клавиши, которые Windows передала приложению (VKey / MakeCode).
+            Если после AI 21 нет событий и в HEX нет 1D — прошивка сканера не передаёт GS/криптохвост; ПО не может его восстановить.
+        </TextBlock>
+
+        <Border Grid.Row="1" Background="#2d2d30" Padding="12" CornerRadius="4" Margin="0,0,0,12">
+            <StackPanel>
+                <TextBlock x:Name="SummaryText" Text="Ожидание сканирования..." FontSize="14" TextWrapping="Wrap"/>
+                <TextBlock x:Name="GsHintText" Margin="0,8,0,0" FontSize="12" Foreground="#f0ad4e" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <TabControl Grid.Row="2" Background="#252526" BorderThickness="0">
+            <TabItem Header="События клавиш">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <TextBox x:Name="KeysLogText" IsReadOnly="True" TextWrapping="NoWrap"
+                             Background="#1e1e1e" Foreground="#d4d4d4" BorderThickness="0"
+                             FontFamily="Consolas" FontSize="11" VerticalScrollBarVisibility="Auto"/>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="HEX VKey/Make">
+                <TextBox x:Name="HexDumpText" IsReadOnly="True" TextWrapping="Wrap"
+                         Background="#1e1e1e" Foreground="#9cdcfe" BorderThickness="0"
+                         FontFamily="Consolas" FontSize="12" Margin="4"/>
+            </TabItem>
+            <TabItem Header="Буфер (текст)">
+                <TextBox x:Name="BarcodeText" IsReadOnly="True" TextWrapping="Wrap"
+                         Background="#1e1e1e" Foreground="#ce9178" BorderThickness="0"
+                         FontFamily="Consolas" FontSize="12" Margin="4"/>
+            </TabItem>
+        </TabControl>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Копировать лог" Click="OnCopyClick" Margin="0,0,8,0"
+                    Background="#0e639c" Foreground="White" BorderThickness="0" Padding="12,6"/>
+            <Button Content="Закрыть" Click="OnCloseClick"
+                    Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="12,6"/>
+        </StackPanel>
+    </Grid>
+</Window>

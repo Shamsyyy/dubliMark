@@ -8,7 +8,66 @@ public class Gs1ParserTests
     private const char GS = (char)0x1D;
     private readonly Gs1Parser _parser = new();
 
-    // ───── Positive cases ─────
+    // ───── Official ЧЗ structure (infographic) ─────
+
+    private const string OfficialGtin = "04620219556479";
+    private const string OfficialSerial13 = "0123456789ABC"; // 13 chars
+    private const string OfficialKey91 = "EE06";             // 4 chars
+    private const string OfficialCode92 =
+        "dGVzdGNyeXB0b2hhc2hleGFtcGxlMTIzNDU2Nzg5MA==";     // 44 chars
+    private const string OfficialCode93 = "hpUR";            // 4 chars (short)
+
+    [Fact]
+    public void Parse_OfficialFullStructure_AllFourBlocks()
+    {
+        var raw = $"01{OfficialGtin}21{OfficialSerial13}{GS}91{OfficialKey91}{GS}92{OfficialCode92}";
+        var result = _parser.Parse(raw);
+
+        result.IsValid.Should().BeTrue();
+        result.InfoMessages.Should().BeEmpty();
+        result.Code!.CodeType.Should().Be(MarkingCodeType.Full);
+        result.Code.Gtin.Should().Be(OfficialGtin);
+        result.Code.Serial.Should().HaveLength(13);
+        result.Code.Serial.Should().Be(OfficialSerial13);
+        result.Code.VerificationKey.Should().Be(OfficialKey91);
+        result.Code.VerificationKey.Should().HaveLength(4);
+        result.Code.VerificationCode.Should().Be(OfficialCode92);
+        result.Code.VerificationCode.Should().HaveLength(44);
+        result.Code.AdditionalField93.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_OfficialShortStructure_GtinSerial93()
+    {
+        var raw = $"01{OfficialGtin}21{OfficialSerial13}{GS}93{OfficialCode93}";
+        var result = _parser.Parse(raw);
+
+        result.IsValid.Should().BeTrue();
+        result.InfoMessages.Should().BeEmpty();
+        result.Code!.CodeType.Should().Be(MarkingCodeType.Short);
+        result.Code.Gtin.Should().Be(OfficialGtin);
+        result.Code.Serial.Should().Be(OfficialSerial13);
+        result.Code.AdditionalField93.Should().Be(OfficialCode93);
+        result.Code.AdditionalField93.Should().HaveLength(4);
+        result.Code.VerificationKey.Should().BeNull();
+        result.Code.VerificationCode.Should().BeNull();
+    }
+
+    [Fact]
+    public void Parse_SerialNot13Chars_ShouldSucceedWithInfo()
+    {
+        var shortSerial = "SN12345";
+        var raw = $"010460043993125621{shortSerial}{GS}91EE06{GS}92dGVzdGNyeXB0b2hhc2hleGFtcGxlMTIzNDU2Nzg5MA==";
+        var result = _parser.Parse(raw);
+
+        result.IsValid.Should().BeTrue();
+        result.Code!.Serial.Should().Be(shortSerial);
+        result.InfoMessages.Should().ContainSingle();
+        result.InfoMessages[0].Should().Contain("7");
+        result.InfoMessages[0].Should().Contain("13");
+    }
+
+    // ───── Full codes (AI 91/92) ─────
 
     [Fact]
     public void Parse_TobaccoCode_ShouldExtractAllFields()
@@ -16,7 +75,8 @@ public class Gs1ParserTests
         var raw = $"010460043993125621SN12345{GS}91EE06{GS}92dGVzdGNyeXB0b2hhc2hleGFtcGxlMTIzNDU2Nzg5MA==";
         var result = _parser.Parse(raw);
         result.IsValid.Should().BeTrue();
-        result.Code!.Gtin.Should().Be("04600439931256");
+        result.Code!.CodeType.Should().Be(MarkingCodeType.Full);
+        result.Code.Gtin.Should().Be("04600439931256");
         result.Code.Serial.Should().Be("SN12345");
         result.Code.VerificationKey.Should().Be("EE06");
         result.Code.VerificationCode.Should().Be("dGVzdGNyeXB0b2hhc2hleGFtcGxlMTIzNDU2Nzg5MA==");
@@ -29,6 +89,7 @@ public class Gs1ParserTests
         var result = _parser.Parse(raw);
         result.IsValid.Should().BeTrue();
         result.Code!.Serial.Should().Be("ABCDEFGHIJKLMNOPQRST");
+        result.Code.CodeType.Should().Be(MarkingCodeType.Full);
     }
 
     [Fact]
@@ -42,12 +103,13 @@ public class Gs1ParserTests
     }
 
     [Fact]
-    public void Parse_WithoutCrypto_OnlyGtinAndSerial_ShouldWork()
+    public void Parse_WithoutCrypto_OnlyGtinAndSerial_ShouldBeShort()
     {
         var raw = $"010460000000000221SERIAL01{GS}";
         var result = _parser.Parse(raw);
         result.IsValid.Should().BeTrue();
-        result.Code!.VerificationKey.Should().BeNull();
+        result.Code!.CodeType.Should().Be(MarkingCodeType.Short);
+        result.Code.VerificationKey.Should().BeNull();
         result.Code.VerificationCode.Should().BeNull();
     }
 
@@ -58,6 +120,7 @@ public class Gs1ParserTests
         var result = _parser.Parse(raw);
         result.IsValid.Should().BeTrue();
         result.Code!.Gtin.Should().Be("04600000000002");
+        result.Code.CodeType.Should().Be(MarkingCodeType.Full);
     }
 
     [Fact]
@@ -81,6 +144,65 @@ public class Gs1ParserTests
         result.Code!.Serial.Should().Be(serial);
     }
 
+    // ───── Short codes (~31 bytes, AI 93) ─────
+
+    [Fact]
+    public void Parse_ShortCzWithAi93_ShouldSucceedAsShort()
+    {
+        var raw = $"0104620219556479215??>PY{GS}93hpUR";
+        var result = _parser.Parse(raw);
+        result.IsValid.Should().BeTrue();
+        result.Code!.CodeType.Should().Be(MarkingCodeType.Short);
+        result.Code.Gtin.Should().Be("04620219556479");
+        result.Code.Serial.Should().Be("5??>PY");
+        result.Code.AdditionalField93.Should().Be("hpUR");
+        result.Code.VerificationKey.Should().BeNull();
+        result.Code.VerificationCode.Should().BeNull();
+        result.Code.RawData.Length.Should().Be(31);
+    }
+
+    [Theory]
+    [InlineData("0104620219556479215??>PY", "5??>PY", "04620219556479")]
+    [InlineData("0104620219556479215DzI<r", "5DzI<r", "04620219556479")]
+    [InlineData("0104620219555861215zCXG", "5zCXG", "04620219555861")]
+    public void Parse_ShortCzExamples_WithAi93_ShouldSucceed(string prefix, string serial, string gtin)
+    {
+        var raw = $"{prefix}{GS}93hpUR";
+        var result = _parser.Parse(raw);
+        result.IsValid.Should().BeTrue();
+        result.Code!.CodeType.Should().Be(MarkingCodeType.Short);
+        result.Code.Gtin.Should().Be(gtin);
+        result.Code.Serial.Should().Be(serial);
+        result.Code.AdditionalField93.Should().Be("hpUR");
+    }
+
+    [Fact]
+    public void Parse_ShortCzWithoutGs_Ai93Concatenated_ShouldSucceed()
+    {
+        var raw = "0104620219556479215BZqLW93pSfJ";
+        var result = _parser.Parse(raw);
+        result.IsValid.Should().BeTrue();
+        result.Code!.CodeType.Should().Be(MarkingCodeType.Short);
+        result.Code.Gtin.Should().Be("04620219556479");
+        result.Code.Serial.Should().Be("5BZqLW");
+        result.Code.AdditionalField93.Should().Be("pSfJ");
+    }
+
+    [Fact]
+    public void Parse_FullCzWith91And92_AfterNormalization_ShouldSucceed()
+    {
+        var raw = $"0104628219556479215BZqLW{GS}91EE06{GS}92dGVzdGNyeXB0b2hhc2hleGFtcGxlMTIzNDU2Nzg5MA==";
+        var norm = Gs1BarcodeEncoding.NormalizeForParse(raw);
+        norm.FoundAi01.Should().BeTrue();
+
+        var result = _parser.Parse(norm.Payload);
+        result.IsValid.Should().BeTrue();
+        result.Code!.Gtin.Should().Be("04628219556479");
+        result.Code.CodeType.Should().Be(MarkingCodeType.Full);
+        result.Code.VerificationKey.Should().Be("EE06");
+        result.Code.VerificationCode.Should().NotBeNullOrEmpty();
+    }
+
     // ───── Negative cases ─────
 
     [Fact]
@@ -92,13 +214,24 @@ public class Gs1ParserTests
     }
 
     [Fact]
-    public void Parse_NoGsSeparator_ShouldReportScannerIssue()
+    public void Parse_NoGsSeparator_FullCodeWithoutGs_ShouldReportScannerIssue()
     {
         var raw = "010460000000000221ABC12391KEY92CRYPTO";
         var result = _parser.Parse(raw);
         result.IsValid.Should().BeFalse();
         result.ErrorCode.Should().Be(ParseErrorCode.NoGsSeparator);
         result.ErrorMessage.Should().Contain("сканер");
+    }
+
+    [Fact]
+    public void Parse_TruncatedFullCzWithoutGs_ShouldSuggestScannerConfig()
+    {
+        var raw = "010460000000000221ABCDEFGHIJKLMNOPQRSTUVWXYZ91KEY";
+        var result = _parser.Parse(raw);
+        result.IsValid.Should().BeFalse();
+        result.ErrorCode.Should().Be(ParseErrorCode.NoGsSeparator);
+        result.ErrorMessage.Should().Contain("обрезан");
+        result.ErrorMessage.Should().Contain("GS");
     }
 
     [Fact]
@@ -138,18 +271,27 @@ public class Gs1ParserTests
     }
 
     [Fact]
-    public void Parse_UnknownAi_ShouldFail()
+    public void Parse_UnknownAi_OnFullCodePath_ShouldFail()
     {
-        var raw = $"010460000000000221ABC{GS}77JUNK";
+        var raw = $"010460000000000221ABC{GS}91KEY{GS}77JUNK";
         var result = _parser.Parse(raw);
         result.IsValid.Should().BeFalse();
         result.ErrorCode.Should().Be(ParseErrorCode.UnknownAi);
     }
 
     [Fact]
+    public void Parse_PartialFull_Only91_ShouldReportTruncated()
+    {
+        var raw = $"010460000000000221ABC{GS}91KEYONLY";
+        var result = _parser.Parse(raw);
+        result.IsValid.Should().BeFalse();
+        result.ErrorCode.Should().Be(ParseErrorCode.TruncatedPayload);
+    }
+
+    [Fact]
     public void Parse_DoesNotThrow_OnGarbage()
     {
-        var act = () => _parser.Parse("random garbage ");
+        var act = () => _parser.Parse($"random garbage \u001Dmore junk");
         act.Should().NotThrow();
     }
 }

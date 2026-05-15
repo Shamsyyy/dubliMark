@@ -1,6 +1,7 @@
-using System;
+using System.Diagnostics;
 using System.IO.Ports;
 using System.Text;
+using Microsoft.Win32;
 
 namespace DubliMark.Desktop.Services;
 
@@ -17,7 +18,7 @@ public class SerialScannerService : IScannerSource, IDisposable
         _port = new SerialPort(portName, baudRate, Parity.None, 8, StopBits.One)
         {
             ReadTimeout = 500,
-            Encoding = Encoding.GetEncoding(28591) // ISO-8859-1 — bytes arrive 1:1
+            Encoding = Encoding.GetEncoding(28591)
         };
         _port.DataReceived += OnDataReceived;
     }
@@ -55,10 +56,50 @@ public class SerialScannerService : IScannerSource, IDisposable
                     BarcodeReceived?.Invoke(this, barcode);
             }
         }
-        catch { /* ignore serial errors */ }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[SerialScanner] {ex.Message}");
+        }
     }
 
-    public void Dispose() => _port.Dispose();
+    public void Dispose()
+    {
+        Stop();
+        _port.Dispose();
+    }
 
-    public static string[] GetAvailablePorts() => SerialPort.GetPortNames();
+    public static string[] GetAvailablePorts()
+    {
+        var ports = SerialPort.GetPortNames();
+        if (ports.Length > 0)
+            return ports.OrderBy(p => p, StringComparer.OrdinalIgnoreCase).ToArray();
+
+        return EnumeratePortsFromRegistry();
+    }
+
+    private static string[] EnumeratePortsFromRegistry()
+    {
+        var found = new List<string>();
+        try
+        {
+            using var key = Registry.LocalMachine.OpenSubKey(@"HARDWARE\DEVICEMAP\SERIALCOMM");
+            if (key == null)
+                return [];
+
+            foreach (var name in key.GetValueNames())
+            {
+                if (key.GetValue(name) is string port && !string.IsNullOrWhiteSpace(port))
+                    found.Add(port);
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[SerialScanner] Registry enumeration failed: {ex.Message}");
+        }
+
+        return found
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(p => p, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
 }
