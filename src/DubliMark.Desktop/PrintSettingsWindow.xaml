@@ -1,0 +1,56 @@
+<Window x:Class="DubliMark.Desktop.PrintSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Настройки печати" Height="520" Width="720"
+        Background="#1e1e1e" Foreground="White" FontFamily="Consolas">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <CheckBox x:Name="AutoPrintCheck" Content="Автопечать после сканирования" Margin="0,0,0,8"/>
+                <CheckBox x:Name="SilentPrintCheck" Content="Печатать сразу без подтверждения" Margin="0,0,0,8"/>
+                <CheckBox x:Name="SaveBeforePrintCheck" Content="Сохранять файл перед печатью" Margin="0,0,0,16"/>
+
+                <TextBlock Text="Принтер"/>
+                <ComboBox x:Name="PrinterCombo" Margin="0,4,0,12" Background="#2d2d30" Foreground="White"/>
+
+                <TextBlock Text="Шаблон"/>
+                <ComboBox x:Name="TemplateCombo" Margin="0,4,0,12" Background="#2d2d30" Foreground="White"/>
+
+                <TextBlock Text="Количество копий"/>
+                <TextBox x:Name="CopiesText" Margin="0,4,0,12" Background="#2d2d30" Foreground="White"/>
+
+                <TextBlock Text="Задержка перед печатью, мс"/>
+                <TextBox x:Name="DelayText" Margin="0,4,0,12" Background="#2d2d30" Foreground="White"/>
+
+                <TextBlock Text="Защита от дублей, секунд"/>
+                <TextBox x:Name="DuplicateText" Margin="0,4,0,12" Background="#2d2d30" Foreground="White"/>
+
+                <TextBlock Text="Папка сохранения"/>
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,12">
+                    <TextBox x:Name="PrintFolderText" Width="520" Background="#2d2d30" Foreground="White"/>
+                    <Button Content="Выбрать" Click="OnBrowseClick" Margin="8,0,0,0"
+                            Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
+                    <Button Content="Открыть" Click="OnOpenFolderClick" Margin="8,0,0,0"
+                            Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
+                </StackPanel>
+
+                <Button Content="Тестовая печать шаблона" Click="OnTestPrintClick"
+                        HorizontalAlignment="Left" Background="#0e639c" Foreground="White"
+                        BorderThickness="0" Padding="8,4" Margin="0,0,0,12"/>
+                <TextBlock x:Name="StatusText" Foreground="#9cdcfe" TextWrapping="Wrap"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Сохранить" Click="OnSaveClick" Background="#2d6a2d" Foreground="White"
+                    BorderThickness="0" Padding="10,5" Margin="0,0,8,0"/>
+            <Button Content="Отмена" Click="OnCancelClick" Background="#5a1a1a" Foreground="White"
+                    BorderThickness="0" Padding="10,5"/>
+        </StackPanel>
+    </Grid>
+</Window>

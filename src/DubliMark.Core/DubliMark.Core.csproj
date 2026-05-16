@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="ZXing.Net" Version="0.16.9" />
+  </ItemGroup>
+
 </Project>

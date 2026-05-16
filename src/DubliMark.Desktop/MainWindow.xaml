@@ -39,6 +39,29 @@
                 <Button Content="Из буфера" Click="OnPasteImageClick" Margin="8,0,0,0"
                         Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
             </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <CheckBox x:Name="AutoSaveCheck" Content="Автосохранение"
+                          VerticalAlignment="Center"
+                          Checked="OnAutoSaveChanged" Unchecked="OnAutoSaveChanged"/>
+                <Button Content="Папка экспорта" Click="OnChooseExportFolderClick" Margin="12,0,0,0"
+                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
+                <TextBlock x:Name="ExportPathText" VerticalAlignment="Center" Margin="12,0,0,0"
+                           Foreground="#cccccc" TextWrapping="Wrap"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <TextBlock x:Name="AutoPrintStatusText" VerticalAlignment="Center" Foreground="#cccccc"/>
+                <TextBlock x:Name="PrintTemplateText" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#cccccc"/>
+                <TextBlock x:Name="PrintPrinterText" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#cccccc"/>
+                <Button Content="Печать последнего ЧЗ" Click="OnPrintLastClick" Margin="12,0,0,0"
+                        Background="#0e639c" Foreground="White" BorderThickness="0" Padding="8,4"/>
+                <Button Content="Настройки печати" Click="OnPrintSettingsClick" Margin="8,0,0,0"
+                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
+                <Button Content="Шаблоны печати" Click="OnPrintTemplatesClick" Margin="8,0,0,0"
+                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
+                <Button Content="Открыть папку печати" Click="OnOpenPrintFolderClick" Margin="8,0,0,0"
+                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
+            </StackPanel>
+            <TextBlock x:Name="LastPrintStatusText" Margin="0,6,0,0" Foreground="#9cdcfe" TextWrapping="Wrap"/>
             <Border x:Name="HidHelpPanel" Background="#2a2a1a" BorderBrush="#5a5a30" BorderThickness="1"
                     CornerRadius="4" Padding="10" Margin="0,10,0,0">
                 <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#ccccaa" LineHeight="18">

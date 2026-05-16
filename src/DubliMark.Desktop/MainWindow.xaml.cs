@@ -1,9 +1,13 @@
+using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using DubliMark.Core.Export;
 using DubliMark.Core.Models;
 using DubliMark.Core.Parsing;
+using DubliMark.Core.Print;
 using DubliMark.Desktop.Services;
 using DubliMark.Desktop.Settings;
 using Microsoft.Win32;
@@ -15,15 +19,18 @@ public partial class MainWindow : Window
     private IScannerSource? _scanner;
     private AppSettings _settings = new();
     private readonly Gs1Parser _parser = new();
+    private readonly MarkExportService _exportService = new();
     private string? _lastBarcode;
     private DateTime _lastBarcodeUtc = DateTime.MinValue;
     private static readonly TimeSpan BarcodeDedupeWindow = TimeSpan.FromMilliseconds(800);
     private bool _isScannerSetupInProgress;
+    private bool _isLoadingSettings;
     private ScannerSetupWindow? _setupWindow;
 
     public MainWindow()
     {
         InitializeComponent();
+        InitializePrintServices();
         Loaded += OnLoaded;
         PreviewKeyDown += OnPreviewKeyDown;
     }
@@ -42,7 +49,12 @@ public partial class MainWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        _isLoadingSettings = true;
         _settings = AppSettings.Load();
+        _printTemplates = _printTemplateService.LoadOrCreateDefaults();
+        RefreshExportSettingsUi();
+        RefreshPrintSettingsUi();
+        _isLoadingSettings = false;
         RefreshPorts();
         SelectSavedPort();
         RestartScanner();
@@ -158,6 +170,8 @@ public partial class MainWindow : Window
     {
         _settings.Reset();
         _settings = AppSettings.Load();
+        RefreshExportSettingsUi();
+        RefreshPrintSettingsUi();
         ComConnectionPanel.Visibility = Visibility.Visible;
         PortsCombo.Focusable = true;
         RefreshPorts();
@@ -214,21 +228,26 @@ public partial class MainWindow : Window
         if (_isScannerSetupInProgress || _setupWindow != null)
             return;
 
-        Dispatcher.Invoke(() =>
-        {
-            if (_isScannerSetupInProgress || _setupWindow != null)
-                return;
+        _ = Dispatcher.InvokeAsync(() => HandleBarcodeOnUiAsync(raw));
+    }
 
-            var now = DateTime.UtcNow;
-            if (raw == _lastBarcode && now - _lastBarcodeUtc < BarcodeDedupeWindow)
-                return;
+    private async Task HandleBarcodeOnUiAsync(string raw)
+    {
+        if (_isScannerSetupInProgress || _setupWindow != null)
+            return;
 
-            _lastBarcode = raw;
-            _lastBarcodeUtc = now;
+        var now = DateTime.UtcNow;
+        if (raw == _lastBarcode && now - _lastBarcodeUtc < BarcodeDedupeWindow)
+            return;
 
-            var result = _parser.Parse(raw);
-            DisplayResult(result, raw, "Сканер");
-        });
+        _lastBarcode = raw;
+        _lastBarcodeUtc = now;
+
+        var result = _parser.Parse(raw);
+        var source = GetScannerExportSource();
+        var export = SaveExportIfEnabled(result, raw, source);
+        var print = await ProcessPrintAfterScanAsync(result, raw, source, forcePrint: false, allowDuplicate: false);
+        DisplayResult(result, raw, source, export, print);
     }
 
     private void OnLoadImageClick(object sender, RoutedEventArgs e)
@@ -245,7 +264,7 @@ public partial class MainWindow : Window
         DecodeAndDisplayFromImage(dlg.FileName);
     }
 
-    private void OnPasteImageClick(object sender, RoutedEventArgs e)
+    private async void OnPasteImageClick(object sender, RoutedEventArgs e)
     {
         if (!Clipboard.ContainsImage())
         {
@@ -265,10 +284,10 @@ public partial class MainWindow : Window
             return;
         }
 
-        ProcessDecodedImage(decoded!, "Буфер обмена");
+        await ProcessDecodedImageAsync(decoded!, "Image");
     }
 
-    private void DecodeAndDisplayFromImage(string path)
+    private async void DecodeAndDisplayFromImage(string path)
     {
         if (!ImageBarcodeDecoder.TryDecodeFromFile(path, out var decoded, out var error))
         {
@@ -276,28 +295,34 @@ public partial class MainWindow : Window
             return;
         }
 
-        ProcessDecodedImage(decoded!, "Изображение");
+        await ProcessDecodedImageAsync(decoded!, "Image");
     }
 
-    private void ProcessDecodedImage(ImageDecodeResult decoded, string source)
+    private async Task ProcessDecodedImageAsync(ImageDecodeResult decoded, string source)
     {
         ErrorText.Text = decoded.NormalizeNote ?? string.Empty;
         var result = _parser.Parse(decoded.Raw);
+        var export = SaveExportIfEnabled(result, decoded.Raw, source);
+        var print = await ProcessPrintAfterScanAsync(result, decoded.Raw, source, forcePrint: false, allowDuplicate: false);
         DisplayResult(
             result,
             decoded.Raw,
             source,
+            export,
+            print,
             imageHex: decoded.RawHex,
             imageGsCount: decoded.GsCount,
             imagePayloadByteLength: decoded.PayloadByteLength,
             imageNormalizeNote: decoded.NormalizeNote);
     }
 
-    private void ProcessDecodedRaw(string raw, string source)
+    private async Task ProcessDecodedRaw(string raw, string source)
     {
         ErrorText.Text = string.Empty;
         var result = _parser.Parse(raw);
-        DisplayResult(result, raw, source);
+        var export = SaveExportIfEnabled(result, raw, source);
+        var print = await ProcessPrintAfterScanAsync(result, raw, source, forcePrint: false, allowDuplicate: false);
+        DisplayResult(result, raw, source, export, print);
     }
 
     private static string FriendlyDecodeError(string? error) =>
@@ -311,10 +336,34 @@ public partial class MainWindow : Window
             _ => $"Ошибка чтения изображения: {error}"
         };
 
+    private MarkExportResult? SaveExportIfEnabled(ParseResult result, string raw, string source)
+    {
+        if (!_settings.AutoSaveExports)
+            return null;
+
+        return _exportService.Save(new MarkExportRequest
+        {
+            RawPayload = raw,
+            ParseResult = result,
+            Source = source,
+            ExportRoot = _settings.EffectiveExportDirectory
+        });
+    }
+
+    private string GetScannerExportSource() =>
+        _settings.ScannerMode switch
+        {
+            ScannerMode.Com => "COM",
+            ScannerMode.RawInput => "HID",
+            _ => "Manual"
+        };
+
     private void DisplayResult(
         ParseResult r,
         string raw,
         string source,
+        MarkExportResult? exportResult = null,
+        PrintPipelineResult? printResult = null,
         string? imageHex = null,
         int? imageGsCount = null,
         int? imagePayloadByteLength = null,
@@ -394,6 +443,9 @@ public partial class MainWindow : Window
 
             if (!fromImage)
                 sp.Children.Add(Field("HEX", r.Code.RawDataHex, small: true));
+
+            AddExportResult(sp, exportResult, r.IsValid);
+            AddPrintResult(sp, printResult);
         }
         else
         {
@@ -406,6 +458,9 @@ public partial class MainWindow : Window
             });
             if (!fromImage && r.Code != null)
                 sp.Children.Add(Field("HEX", r.Code.RawDataHex, small: true));
+
+            AddExportResult(sp, exportResult, r.IsValid);
+            AddPrintResult(sp, printResult);
         }
 
         card.Child = sp;
@@ -413,6 +468,13 @@ public partial class MainWindow : Window
 
         while (ResultPanel.Children.Count > 20)
             ResultPanel.Children.RemoveAt(ResultPanel.Children.Count - 1);
+
+        if (r.IsValid && exportResult is { Success: false, Error.Length: > 0 })
+        {
+            ErrorText.Text = string.IsNullOrEmpty(ErrorText.Text)
+                ? "Ошибка сохранения: " + exportResult.Error
+                : ErrorText.Text + Environment.NewLine + "Ошибка сохранения: " + exportResult.Error;
+        }
 
         Focus();
     }
@@ -465,6 +527,39 @@ public partial class MainWindow : Window
     private static string FormatRawForDisplay(string raw) =>
         raw.Replace("\u001D", "[GS]");
 
+    private void AddExportResult(StackPanel sp, MarkExportResult? exportResult, bool validCode)
+    {
+        if (exportResult == null)
+        {
+            sp.Children.Add(Field("Автосохранение", "выключено", small: true));
+            return;
+        }
+
+        if (validCode && exportResult.Success && exportResult.Files != null)
+        {
+            sp.Children.Add(Field("Сохранено", exportResult.ExportDirectory ?? "", small: true));
+            var button = new Button
+            {
+                Content = "Открыть папку",
+                Tag = exportResult.ExportDirectory,
+                Background = (Brush)new BrushConverter().ConvertFrom("#3e3e42")!,
+                Foreground = Brushes.White,
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(8, 4, 8, 4),
+                Margin = new Thickness(0, 6, 0, 0),
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+            button.Click += OnOpenExportFolderClick;
+            sp.Children.Add(button);
+            return;
+        }
+
+        if (!validCode && !string.IsNullOrWhiteSpace(exportResult.DiagnosticsFilePath))
+            sp.Children.Add(Field("Диагностика", exportResult.DiagnosticsFilePath, small: true));
+        else if (validCode && !string.IsNullOrWhiteSpace(exportResult.Error))
+            sp.Children.Add(Field("Ошибка сохранения", exportResult.Error, small: true));
+    }
+
     private static TextBlock Field(string label, string value, bool small = false) =>
         new()
         {
@@ -474,6 +569,46 @@ public partial class MainWindow : Window
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 2, 0, 2)
         };
+
+    private void RefreshExportSettingsUi()
+    {
+        AutoSaveCheck.IsChecked = _settings.AutoSaveExports;
+        ExportPathText.Text = _settings.EffectiveExportDirectory;
+    }
+
+    private void OnAutoSaveChanged(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings)
+            return;
+
+        _settings.AutoSaveExports = AutoSaveCheck.IsChecked == true;
+        _settings.Save();
+        RefreshExportSettingsUi();
+    }
+
+    private void OnChooseExportFolderClick(object sender, RoutedEventArgs e)
+    {
+        var dlg = new OpenFolderDialog
+        {
+            Title = "Выберите папку экспорта DubliMark",
+            InitialDirectory = Directory.Exists(_settings.EffectiveExportDirectory)
+                ? _settings.EffectiveExportDirectory
+                : Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+        };
+
+        if (dlg.ShowDialog() != true)
+            return;
+
+        _settings.ExportDirectory = dlg.FolderName;
+        _settings.Save();
+        RefreshExportSettingsUi();
+    }
+
+    private void OnOpenExportFolderClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: string folder })
+            OpenFolder(folder);
+    }
 
     private void StopScanner()
     {
@@ -491,4 +626,5 @@ public partial class MainWindow : Window
 
     private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e) =>
         StopScanner();
+
 }
