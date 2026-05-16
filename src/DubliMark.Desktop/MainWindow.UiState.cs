@@ -118,6 +118,12 @@ public partial class MainWindow
             QueueStatus = _settings.AutoPrintEnabled ? "Автопечать готова" : "Ручная печать",
             TemplateSize = $"{template.LabelWidthMm:0.#} × {template.LabelHeightMm:0.#} мм",
             DataMatrixSize = $"{template.DataMatrixWidthMm:0.#} × {template.DataMatrixHeightMm:0.#} мм",
+            LabelWidthMm = template.LabelWidthMm,
+            LabelHeightMm = template.LabelHeightMm,
+            DataMatrixWidthMm = template.DataMatrixWidthMm,
+            DataMatrixHeightMm = template.DataMatrixHeightMm,
+            DataMatrixXmm = template.DataMatrixXmm,
+            DataMatrixYmm = template.DataMatrixYmm,
             PreviewImage = LastScanPreviewImage.Source
         };
     }

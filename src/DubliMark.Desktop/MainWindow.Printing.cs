@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using DubliMark.Core.Models;
 using DubliMark.Core.Parsing;
 using DubliMark.Core.Print;
@@ -99,6 +101,7 @@ public partial class MainWindow
 
         _settings.DefaultPrintTemplateName = template.Name;
         _settings.Save();
+        RefreshPreviewForActiveTemplate();
         RefreshPrintSettingsUi();
         SyncConnectedViews();
 
@@ -173,10 +176,107 @@ public partial class MainWindow
         PrintTemplateText.Text = activeTemplate.Name;
         PrintPrinterText.Text = string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName;
         PrintCopiesText.Text = Math.Max(1, _settings.PrintCopies).ToString();
-        TemplateLargeText.Text = _printTemplates.FirstOrDefault(t => t.LabelWidthMm >= 40)?.Name ?? "ЧЗ 40×30 мм";
-        TemplateSmallText.Text = _printTemplates.FirstOrDefault(t => t.LabelWidthMm <= 30)?.Name ?? "ЧЗ 30×20 мм";
+        RenderDashboardTemplateList(activeTemplate);
         SyncPrintPageState();
         SyncTemplatesPageState();
+    }
+
+    private void RenderDashboardTemplateList(PrintTemplate activeTemplate)
+    {
+        DashboardTemplatesPanel.Children.Clear();
+        TemplatesSummaryText.Text = $"{_printTemplates.Count} шабл. · выбран {activeTemplate.Name}";
+
+        foreach (var template in _printTemplates)
+            DashboardTemplatesPanel.Children.Add(BuildDashboardTemplateCard(template, activeTemplate));
+    }
+
+    private Border BuildDashboardTemplateCard(PrintTemplate template, PrintTemplate activeTemplate)
+    {
+        var isActive = string.Equals(template.Name, activeTemplate.Name, StringComparison.OrdinalIgnoreCase);
+        var card = new Border
+        {
+            Style = (Style)FindResource("DataPill"),
+            BorderBrush = isActive ? BrushFromResource("AccentBrush") : BrushFromResource("BorderBrushSoft"),
+            Background = isActive
+                ? (Brush)new BrushConverter().ConvertFrom("#12243B")!
+                : BrushFromResource("PanelAltBrush"),
+            Padding = new Thickness(12),
+            Margin = new Thickness(0, 0, 0, 10),
+            Cursor = System.Windows.Input.Cursors.Hand,
+            ToolTip = isActive ? "Активный шаблон" : "Сделать активным шаблоном",
+            Tag = template.Name
+        };
+        card.MouseLeftButtonUp += (_, _) => SetActivePrintTemplate(template.Name);
+
+        var grid = new Grid();
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(74) });
+
+        grid.Children.Add(new Ellipse
+        {
+            Width = 12,
+            Height = 12,
+            VerticalAlignment = VerticalAlignment.Center,
+            Fill = isActive ? BrushFromResource("AccentBrush") : Brushes.Transparent,
+            Stroke = isActive ? BrushFromResource("AccentBrush") : BrushFromResource("BorderBrushSoft"),
+            StrokeThickness = 2
+        });
+
+        var text = new StackPanel { Margin = new Thickness(10, 0, 0, 0) };
+        text.Children.Add(new TextBlock
+        {
+            Text = template.Name,
+            Foreground = BrushFromResource("TextBrush"),
+            FontWeight = FontWeights.SemiBold,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        });
+        text.Children.Add(new TextBlock
+        {
+            Text = $"{template.LabelWidthMm:0.#} × {template.LabelHeightMm:0.#} мм · DM {template.DataMatrixWidthMm:0.#} мм",
+            Style = (Style)FindResource("MutedText"),
+            FontSize = 12
+        });
+        Grid.SetColumn(text, 1);
+        grid.Children.Add(text);
+
+        var preview = new Border
+        {
+            Background = (Brush)new BrushConverter().ConvertFrom("#E8EEF5")!,
+            CornerRadius = new CornerRadius(8),
+            Height = 48,
+            Width = 68,
+            Child = new Grid
+            {
+                Children =
+                {
+                    new Rectangle
+                    {
+                        Fill = (Brush)new BrushConverter().ConvertFrom("#101820")!,
+                        Width = Math.Clamp(template.DataMatrixWidthMm * 1.4, 20, 34),
+                        Height = Math.Clamp(template.DataMatrixHeightMm * 1.4, 20, 34),
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(7, 0, 0, 0)
+                    },
+                    new TextBlock
+                    {
+                        Text = "ЧЗ",
+                        Foreground = (Brush)new BrushConverter().ConvertFrom("#101820")!,
+                        FontWeight = FontWeights.Bold,
+                        FontSize = 9,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        VerticalAlignment = VerticalAlignment.Top,
+                        Margin = new Thickness(0, 6, 6, 0)
+                    }
+                }
+            }
+        };
+        Grid.SetColumn(preview, 2);
+        grid.Children.Add(preview);
+
+        card.Child = grid;
+        return card;
     }
 
     private void OnAutoPrintQuickToggleChanged(object sender, RoutedEventArgs e)
@@ -217,7 +317,11 @@ public partial class MainWindow
 
     private void OnPrintSettingsClick(object sender, RoutedEventArgs e)
     {
+        if (_printTemplates.Count == 0)
+            _printTemplates = _printTemplateService.LoadOrCreateDefaults();
+
         var window = new PrintSettingsWindow(_settings, _printTemplates) { Owner = this };
+        window.TemplateSelected += (_, template) => SetActivePrintTemplate(template, showToast: false);
         if (window.ShowDialog() == true && window.ResultSettings != null)
         {
             _settings = window.ResultSettings;
@@ -229,6 +333,9 @@ public partial class MainWindow
 
     private void OnPrintTemplatesClick(object sender, RoutedEventArgs e)
     {
+        if (_printTemplates.Count == 0)
+            _printTemplates = _printTemplateService.LoadOrCreateDefaults();
+
         var window = new PrintTemplatesWindow(_printTemplates, _settings.DefaultPrintTemplateName) { Owner = this };
         if (window.ShowDialog() == true)
         {
@@ -240,11 +347,20 @@ public partial class MainWindow
                 _settings.DefaultPrintTemplateName = window.SelectedTemplateName;
             }
             if (!_printTemplates.Any(t => string.Equals(t.Name, _settings.DefaultPrintTemplateName, StringComparison.OrdinalIgnoreCase)))
-                _settings.DefaultPrintTemplateName = _printTemplates.FirstOrDefault()?.Name ?? "ЧЗ 30x20 мм";
+                _settings.DefaultPrintTemplateName = _printTemplates.FirstOrDefault()?.Name
+                                                     ?? PrintTemplateService.CreateDefaultTemplates()[0].Name;
             EnsureActiveTemplateSelection();
             _settings.Save();
             RefreshSettingsIntoUi();
         }
+    }
+
+    private void RefreshPreviewForActiveTemplate()
+    {
+        if (_lastSuccessfulScan == null)
+            return;
+
+        UpdatePreview(_lastSuccessfulScan.ParseResult, _lastSuccessfulScan.Raw, _lastSuccessfulScan.Source);
     }
 
     private void OnOpenPrintFolderClick(object sender, RoutedEventArgs e) =>

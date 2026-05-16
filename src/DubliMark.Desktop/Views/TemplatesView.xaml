@@ -14,7 +14,7 @@
                     <DockPanel Margin="0,0,0,18">
                         <StackPanel>
                             <TextBlock Text="Шаблоны печати" Style="{StaticResource SectionTitle}"/>
-                            <TextBlock Text="Локальные шаблоны labels.json. Редактирование открывается в существующем окне управления."
+                            <TextBlock Text="Локальные шаблоны templates.json. Редактирование открывается в существующем окне управления."
                                        Style="{StaticResource MutedText}" Margin="0,5,0,0"/>
                         </StackPanel>
                         <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Управление" Click="OnManageTemplatesProxyClick"/>
@@ -72,15 +72,7 @@
                     <StackPanel Grid.Column="2">
                         <TextBlock Text="Preview" Style="{StaticResource CardTitle}" Margin="0,0,0,14"/>
                         <Border Background="#F7FAFC" CornerRadius="18" Width="320" Height="230" Padding="18">
-                            <Grid>
-                                <Rectangle Fill="#111820" Width="126" Height="126" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
-                                    <TextBlock Text="GTIN {gtin}" Foreground="#111820" FontWeight="SemiBold"/>
-                                    <TextBlock Text="SN {serial}" Foreground="#111820"/>
-                                    <TextBlock Text="{}{codeType}" Foreground="#111820" FontWeight="Bold" Margin="0,8,0,0"/>
-                                    <TextBlock x:Name="TemplatePreviewNameText" Text="—" Foreground="#344054" FontSize="11" Margin="0,14,0,0"/>
-                                </StackPanel>
-                            </Grid>
+                            <Canvas x:Name="TemplatePreviewCanvas"/>
                         </Border>
                     </StackPanel>
                 </Grid>

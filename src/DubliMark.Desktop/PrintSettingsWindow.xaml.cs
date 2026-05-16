@@ -14,8 +14,10 @@ public partial class PrintSettingsWindow : Window
     private const string DefaultPrinterDisplayName = "По умолчанию";
     private readonly AppSettings _baseSettings;
     private readonly IReadOnlyList<PrintTemplate> _templates;
+    private bool _loading;
 
     public AppSettings? ResultSettings { get; private set; }
+    public event EventHandler<string?>? TemplateSelected;
 
     public PrintSettingsWindow(AppSettings settings, IReadOnlyList<PrintTemplate> templates)
     {
@@ -27,28 +29,36 @@ public partial class PrintSettingsWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        PrinterCombo.ItemsSource = new[] { DefaultPrinterDisplayName }
-            .Concat(MarkPrintService.GetInstalledPrinters())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        TemplateCombo.ItemsSource = _templates.Select(t => t.Name).ToList();
+        _loading = true;
+        try
+        {
+            PrinterCombo.ItemsSource = new[] { DefaultPrinterDisplayName }
+                .Concat(MarkPrintService.GetInstalledPrinters())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            TemplateCombo.ItemsSource = _templates.Select(t => t.Name).ToList();
 
-        AutoPrintCheck.IsChecked = _baseSettings.AutoPrintEnabled;
-        SilentPrintCheck.IsChecked = _baseSettings.PrintWithoutConfirmation;
-        SaveBeforePrintCheck.IsChecked = _baseSettings.SavePrintFileBeforePrint;
-        PrinterCombo.SelectedItem = string.IsNullOrWhiteSpace(_baseSettings.PrinterName)
-            ? DefaultPrinterDisplayName
-            : _baseSettings.PrinterName;
-        if (PrinterCombo.SelectedIndex < 0)
-            PrinterCombo.SelectedIndex = 0;
+            AutoPrintCheck.IsChecked = _baseSettings.AutoPrintEnabled;
+            SilentPrintCheck.IsChecked = _baseSettings.PrintWithoutConfirmation;
+            SaveBeforePrintCheck.IsChecked = _baseSettings.SavePrintFileBeforePrint;
+            PrinterCombo.SelectedItem = string.IsNullOrWhiteSpace(_baseSettings.PrinterName)
+                ? DefaultPrinterDisplayName
+                : _baseSettings.PrinterName;
+            if (PrinterCombo.SelectedIndex < 0)
+                PrinterCombo.SelectedIndex = 0;
 
-        TemplateCombo.SelectedItem = _baseSettings.DefaultPrintTemplateName ?? _templates.FirstOrDefault()?.Name;
-        if (TemplateCombo.SelectedIndex < 0 && _templates.Count > 0)
-            TemplateCombo.SelectedIndex = 0;
-        CopiesText.Text = _baseSettings.PrintCopies.ToString();
-        DelayText.Text = _baseSettings.PrintDelayMs.ToString();
-        DuplicateText.Text = _baseSettings.DuplicatePrintBlockSeconds.ToString();
-        PrintFolderText.Text = _baseSettings.EffectivePrintDirectory;
+            TemplateCombo.SelectedItem = _baseSettings.DefaultPrintTemplateName ?? _templates.FirstOrDefault()?.Name;
+            if (TemplateCombo.SelectedIndex < 0 && _templates.Count > 0)
+                TemplateCombo.SelectedIndex = 0;
+            CopiesText.Text = _baseSettings.PrintCopies.ToString();
+            DelayText.Text = _baseSettings.PrintDelayMs.ToString();
+            DuplicateText.Text = _baseSettings.DuplicatePrintBlockSeconds.ToString();
+            PrintFolderText.Text = _baseSettings.EffectivePrintDirectory;
+        }
+        finally
+        {
+            _loading = false;
+        }
     }
 
     private void OnBrowseClick(object sender, RoutedEventArgs e)
@@ -117,6 +127,12 @@ public partial class PrintSettingsWindow : Window
         ResultSettings = BuildSettings();
         DialogResult = true;
         Close();
+    }
+
+    private void OnTemplateSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (!_loading)
+            TemplateSelected?.Invoke(this, TemplateCombo.SelectedItem as string);
     }
 
     private AppSettings BuildSettings()

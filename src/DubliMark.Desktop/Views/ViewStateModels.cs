@@ -50,6 +50,12 @@ public sealed record PrintViewState
     public string QueueStatus { get; init; } = "Нет активных заданий";
     public string TemplateSize { get; init; } = "—";
     public string DataMatrixSize { get; init; } = "—";
+    public double LabelWidthMm { get; init; }
+    public double LabelHeightMm { get; init; }
+    public double DataMatrixWidthMm { get; init; }
+    public double DataMatrixHeightMm { get; init; }
+    public double DataMatrixXmm { get; init; }
+    public double DataMatrixYmm { get; init; }
     public ImageSource? PreviewImage { get; init; }
 }
 

@@ -388,7 +388,7 @@
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Text="Шаблон" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
                                 <Border Grid.Column="1" CornerRadius="8" Background="{StaticResource PanelAltBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="12,9">
-                                    <TextBlock x:Name="PrintTemplateText" Text="Шаблон: ЧЗ 40×30 мм" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="PrintTemplateText" Text="—" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
                                 </Border>
                             </Grid>
 
@@ -428,49 +428,12 @@
                                 <TextBlock Text="Шаблоны печати" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
                             </DockPanel>
 
-                            <Border Style="{StaticResource DataPill}" BorderBrush="{StaticResource AccentBrush}" Background="#12243B" Padding="12" Margin="0,0,0,14">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="20"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="76"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Ellipse Width="12" Height="12" Fill="{StaticResource AccentBrush}" VerticalAlignment="Center"/>
-                                    <StackPanel Grid.Column="1" Margin="10,0">
-                                        <TextBlock x:Name="TemplateLargeText" Text="ЧЗ 40×30 мм" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="40 × 30 мм" Style="{StaticResource MutedText}" FontSize="12"/>
-                                    </StackPanel>
-                                    <Border Grid.Column="2" Background="#E8EEF5" CornerRadius="8" Height="54" Width="76">
-                                        <Grid>
-                                            <Rectangle Fill="#101820" Width="34" Height="34" HorizontalAlignment="Left" Margin="8,0,0,0"/>
-                                            <TextBlock Text="ЧЗ" Foreground="#101820" FontWeight="Bold" FontSize="10" HorizontalAlignment="Right" Margin="0,7,8,0"/>
-                                        </Grid>
-                                    </Border>
-                                </Grid>
-                            </Border>
+                            <TextBlock x:Name="TemplatesSummaryText" Text="—" Style="{StaticResource MutedText}" Margin="0,0,0,10"/>
+                            <ScrollViewer MaxHeight="178" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,16">
+                                <StackPanel x:Name="DashboardTemplatesPanel"/>
+                            </ScrollViewer>
 
-                            <Border Style="{StaticResource DataPill}" Padding="12" Margin="0,0,0,16">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="20"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="66"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Ellipse Width="12" Height="12" Stroke="{StaticResource BorderBrushSoft}" StrokeThickness="2" VerticalAlignment="Center"/>
-                                    <StackPanel Grid.Column="1" Margin="10,0">
-                                        <TextBlock x:Name="TemplateSmallText" Text="ЧЗ 30×20 мм" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                                        <TextBlock Text="30 × 20 мм" Style="{StaticResource MutedText}" FontSize="12"/>
-                                    </StackPanel>
-                                    <Border Grid.Column="2" Background="#E8EEF5" CornerRadius="8" Height="46" Width="64">
-                                        <Grid>
-                                            <Rectangle Fill="#101820" Width="25" Height="25" HorizontalAlignment="Left" Margin="7,0,0,0"/>
-                                            <TextBlock Text="ЧЗ" Foreground="#101820" FontWeight="Bold" FontSize="9" HorizontalAlignment="Right" Margin="0,6,6,0"/>
-                                        </Grid>
-                                    </Border>
-                                </Grid>
-                            </Border>
-
-                            <Button Style="{StaticResource SecondaryButton}" Click="OnPrintTemplatesClick" Content="Управление шаблонами"/>
+                            <Button Style="{StaticResource SecondaryButton}" Click="OnNavigateTemplatesClick" Content="Управление шаблонами"/>
                         </StackPanel>
                     </Border>
 

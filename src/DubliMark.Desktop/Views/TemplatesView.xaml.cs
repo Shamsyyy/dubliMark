@@ -27,7 +27,7 @@ public partial class TemplatesView : UserControl
             TemplateDmSizeText.Text = "—";
             TemplatePositionText.Text = "—";
             TemplateBlocksText.Text = "—";
-            TemplatePreviewNameText.Text = "—";
+            TemplatePreviewCanvas.Children.Clear();
             return;
         }
 
@@ -36,7 +36,7 @@ public partial class TemplatesView : UserControl
         TemplateDmSizeText.Text = $"{active.DataMatrixWidthMm:0.#} × {active.DataMatrixHeightMm:0.#} мм";
         TemplatePositionText.Text = $"{active.DataMatrixXmm:0.#} / {active.DataMatrixYmm:0.#} мм";
         TemplateBlocksText.Text = active.TextBlockCount.ToString();
-        TemplatePreviewNameText.Text = active.Name;
+        DrawActiveTemplatePreview(active);
     }
 
     private Border BuildTemplateRow(TemplateViewItem template)
@@ -109,6 +109,58 @@ public partial class TemplatesView : UserControl
 
         border.Child = grid;
         return border;
+    }
+
+    private void DrawActiveTemplatePreview(TemplateViewItem template)
+    {
+        TemplatePreviewCanvas.Children.Clear();
+        const double maxWidth = 284;
+        const double maxHeight = 194;
+        var scale = Math.Min(maxWidth / template.LabelWidthMm, maxHeight / template.LabelHeightMm);
+        if (double.IsInfinity(scale) || scale <= 0)
+            scale = 1;
+
+        var labelWidth = template.LabelWidthMm * scale;
+        var labelHeight = template.LabelHeightMm * scale;
+        var offsetX = (maxWidth - labelWidth) / 2;
+        var offsetY = (maxHeight - labelHeight) / 2;
+
+        var label = new Rectangle
+        {
+            Width = labelWidth,
+            Height = labelHeight,
+            RadiusX = 8,
+            RadiusY = 8,
+            Fill = Brushes.White,
+            Stroke = (Brush)new BrushConverter().ConvertFrom("#D6DEE8")!,
+            StrokeThickness = 1
+        };
+        Canvas.SetLeft(label, offsetX);
+        Canvas.SetTop(label, offsetY);
+        TemplatePreviewCanvas.Children.Add(label);
+
+        var dm = new Rectangle
+        {
+            Width = template.DataMatrixWidthMm * scale,
+            Height = template.DataMatrixHeightMm * scale,
+            Fill = (Brush)new BrushConverter().ConvertFrom("#111820")!
+        };
+        Canvas.SetLeft(dm, offsetX + template.DataMatrixXmm * scale);
+        Canvas.SetTop(dm, offsetY + template.DataMatrixYmm * scale);
+        TemplatePreviewCanvas.Children.Add(dm);
+
+        var name = new TextBlock
+        {
+            Text = template.Name,
+            Foreground = (Brush)new BrushConverter().ConvertFrom("#344054")!,
+            FontSize = 11,
+            FontWeight = FontWeights.SemiBold,
+            Width = Math.Max(80, labelWidth - template.DataMatrixXmm * scale - dm.Width - 8),
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        Canvas.SetLeft(name, Math.Min(offsetX + template.LabelWidthMm * scale - name.Width - 6, offsetX + template.DataMatrixXmm * scale + dm.Width + 8));
+        Canvas.SetTop(name, offsetY + Math.Max(4, template.DataMatrixYmm * scale));
+        TemplatePreviewCanvas.Children.Add(name);
     }
 
     private void OnManageTemplatesProxyClick(object sender, RoutedEventArgs e) =>

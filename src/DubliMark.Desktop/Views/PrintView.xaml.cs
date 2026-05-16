@@ -1,5 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
 
 namespace DubliMark.Desktop.Views;
 
@@ -44,12 +46,13 @@ public partial class PrintView : UserControl
             PrintFolderText.Text = state.PrintFolder;
             PrintTemplateSizeText.Text = state.TemplateSize;
             PrintDmSizeText.Text = "DataMatrix: " + state.DataMatrixSize;
-            PrintPreviewTemplateText.Text = state.SelectedTemplate ?? "ЧЗ";
             PrintPrinterSummaryText.Text = string.IsNullOrWhiteSpace(state.SelectedPrinter) ? "По умолчанию" : state.SelectedPrinter;
             PrintTemplateSummaryText.Text = state.SelectedTemplate ?? "—";
 
             PrintPreviewImage.Source = state.PreviewImage;
             PrintPreviewMock.Visibility = state.PreviewImage == null ? Visibility.Visible : Visibility.Collapsed;
+            if (state.PreviewImage == null)
+                DrawMockPreview(state);
 
             RenderRecentPrints(recentPrints);
         }
@@ -57,6 +60,61 @@ public partial class PrintView : UserControl
         {
             _updating = false;
         }
+    }
+
+    private void DrawMockPreview(PrintViewState state)
+    {
+        PrintPreviewMockCanvas.Children.Clear();
+        if (state.LabelWidthMm <= 0 || state.LabelHeightMm <= 0)
+            return;
+
+        const double maxWidth = 288;
+        const double maxHeight = 188;
+        var scale = Math.Min(maxWidth / state.LabelWidthMm, maxHeight / state.LabelHeightMm);
+        if (double.IsInfinity(scale) || scale <= 0)
+            scale = 1;
+
+        var labelWidth = state.LabelWidthMm * scale;
+        var labelHeight = state.LabelHeightMm * scale;
+        var offsetX = (maxWidth - labelWidth) / 2;
+        var offsetY = (maxHeight - labelHeight) / 2;
+
+        var label = new Rectangle
+        {
+            Width = labelWidth,
+            Height = labelHeight,
+            RadiusX = 8,
+            RadiusY = 8,
+            Fill = Brushes.White,
+            Stroke = (Brush)new BrushConverter().ConvertFrom("#D6DEE8")!,
+            StrokeThickness = 1
+        };
+        Canvas.SetLeft(label, offsetX);
+        Canvas.SetTop(label, offsetY);
+        PrintPreviewMockCanvas.Children.Add(label);
+
+        var dm = new Rectangle
+        {
+            Width = state.DataMatrixWidthMm * scale,
+            Height = state.DataMatrixHeightMm * scale,
+            Fill = (Brush)new BrushConverter().ConvertFrom("#111820")!
+        };
+        Canvas.SetLeft(dm, offsetX + state.DataMatrixXmm * scale);
+        Canvas.SetTop(dm, offsetY + state.DataMatrixYmm * scale);
+        PrintPreviewMockCanvas.Children.Add(dm);
+
+        var templateName = new TextBlock
+        {
+            Text = state.SelectedTemplate ?? "ЧЗ",
+            Foreground = (Brush)new BrushConverter().ConvertFrom("#111820")!,
+            FontWeight = FontWeights.Bold,
+            FontSize = 11,
+            Width = Math.Max(86, labelWidth - state.DataMatrixXmm * scale - dm.Width - 10),
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        Canvas.SetLeft(templateName, Math.Min(offsetX + labelWidth - templateName.Width - 6, offsetX + state.DataMatrixXmm * scale + dm.Width + 8));
+        Canvas.SetTop(templateName, offsetY + Math.Max(4, state.DataMatrixYmm * scale));
+        PrintPreviewMockCanvas.Children.Add(templateName);
     }
 
     private void RenderRecentPrints(IReadOnlyList<ScanHistoryItem> recentPrints)

@@ -116,6 +116,7 @@
                                           Grid.Row="1"
                                           Grid.Column="1"
                                           Style="{StaticResource DashboardComboBox}"
+                                          SelectionChanged="OnTemplateSelectionChanged"
                                           Margin="0,0,0,12"/>
 
                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Количество копий" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>

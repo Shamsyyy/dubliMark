@@ -95,12 +95,7 @@
                             <Grid>
                                 <Image x:Name="PrintPreviewImage" Stretch="Uniform"/>
                                 <Grid x:Name="PrintPreviewMock">
-                                    <Rectangle Fill="#111820" Width="104" Height="104" HorizontalAlignment="Left" VerticalAlignment="Center"/>
-                                    <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center">
-                                        <TextBlock Text="GTIN {gtin}" Foreground="#111820" FontWeight="SemiBold"/>
-                                        <TextBlock Text="SN {serial}" Foreground="#111820"/>
-                                        <TextBlock x:Name="PrintPreviewTemplateText" Text="ЧЗ" Foreground="#111820" FontWeight="Bold" Margin="0,8,0,0"/>
-                                    </StackPanel>
+                                    <Canvas x:Name="PrintPreviewMockCanvas"/>
                                 </Grid>
                             </Grid>
                         </Border>
