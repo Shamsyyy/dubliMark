@@ -1,103 +1,637 @@
 <Window x:Class="DubliMark.Desktop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="DubliMark — чтение ЧЗ" Height="620" Width="960"
-        Background="#1e1e1e" Foreground="White" FontFamily="Consolas"
+        Title="DubliMark" Height="860" Width="1440"
+        MinHeight="760" MinWidth="1280"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI"
         Closing="OnWindowClosing">
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <Grid x:Name="RootShell">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="236"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
 
-        <!-- Connection + actions -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,12">
-            <StackPanel x:Name="ComConnectionPanel">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="COM-порт:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <ComboBox x:Name="PortsCombo" Width="120" Background="#2d2d30" Foreground="White"/>
-                    <Button Content="Подключить" Click="OnConnectClick" Margin="8,0,4,0"
-                            Background="#0e639c" Foreground="White" BorderThickness="0" Padding="8,4"/>
-                    <Button Content="Обновить" Click="OnRefreshClick"
-                            Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
-                    <TextBlock x:Name="StatusText" VerticalAlignment="Center" Margin="16,0,0,0"/>
+        <Border Grid.Column="0"
+                Background="{StaticResource SidebarBackgroundBrush}"
+                BorderBrush="{StaticResource BorderBrushSoft}"
+                BorderThickness="0,0,1,0">
+            <Grid Margin="16,22">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="24"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center" Margin="8,0,0,0">
+                    <Border Width="34" Height="34" CornerRadius="10"
+                            Background="#102B24" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="1">
+                        <Path Width="21" Height="21" Stretch="Uniform"
+                              Stroke="{StaticResource SuccessBrush}" StrokeThickness="1.8"
+                              Data="M4,4 L8,4 L8,8 L4,8 Z M13,4 L17,4 L17,8 L13,8 Z M4,13 L8,13 L8,17 L4,17 Z M13,13 L17,13 L17,17 L13,17 Z M10.5,2.5 L10.5,5.5 M10.5,15.5 L10.5,18.5 M2.5,10.5 L5.5,10.5 M15.5,10.5 L18.5,10.5"/>
+                    </Border>
+                    <TextBlock Text="DubliMark" Foreground="{StaticResource TextBrush}"
+                               FontSize="20" FontWeight="SemiBold" Margin="12,0,0,0"
+                               VerticalAlignment="Center"/>
                 </StackPanel>
-                <TextBlock x:Name="PortsHintText" TextWrapping="Wrap" FontSize="12" Foreground="#f0ad4e"
-                           Margin="0,6,0,0" Visibility="Collapsed"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <Button Content="Настроить сканер" Click="OnSetupScannerClick"
-                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
-                <Button Content="Загрузить изображение" Click="OnLoadImageClick" Margin="8,0,0,0"
-                        Background="#2d6a2d" Foreground="White" BorderThickness="0" Padding="8,4"/>
-                <Button Content="Сбросить настройки" Click="OnResetSettingsClick" Margin="8,0,0,0"
-                        Background="#5a1a1a" Foreground="White" BorderThickness="0" Padding="8,4"/>
-                <Button Content="Диагностика HID" Click="OnHidDiagnosticsClick" Margin="8,0,0,0"
-                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
-                <Button Content="Из буфера" Click="OnPasteImageClick" Margin="8,0,0,0"
-                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <CheckBox x:Name="AutoSaveCheck" Content="Автосохранение"
-                          VerticalAlignment="Center"
-                          Checked="OnAutoSaveChanged" Unchecked="OnAutoSaveChanged"/>
-                <Button Content="Папка экспорта" Click="OnChooseExportFolderClick" Margin="12,0,0,0"
-                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
-                <TextBlock x:Name="ExportPathText" VerticalAlignment="Center" Margin="12,0,0,0"
-                           Foreground="#cccccc" TextWrapping="Wrap"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                <TextBlock x:Name="AutoPrintStatusText" VerticalAlignment="Center" Foreground="#cccccc"/>
-                <TextBlock x:Name="PrintTemplateText" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#cccccc"/>
-                <TextBlock x:Name="PrintPrinterText" VerticalAlignment="Center" Margin="12,0,0,0" Foreground="#cccccc"/>
-                <Button Content="Печать последнего ЧЗ" Click="OnPrintLastClick" Margin="12,0,0,0"
-                        Background="#0e639c" Foreground="White" BorderThickness="0" Padding="8,4"/>
-                <Button Content="Настройки печати" Click="OnPrintSettingsClick" Margin="8,0,0,0"
-                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
-                <Button Content="Шаблоны печати" Click="OnPrintTemplatesClick" Margin="8,0,0,0"
-                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
-                <Button Content="Открыть папку печати" Click="OnOpenPrintFolderClick" Margin="8,0,0,0"
-                        Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="8,4"/>
-            </StackPanel>
-            <TextBlock x:Name="LastPrintStatusText" Margin="0,6,0,0" Foreground="#9cdcfe" TextWrapping="Wrap"/>
-            <Border x:Name="HidHelpPanel" Background="#2a2a1a" BorderBrush="#5a5a30" BorderThickness="1"
-                    CornerRadius="4" Padding="10" Margin="0,10,0,0">
-                <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#ccccaa" LineHeight="18">
-                    <Run FontWeight="Bold">HID и разделитель GS:</Run>
-                    <LineBreak/>
-                    Для чтения «Честного знака» сканер должен передавать символ GS (0x1D) между полями.
-                    <LineBreak/>
-                    • Netum / Symbol: включите «GS separator», «FNC1», «Transmit GS» в меню сканера.
-                    <LineBreak/>
-                    • Если COM-портов нет — сканер в режиме HID; для COM переключите «Virtual COM» в утилите производителя.
-                    <LineBreak/>
-                    • Надёжнее всего: режим Virtual COM + подключение через «Подключить».
-                    <LineBreak/>
-                    • Короткая матрица (~30 байт) — нормальный код без AI 91/92; полный дубль (~80+ байт) требует большую матрицу или COM.
-                    • Если HID обрезает полный код после серийника — прошивка; ПО не восстанавливает AI 91/92.
-                    <LineBreak/>
-                    • «Диагностика HID» покажет все VKey/MakeCode и поможет настроить GS (Ctrl+], символ |, и т.д.).
-                    <LineBreak/>
-                    • Отладка: переменные среды DUBLIMARK_DEBUG_SCANNER=1, DUBLIMARK_LOWLEVEL_HOOK=1.
-                </TextBlock>
-            </Border>
-        </StackPanel>
 
-        <!-- Waiting indicator -->
-        <Border Grid.Row="1" Background="#2d2d30" Padding="12" CornerRadius="4" Margin="0,0,0,12">
-            <TextBlock x:Name="WaitText" Text="⏳ Ожидание сканирования..."
-                       FontSize="18" HorizontalAlignment="Center" Foreground="#cccccc"/>
+                <StackPanel Grid.Row="2">
+                    <Button x:Name="NavDashboardButton" Style="{StaticResource SidebarButtonActive}" Margin="0,0,0,10" Click="OnNavigateDashboardClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Stroke="{StaticResource AccentBrush}"
+                                  Data="M3,10 L10,3 L17,10 M5,9 L5,17 L15,17 L15,9 M8,17 L8,12 L12,12 L12,17"/>
+                            <TextBlock Text="Главная" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavScanButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateScanClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M4,7 L4,4 L7,4 M13,4 L16,4 L16,7 M16,13 L16,16 L13,16 M7,16 L4,16 L4,13 M8,8 L12,8 L12,12 L8,12 Z"/>
+                            <TextBlock Text="Сканирование" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavPrintButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigatePrintClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M5,8 L5,3 L15,3 L15,8 M5,14 L3,14 L3,8 L17,8 L17,14 L15,14 M6,12 L14,12 L14,18 L6,18 Z"/>
+                            <TextBlock Text="Печать" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavTemplatesButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateTemplatesClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M4,4 L16,4 L16,16 L4,16 Z M7,7 L9,7 M11,7 L13,7 M7,10 L9,10 M11,10 L13,10 M7,13 L9,13 M11,13 L13,13"/>
+                            <TextBlock Text="Шаблоны" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavHistoryButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateHistoryClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M10,3 A7,7 0 1 0 10,17 A7,7 0 1 0 10,3 M10,6 L10,10 L13,12"/>
+                            <TextBlock Text="История" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavExportButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateExportClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M4,7 L4,4 L7,4 M13,4 L16,4 L16,7 M16,13 L16,16 L13,16 M7,16 L4,16 L4,13 M10,6 L10,14 M6,10 L14,10"/>
+                            <TextBlock Text="Экспорт" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavDiagnosticsButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateDiagnosticsClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M3,10 C5,3 8,8 10,4 C12,8 15,3 17,10 C15,16 12,14 10,17 C8,14 5,16 3,10"/>
+                            <TextBlock Text="Диагностика" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavAccountButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateAccountClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M10,10 A3.5,3.5 0 1 0 10,3 A3.5,3.5 0 1 0 10,10 M4,17 C4.8,13.8 7,12.5 10,12.5 C13,12.5 15.2,13.8 16,17"/>
+                            <TextBlock Text="ЛК" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <Border Grid.Row="3" Style="{StaticResource SoftSurface}" Padding="12" Margin="0,0,0,2">
+                    <StackPanel Orientation="Horizontal" Margin="8,0,0,0">
+                        <Border Width="34" Height="34" CornerRadius="17" Background="#102B24">
+                            <Path Width="19" Height="19" Stretch="Uniform" Stroke="{StaticResource SuccessBrush}" StrokeThickness="1.7"
+                                  Data="M10,2 L17,6 L17,14 L10,18 L3,14 L3,6 Z M10,2 L10,18 M3,6 L10,10 L17,6"/>
+                        </Border>
+                        <StackPanel Margin="12,0,0,0">
+                            <TextBlock Text="DubliMark v2.1.0" Style="{StaticResource MutedText}" FontSize="12"/>
+                            <TextBlock Text="© 2026" Style="{StaticResource MutedText}" FontSize="12"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </Border>
 
-        <!-- Results -->
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
-            <StackPanel x:Name="ResultPanel"/>
-        </ScrollViewer>
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="96"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <!-- Error line -->
-        <TextBlock Grid.Row="3" x:Name="ErrorText" Foreground="OrangeRed"
-                   TextWrapping="Wrap" Margin="0,8,0,0" FontSize="13"/>
+            <Grid Grid.Row="0" Margin="28,18,28,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="360"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="64"/>
+                    <ColumnDefinition Width="240"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock x:Name="PageTitleText" Text="Главная панель" Style="{StaticResource SectionTitle}" Margin="0,0,0,4"/>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse x:Name="WorkspaceStatusDot" Width="8" Height="8" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
+                        <TextBlock Text="Рабочее пространство:" Margin="10,0,4,0" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
+                        <TextBlock Text="Основное" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" FontSize="12"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <Border Grid.Column="1" Height="44" CornerRadius="12" Margin="16,0"
+                        Background="{StaticResource SoftPanelBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1"
+                        VerticalAlignment="Center" Effect="{StaticResource CardShadow}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="42"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Path Grid.Column="0" Width="17" Height="17" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.7"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Data="M8,3 A5,5 0 1 0 8,13 A5,5 0 1 0 8,3 M12,12 L16,16"/>
+                        <TextBox Grid.Column="1" BorderThickness="0" Background="Transparent" Foreground="{StaticResource MutedTextBrush}"
+                                 VerticalContentAlignment="Center" FontSize="13"
+                                 Text="Поиск по сканам, GS, серийному номеру..."/>
+                    </Grid>
+                </Border>
+
+                <Grid Grid.Column="2" VerticalAlignment="Center">
+                    <Border Width="42" Height="42" CornerRadius="21" Background="{StaticResource SoftPanelBrush}"
+                            BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Path Width="19" Height="19" Stretch="Uniform" Stroke="{StaticResource TextBrush}" StrokeThickness="1.6"
+                              Data="M10,17 C11.1,17 12,16.2 12.2,15.2 M5,12 L5,8 C5,5.5 7,3.5 10,3.5 C13,3.5 15,5.5 15,8 L15,12 L17,14 L3,14 Z"/>
+                    </Border>
+                    <Border Width="17" Height="17" CornerRadius="8.5" Background="{StaticResource AccentBrush}"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,12,0">
+                        <TextBlock Text="3" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+
+                <Border Grid.Column="3" Height="54" CornerRadius="14"
+                        Background="{StaticResource SoftPanelBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1"
+                        Padding="12,0" VerticalAlignment="Center">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="40"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="18"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Width="38" Height="38" CornerRadius="19" Background="#E7D6C5" VerticalAlignment="Center">
+                            <TextBlock Text="ИП" Foreground="#1A2028" FontWeight="Bold" FontSize="13"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Иван Петров" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" FontSize="13"/>
+                            <TextBlock Text="ООО «Ромашка»" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
+                        </StackPanel>
+                        <Path Grid.Column="2" Width="10" Height="7" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.6"
+                              VerticalAlignment="Center" Data="M1,1 L5,5 L9,1"/>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <ContentControl x:Name="PageHost" Grid.Row="1" Opacity="1">
+                <ContentControl.RenderTransform>
+                    <TranslateTransform x:Name="PageHostTranslate" Y="0"/>
+                </ContentControl.RenderTransform>
+                <ContentControl.Content>
+            <ScrollViewer x:Name="DashboardScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="24,0,24,24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.12*"/>
+                        <ColumnDefinition Width="1.18*"/>
+                        <ColumnDefinition Width="0.88*"/>
+                        <ColumnDefinition Width="1.04*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,16,16">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,16">
+                                <Path DockPanel.Dock="Left" Width="22" Height="22" Stretch="Uniform" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8"
+                                      Data="M4,7 L4,4 L7,4 M13,4 L16,4 L16,7 M16,13 L16,16 L13,16 M7,16 L4,16 L4,13 M8,8 L12,8 L12,12 L8,12 Z"/>
+                                <TextBlock Text="Сканирование" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
+                            </DockPanel>
+
+                            <Border Style="{StaticResource SoftSurface}" Padding="12" Margin="0,0,0,16">
+                            <StackPanel Orientation="Horizontal">
+                                <Ellipse x:Name="ScannerStatusDot" Width="9" Height="9" Fill="{StaticResource DangerBrush}" VerticalAlignment="Center"/>
+                                <TextBlock Text="Сканер:" Style="{StaticResource MetricLabel}" Margin="10,0,4,0"/>
+                                <TextBlock x:Name="StatusText" Text="не подключен" Foreground="{StaticResource DangerBrush}"
+                                           FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                            </StackPanel>
+                            </Border>
+
+                            <StackPanel x:Name="ComConnectionPanel">
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="54"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="48"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Режим:" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                                    <ComboBox Grid.Column="1" Style="{StaticResource DashboardComboBox}" SelectedIndex="0">
+                                        <ComboBoxItem Content="COM-порт"/>
+                                        <ComboBoxItem Content="HID"/>
+                                    </ComboBox>
+                                    <TextBlock Grid.Column="3" Text="Порт:" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="PortsCombo" Grid.Column="4" Style="{StaticResource DashboardComboBox}"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="108"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Style="{StaticResource PrimaryButton}" Click="OnConnectClick">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Path Width="16" Height="16" Stretch="Uniform" Stroke="White" StrokeThickness="1.7"
+                                                  Data="M8,2 L8,7 M5,7 L11,7 M6,7 L6,11 C6,13 10,13 10,11 L10,7 M8,13 L8,16"/>
+                                            <TextBlock Text="Подключить" Margin="9,0,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Click="OnRefreshClick" Content="Обновить"/>
+                                </Grid>
+                            </StackPanel>
+
+                            <UniformGrid Columns="3" Margin="0,2,0,12">
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnSetupScannerClick" Margin="0,0,6,0" Padding="10,9" Content="Настроить сканер"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnHidDiagnosticsClick" Margin="3,0" Padding="10,9" Content="Диагностика HID"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnLoadImageClick" Margin="6,0,0,0" Padding="10,9" Content="Загрузить изображение"/>
+                            </UniformGrid>
+                            <Button Style="{StaticResource SecondaryButton}" Click="OnPasteImageClick" Padding="10,8" Content="Из буфера обмена" Margin="0,0,0,10"/>
+                            <TextBlock x:Name="PortsHintText" Style="{StaticResource MutedText}" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" Visibility="Collapsed"/>
+                            <TextBlock x:Name="WaitText" Text="Ожидание сканирования..." Style="{StaticResource MutedText}" Margin="0,8,0,0"/>
+                            <Border x:Name="HidHelpPanel" Visibility="Collapsed"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource Card}" Margin="0,0,16,16">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,18">
+                                <Path DockPanel.Dock="Left" Width="23" Height="23" Stretch="Uniform" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8"
+                                      Data="M5,8 L5,3 L15,3 L15,8 M5,14 L3,14 L3,8 L17,8 L17,14 L15,14 M6,12 L14,12 L14,18 L6,18 Z"/>
+                                <TextBlock Text="Автопечать" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <TextBlock x:Name="AutoPrintStatusText" Text="Выкл." Style="{StaticResource MutedText}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                    <CheckBox x:Name="AutoPrintQuickToggle" Style="{StaticResource ToggleSwitch}"
+                                              Checked="OnAutoPrintQuickToggleChanged"
+                                              Unchecked="OnAutoPrintQuickToggleChanged"/>
+                                </StackPanel>
+                            </DockPanel>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="84"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Принтер" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="1" CornerRadius="8" Background="{StaticResource PanelAltBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="12,9">
+                                    <TextBlock x:Name="PrintPrinterText" Text="Принтер: по умолчанию" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                                </Border>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="84"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Шаблон" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="1" CornerRadius="8" Background="{StaticResource PanelAltBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="12,9">
+                                    <TextBlock x:Name="PrintTemplateText" Text="Шаблон: ЧЗ 40×30 мм" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                                </Border>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="84"/>
+                                    <ColumnDefinition Width="122"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Копий" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                                <Border Grid.Column="1" CornerRadius="8" Background="{StaticResource PanelAltBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="12,9">
+                                    <TextBlock x:Name="PrintCopiesText" Text="1" Foreground="{StaticResource TextBrush}" HorizontalAlignment="Center"/>
+                                </Border>
+                            </Grid>
+
+                            <Button Style="{StaticResource TealButton}" Click="OnPrintLastClick" Margin="0,0,0,12">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Width="17" Height="17" Stretch="Uniform" Stroke="White" StrokeThickness="1.7"
+                                          Data="M5,8 L5,3 L15,3 L15,8 M5,14 L3,14 L3,8 L17,8 L17,14 L15,14 M6,12 L14,12 L14,18 L6,18 Z"/>
+                                    <TextBlock Text="Печать последнего ЧЗ" Margin="9,0,0,0"/>
+                                </StackPanel>
+                            </Button>
+
+                            <UniformGrid Columns="2" Margin="0,0,0,10">
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnPrintSettingsClick" Margin="0,0,6,0" Content="Настройки печати"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnOpenPrintFolderClick" Margin="6,0,0,0" Content="Открыть папку печати"/>
+                            </UniformGrid>
+                            <TextBlock x:Name="LastPrintStatusText" Style="{StaticResource MutedText}" Foreground="#8ED6FF" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource Card}" Margin="0,0,16,16">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,18">
+                                <Path DockPanel.Dock="Left" Width="23" Height="23" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.7"
+                                      Data="M4,4 L16,4 L16,16 L4,16 Z M7,7 L9,7 M11,7 L13,7 M7,10 L9,10 M11,10 L13,10 M7,13 L9,13 M11,13 L13,13"/>
+                                <TextBlock Text="Шаблоны печати" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
+                            </DockPanel>
+
+                            <Border Style="{StaticResource DataPill}" BorderBrush="{StaticResource AccentBrush}" Background="#12243B" Padding="12" Margin="0,0,0,14">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="20"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="76"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Width="12" Height="12" Fill="{StaticResource AccentBrush}" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Column="1" Margin="10,0">
+                                        <TextBlock x:Name="TemplateLargeText" Text="ЧЗ 40×30 мм" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="40 × 30 мм" Style="{StaticResource MutedText}" FontSize="12"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="2" Background="#E8EEF5" CornerRadius="8" Height="54" Width="76">
+                                        <Grid>
+                                            <Rectangle Fill="#101820" Width="34" Height="34" HorizontalAlignment="Left" Margin="8,0,0,0"/>
+                                            <TextBlock Text="ЧЗ" Foreground="#101820" FontWeight="Bold" FontSize="10" HorizontalAlignment="Right" Margin="0,7,8,0"/>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Border Style="{StaticResource DataPill}" Padding="12" Margin="0,0,0,16">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="20"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="66"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Width="12" Height="12" Stroke="{StaticResource BorderBrushSoft}" StrokeThickness="2" VerticalAlignment="Center"/>
+                                    <StackPanel Grid.Column="1" Margin="10,0">
+                                        <TextBlock x:Name="TemplateSmallText" Text="ЧЗ 30×20 мм" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="30 × 20 мм" Style="{StaticResource MutedText}" FontSize="12"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="2" Background="#E8EEF5" CornerRadius="8" Height="46" Width="64">
+                                        <Grid>
+                                            <Rectangle Fill="#101820" Width="25" Height="25" HorizontalAlignment="Left" Margin="7,0,0,0"/>
+                                            <TextBlock Text="ЧЗ" Foreground="#101820" FontWeight="Bold" FontSize="9" HorizontalAlignment="Right" Margin="0,6,6,0"/>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </Border>
+
+                            <Button Style="{StaticResource SecondaryButton}" Click="OnPrintTemplatesClick" Content="Управление шаблонами"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="0" Grid.Column="3" Style="{StaticResource Card}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <TextBlock Text="Личный кабинет" Style="{StaticResource CardTitle}" Margin="0,0,0,18"/>
+                            <Border Style="{StaticResource SoftSurface}" Padding="14" Margin="0,0,0,16">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="64" Height="64" CornerRadius="32" Background="#E7D6C5">
+                                    <TextBlock Text="ИП" Foreground="#1A2028" FontSize="19" FontWeight="Bold"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Margin="16,6,0,0">
+                                    <TextBlock Text="Иван Петров" Foreground="{StaticResource TextBrush}" FontSize="17" FontWeight="SemiBold"/>
+                                    <TextBlock Text="ivan.petrov@romashka.ru" Style="{StaticResource MutedText}"/>
+                                </StackPanel>
+                            </StackPanel>
+                            </Border>
+
+                            <Grid Margin="0,0,0,18">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="128"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="26"/>
+                                    <RowDefinition Height="26"/>
+                                    <RowDefinition Height="26"/>
+                                    <RowDefinition Height="26"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="Организация" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="ООО «Ромашка»" Style="{StaticResource MetricValue}" FontWeight="SemiBold"/>
+                                <TextBlock Grid.Row="1" Text="Магазин" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Магазин №1" Style="{StaticResource MetricValue}" FontWeight="SemiBold"/>
+                                <TextBlock Grid.Row="2" Text="Тариф" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock Grid.Row="2" Grid.Column="1" Text="Профи" Style="{StaticResource StatusBadge}" Background="#173D2B"/>
+                                <TextBlock Grid.Row="3" Text="Статус" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock Grid.Row="3" Grid.Column="1" Text="Активен" Style="{StaticResource StatusBadge}" Background="#173D2B"/>
+                            </Grid>
+
+                            <UniformGrid Columns="2">
+                                <Button Style="{StaticResource SecondaryButton}" Margin="0,0,6,0" Content="Настройки профиля"/>
+                                <Button Style="{StaticResource DangerButton}" Margin="6,0,0,0" Content="Выход"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Style="{StaticResource HeroCard}" Margin="0,0,16,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                                <ColumnDefinition Width="250"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Margin="0,0,4,0">
+                                <DockPanel Margin="0,0,0,18">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="28" Height="28" CornerRadius="14" Background="#183E2D">
+                                            <Path Width="15" Height="15" Stretch="Uniform" Stroke="{StaticResource SuccessBrush}" StrokeThickness="2"
+                                                  Data="M2,7 L5.5,10.5 L12,3"/>
+                                        </Border>
+                                        <StackPanel Margin="12,0,0,0">
+                                            <TextBlock Text="Последний скан" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
+                                            <TextBlock Text="Живой статус распознавания и локального сохранения" Style="{StaticResource MutedText}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <Border x:Name="LastScanStatusBadgeBorder" DockPanel.Dock="Right" Style="{StaticResource PillBadge}"
+                                            Background="#182536" BorderBrush="{StaticResource BorderBrushSoft}">
+                                        <TextBlock x:Name="LastScanStatusText" Text="Ожидание" Foreground="{StaticResource MutedTextBrush}"
+                                                   FontWeight="SemiBold" FontSize="13"/>
+                                    </Border>
+                                </DockPanel>
+
+                                <UniformGrid Columns="2" Margin="0,0,0,14">
+                                    <Border Style="{StaticResource DataPill}" Margin="0,0,8,8">
+                                        <StackPanel>
+                                            <TextBlock Text="AI 91" Style="{StaticResource MutedText}"/>
+                                            <TextBlock x:Name="LastScanAi91Text" Text="—" Foreground="{StaticResource SuccessBrush}"
+                                                       FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource DataPill}" Margin="8,0,0,8">
+                                        <StackPanel>
+                                            <TextBlock Text="AI 92 / 93" Style="{StaticResource MutedText}"/>
+                                            <TextBlock x:Name="LastScanAi92Text" Text="—" Foreground="{StaticResource SuccessBrush}"
+                                                       FontSize="18" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource DataPill}" Margin="0,8,8,0">
+                                        <StackPanel>
+                                            <TextBlock Text="Серийный номер AI 21" Style="{StaticResource MutedText}"/>
+                                            <TextBlock x:Name="LastScanSerialText" Text="—" Style="{StaticResource MetricValue}" FontSize="15"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource DataPill}" Margin="8,8,0,0">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="GS count" Style="{StaticResource MutedText}"/>
+                                                <TextBlock x:Name="LastScanGsCountText" Text="—" Style="{StaticResource MetricValue}" FontSize="15"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="Источник" Style="{StaticResource MutedText}"/>
+                                                <TextBlock x:Name="LastScanSourceText" Text="—" Style="{StaticResource MetricValue}" FontSize="15"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </UniformGrid>
+
+                                <Border Style="{StaticResource SoftSurface}" Padding="14" Margin="0,0,0,16">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="110"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Сохранено" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="LastScanSavePathText" Grid.Column="1" Text="—" Foreground="{StaticResource TextBrush}"
+                                                   TextTrimming="CharacterEllipsis" FontSize="13"/>
+                                    </Grid>
+                                </Border>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <Button x:Name="OpenLastScanFolderButton" Style="{StaticResource SecondaryButton}" Click="OnOpenLastScanFolderClick" Padding="14,9" Content="Открыть папку"/>
+                                    <Button Style="{StaticResource SecondaryButton}" Click="OnCopyLastScanClick" Padding="14,9" Margin="10,0,0,0" Content="Копировать данные"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center">
+                                <TextBlock Text="DataMatrix" Style="{StaticResource MutedText}" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                <Border Width="206" Height="206" CornerRadius="18" Background="#F7FAFC" Padding="15"
+                                        BorderBrush="#FFFFFF" BorderThickness="1">
+                                    <Grid>
+                                        <Image x:Name="LastScanPreviewImage" Stretch="Uniform"/>
+                                        <TextBlock x:Name="LastScanPreviewPlaceholder" Text="Нет данных" Foreground="#293241"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13"/>
+                                    </Grid>
+                                </Border>
+                                <Border Style="{StaticResource PillBadge}" Margin="0,14,0,0" HorizontalAlignment="Center">
+                                    <TextBlock Text="Preview из normalized payload" Style="{StaticResource MutedText}"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Row="1" Grid.Column="3" Style="{StaticResource Card}" Margin="0,0,0,16">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,16">
+                                <Path DockPanel.Dock="Left" Width="22" Height="22" Stretch="Uniform" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.7"
+                                      Data="M3,6 L8,6 L10,8 L17,8 L17,16 L3,16 Z M3,6 L3,4 L8,4 L10,6"/>
+                                <TextBlock Text="Экспорт / сохранение" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
+                            </DockPanel>
+
+                            <TextBlock Text="Папка экспорта" Style="{StaticResource MutedText}" Margin="0,0,0,8"/>
+                            <Border CornerRadius="8" Background="{StaticResource PanelAltBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="12,9" Margin="0,0,0,12">
+                                <TextBlock x:Name="ExportPathText" Text="—" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis"/>
+                            </Border>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                <CheckBox x:Name="AutoSaveCheck" Style="{StaticResource ToggleSwitch}"
+                                          Checked="OnAutoSaveChanged" Unchecked="OnAutoSaveChanged"/>
+                                <TextBlock Text="Автосохранение" Foreground="{StaticResource TextBrush}" Margin="10,2,0,0"/>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnChooseExportFolderClick" Content="Выбрать папку" Padding="12,8"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnOpenExportRootFolderClick" Content="Открыть папку" Padding="12,8" Margin="10,0,0,0"/>
+                            </StackPanel>
+
+                            <TextBlock x:Name="ExportStatusText" Text="Файлы сохраняются локально по дате." Style="{StaticResource MutedText}" Foreground="{StaticResource SuccessBrush}" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Style="{StaticResource Card}" Margin="0,0,16,0">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,12">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Width="22" Height="22" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.7"
+                                          Data="M10,3 A7,7 0 1 0 10,17 A7,7 0 1 0 10,3 M10,6 L10,10 L13,12"/>
+                                    <TextBlock Text="История" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
+                                    <TextBlock Text="(последние сканы)" Style="{StaticResource MutedText}" Margin="6,3,0,0"/>
+                                </StackPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Padding="10,6" Content="Открыть всю историю"/>
+                            </DockPanel>
+
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="140"/>
+                                    <ColumnDefinition Width="170"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Время" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock Grid.Column="1" Text="Статус" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock Grid.Column="2" Text="AI (91)" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock Grid.Column="3" Text="AI (92)" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock Grid.Column="4" Text="Шаблон" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock Grid.Column="5" Text="Принтер" Style="{StaticResource MetricLabel}"/>
+                            </Grid>
+                            <Border Height="1" Background="{StaticResource BorderBrushSoft}" Margin="0,0,0,4"/>
+                            <StackPanel x:Name="ResultPanel"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="2" Grid.Column="3" Style="{StaticResource Card}">
+                        <StackPanel>
+                            <DockPanel Margin="0,0,0,16">
+                                <Path DockPanel.Dock="Left" Width="22" Height="22" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.7"
+                                      Data="M3,11 L6,11 L8,6 L12,16 L14,11 L17,11"/>
+                                <TextBlock Text="Диагностика" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
+                            </DockPanel>
+
+                            <Grid Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="28"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="Режим" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="DiagnosticModeText" Grid.Row="0" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" Foreground="{StaticResource SuccessBrush}"/>
+                                <TextBlock Grid.Row="1" Text="Сканер" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="DiagnosticScannerText" Grid.Row="1" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}"/>
+                                <TextBlock Grid.Row="2" Text="Статус" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="DiagnosticStatusText" Grid.Row="2" Grid.Column="1" Text="Не подключен" Style="{StaticResource MetricValue}" Foreground="{StaticResource WarningBrush}"/>
+                                <TextBlock Grid.Row="3" Text="Последняя проверка" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="DiagnosticLastCheckText" Grid.Row="3" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}"/>
+                            </Grid>
+
+                            <Button Style="{StaticResource SecondaryButton}" Click="OnHidDiagnosticsClick" Content="Запустить диагностику" Margin="0,0,0,12"/>
+                            <Button Style="{StaticResource SecondaryButton}" Click="OnResetSettingsClick" Content="Сбросить настройки" Margin="0,0,0,12"/>
+                            <TextBlock x:Name="ErrorText" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" FontSize="13"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </ScrollViewer>
+                </ContentControl.Content>
+            </ContentControl>
+        </Grid>
+
+        <Grid Grid.ColumnSpan="2" IsHitTestVisible="False" Panel.ZIndex="80">
+            <StackPanel x:Name="ToastPanel"
+                        Width="360"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,28,28"/>
+        </Grid>
     </Grid>
 </Window>

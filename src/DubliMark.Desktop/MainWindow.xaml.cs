@@ -31,6 +31,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         InitializePrintServices();
+        InitializeNavigation();
         Loaded += OnLoaded;
         PreviewKeyDown += OnPreviewKeyDown;
     }
@@ -114,7 +115,7 @@ public partial class MainWindow : Window
             _settings.Save();
 
             RestartScanner();
-            SetStatus($"✓ COM {port}", isError: false);
+            SetStatus($"COM {port} подключен", isError: false);
             ComConnectionPanel.Visibility = Visibility.Collapsed;
             PortsCombo.Focusable = false;
             Focus();
@@ -122,7 +123,7 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             ErrorText.Text = ex.Message;
-            SetStatus("✗ " + ex.Message, isError: true);
+            SetStatus("Ошибка: " + ex.Message, isError: true);
         }
     }
 
@@ -152,7 +153,7 @@ public partial class MainWindow : Window
                 _settings.Save();
                 ComConnectionPanel.Visibility = Visibility.Visible;
                 RestartScanner();
-                SetStatus("✓ Сканер HID настроен", isError: false);
+                SetStatus("Сканер HID настроен", isError: false);
                 ErrorText.Text = string.Empty;
                 Focus();
             }
@@ -178,7 +179,7 @@ public partial class MainWindow : Window
         RestartScanner();
         SetStatus("Настройки сброшены", isError: false);
         ErrorText.Text = string.Empty;
-        WaitText.Text = "⏳ Ожидание сканирования...";
+        WaitText.Text = "Ожидание сканирования...";
     }
 
     private void RestartScanner()
@@ -206,21 +207,31 @@ public partial class MainWindow : Window
         switch (_settings.ScannerMode)
         {
             case ScannerMode.Com when !string.IsNullOrWhiteSpace(_settings.ComPort):
-                SetStatus($"✓ COM {_settings.ComPort}", isError: false);
+                SetStatus($"COM {_settings.ComPort} подключен", isError: false);
                 break;
             case ScannerMode.RawInput when !string.IsNullOrWhiteSpace(_settings.ScannerDevicePath):
-                SetStatus("✓ HID сканер", isError: false);
+                SetStatus("HID сканер подключен", isError: false);
                 break;
             default:
                 SetStatus("HID не настроен — «Настроить сканер»", isError: false);
                 break;
         }
+
+        RefreshDiagnosticsUi();
     }
 
     private void SetStatus(string text, bool isError)
     {
         StatusText.Text = text;
         StatusText.Foreground = isError ? Brushes.OrangeRed : Brushes.LightGreen;
+        ScannerStatusDot.Fill = isError ? BrushFromResource("DangerBrush") : BrushFromResource("SuccessBrush");
+        WorkspaceStatusDot.Fill = isError ? BrushFromResource("WarningBrush") : BrushFromResource("SuccessBrush");
+        DiagnosticStatusText.Text = text;
+        DiagnosticStatusText.Foreground = isError ? BrushFromResource("DangerBrush") : BrushFromResource("SuccessBrush");
+        DiagnosticLastCheckText.Text = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
+
+        if (IsLoaded)
+            ShowToast(text, isError ? ToastKind.Error : ToastKind.Success);
     }
 
     private void OnBarcode(object? sender, string raw)
@@ -375,96 +386,11 @@ public partial class MainWindow : Window
             : FormatParseError(r, fromImage, imageGsCount ?? 0, imagePayloadByteLength);
 
         ErrorText.Text = parseError;
-        WaitText.Text = "✅ Код получен";
+        WaitText.Text = r.IsValid ? "Код получен" : "Ошибка сканирования";
 
-        var bg = r.IsValid ? "#1a3a1a" : "#3a1a1a";
-        var card = new Border
-        {
-            Background = (Brush)new BrushConverter().ConvertFrom(bg)!,
-            Padding = new Thickness(12),
-            Margin = new Thickness(0, 0, 0, 8),
-            CornerRadius = new CornerRadius(4)
-        };
-        var sp = new StackPanel();
-
-        sp.Children.Add(Field("Источник", source));
-        sp.Children.Add(Field("Сырые данные", FormatRawForDisplay(raw), small: true));
-
-        if (fromImage)
-        {
-            sp.Children.Add(Field("GS (0x1D)", (imageGsCount ?? 0).ToString()));
-            if (imagePayloadByteLength is > 0)
-            {
-                var lengthHint = imagePayloadByteLength switch
-                {
-                    >= 70 => "полный код с криптохвостом 91/92",
-                    >= 25 and <= 45 => "короткий код (DataMatrix ~22×22–24×24)",
-                    _ => "проверьте тип кода"
-                };
-                sp.Children.Add(Field(
-                    "Длина payload",
-                    $"{imagePayloadByteLength} байт — {lengthHint}",
-                    small: true));
-            }
-
-            if (!string.IsNullOrEmpty(imageNormalizeNote))
-                sp.Children.Add(Field("Нормализация", imageNormalizeNote, small: true));
-            sp.Children.Add(Field("HEX (изображение)", imageHex!, small: true));
-        }
-
-        if (r.IsValid && r.Code != null)
-        {
-            sp.Children.Add(Field("Тип кода", FormatCodeType(r.Code, fromImage)));
-            sp.Children.Add(Field("GTIN", r.Code.Gtin));
-            sp.Children.Add(Field("Серийный (13)", FormatSerialDisplay(r.Code.Serial)));
-            if (r.Code.VerificationKey != null)
-                sp.Children.Add(Field("Ключ проверки (AI 91)", r.Code.VerificationKey));
-            if (r.Code.VerificationCode != null)
-                sp.Children.Add(Field("Код проверки (AI 92)", r.Code.VerificationCode));
-            if (r.Code.AdditionalField93 != null)
-            {
-                var label = r.Code.CodeType == MarkingCodeType.Short
-                    ? "Код проверки (AI 93)"
-                    : "Доп. поле (AI 93)";
-                sp.Children.Add(Field(label, r.Code.AdditionalField93));
-            }
-
-            foreach (var info in r.InfoMessages)
-            {
-                sp.Children.Add(new TextBlock
-                {
-                    Text = "ℹ " + info,
-                    Foreground = Brushes.LightGoldenrodYellow,
-                    FontSize = 12,
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 4, 0, 2)
-                });
-            }
-
-            if (!fromImage)
-                sp.Children.Add(Field("HEX", r.Code.RawDataHex, small: true));
-
-            AddExportResult(sp, exportResult, r.IsValid);
-            AddPrintResult(sp, printResult);
-        }
-        else
-        {
-            sp.Children.Add(new TextBlock
-            {
-                Text = $"❌ {parseError}",
-                Foreground = Brushes.OrangeRed,
-                FontSize = 14,
-                TextWrapping = TextWrapping.Wrap
-            });
-            if (!fromImage && r.Code != null)
-                sp.Children.Add(Field("HEX", r.Code.RawDataHex, small: true));
-
-            AddExportResult(sp, exportResult, r.IsValid);
-            AddPrintResult(sp, printResult);
-        }
-
-        card.Child = sp;
-        ResultPanel.Children.Insert(0, card);
+        UpdateLastScanDashboard(r, raw, source, exportResult, printResult, imageGsCount, parseError);
+        AddHistoryRow(r, printResult);
+        ShowScanToast(r, exportResult, printResult);
 
         while (ResultPanel.Children.Count > 20)
             ResultPanel.Children.RemoveAt(ResultPanel.Children.Count - 1);
@@ -478,6 +404,199 @@ public partial class MainWindow : Window
 
         Focus();
     }
+
+    private void UpdateLastScanDashboard(
+        ParseResult r,
+        string raw,
+        string source,
+        MarkExportResult? exportResult,
+        PrintPipelineResult? printResult,
+        int? imageGsCount,
+        string parseError)
+    {
+        var status = r.IsValid
+            ? r.InfoMessages.Count > 0 ? "Предупреждение" : "Успешно"
+            : "Ошибка";
+        LastScanStatusText.Text = status;
+        LastScanStatusText.Foreground = r.IsValid
+            ? r.InfoMessages.Count > 0 ? BrushFromResource("WarningBrush") : BrushFromResource("SuccessBrush")
+            : BrushFromResource("DangerBrush");
+        LastScanStatusBadgeBorder.Background = r.IsValid
+            ? r.InfoMessages.Count > 0 ? new SolidColorBrush(Color.FromRgb(54, 42, 18)) : new SolidColorBrush(Color.FromRgb(22, 61, 43))
+            : new SolidColorBrush(Color.FromRgb(62, 23, 29));
+        LastScanStatusBadgeBorder.BorderBrush = r.IsValid
+            ? r.InfoMessages.Count > 0 ? BrushFromResource("WarningBrush") : BrushFromResource("SuccessBrush")
+            : BrushFromResource("DangerBrush");
+
+        var code = r.Code;
+        LastScanAi91Text.Text = code?.VerificationKey ?? "—";
+        LastScanAi92Text.Text = code?.VerificationCode ?? code?.AdditionalField93 ?? "—";
+        LastScanSerialText.Text = code?.Serial ?? "—";
+        LastScanGsCountText.Text = (imageGsCount ?? Gs1BarcodeEncoding.CountGs(code?.RawData ?? raw)).ToString();
+        LastScanSourceText.Text = source;
+
+        var savedPath = ResolveSavedFolder(exportResult, printResult);
+        _lastScanFolder = savedPath;
+        LastScanSavePathText.Text = savedPath ?? (r.IsValid ? "не сохранено" : "не сохраняется как готовый ЧЗ");
+        OpenLastScanFolderButton.IsEnabled = !string.IsNullOrWhiteSpace(savedPath);
+
+        ExportStatusText.Text = BuildExportStatus(exportResult, r.IsValid);
+        ExportStatusText.Foreground = exportResult is { Success: false }
+            ? BrushFromResource("DangerBrush")
+            : BrushFromResource("SuccessBrush");
+
+        _lastScanCopyText = BuildLastScanCopyText(r, raw, source, exportResult, printResult, parseError);
+        UpdatePreview(r, raw, source);
+
+        DiagnosticLastCheckText.Text = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
+    }
+
+    private void AddHistoryRow(ParseResult r, PrintPipelineResult? printResult)
+    {
+        var code = r.Code;
+        var status = r.IsValid
+            ? r.InfoMessages.Count > 0 ? "Предупреждение" : "Успешно"
+            : "Ошибка";
+        var statusBrush = r.IsValid
+            ? r.InfoMessages.Count > 0 ? BrushFromResource("WarningBrush") : BrushFromResource("SuccessBrush")
+            : BrushFromResource("DangerBrush");
+
+        var row = new Grid
+        {
+            MinHeight = 30
+        };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(170) });
+
+        row.Children.Add(HistoryCell(DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"), 0));
+        row.Children.Add(HistoryCell(status, 1, statusBrush));
+        row.Children.Add(HistoryCell(code?.VerificationKey ?? "—", 2));
+        row.Children.Add(HistoryCell(code?.VerificationCode ?? code?.AdditionalField93 ?? "—", 3));
+        row.Children.Add(HistoryCell(printResult?.Render?.Template.Name ?? (r.IsValid ? ResolveActiveTemplate().Name : "—"), 4));
+        row.Children.Add(HistoryCell(string.IsNullOrWhiteSpace(_settings.PrinterName) ? "по умолчанию" : _settings.PrinterName, 5));
+
+        var shell = new Border
+        {
+            Background = (Brush)FindResource("SoftPanelBrush"),
+            BorderBrush = BrushFromResource("BorderBrushSoft"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(12, 4, 10, 4),
+            Margin = new Thickness(0, 0, 0, 6),
+            Child = row
+        };
+
+        ResultPanel.Children.Insert(0, shell);
+    }
+
+    private TextBlock HistoryCell(string text, int column, Brush? foreground = null)
+    {
+        var tb = new TextBlock
+        {
+            Text = text,
+            Foreground = foreground ?? BrushFromResource("TextBrush"),
+            FontSize = 12,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 4, 12, 4),
+            Opacity = foreground == null ? 0.86 : 1
+        };
+        Grid.SetColumn(tb, column);
+        return tb;
+    }
+
+    private void UpdatePreview(ParseResult r, string raw, string source)
+    {
+        LastScanPreviewImage.Source = null;
+        LastScanPreviewPlaceholder.Visibility = Visibility.Visible;
+
+        if (!r.IsValid || r.Code == null)
+            return;
+
+        try
+        {
+            var render = new MarkRenderService().Render(new MarkRenderRequest
+            {
+                RawPayload = raw,
+                ParseResult = r,
+                Source = source,
+                Template = ResolveActiveTemplate()
+            });
+
+            using var ms = new MemoryStream(render.PngBytes);
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.StreamSource = ms;
+            bitmap.EndInit();
+            bitmap.Freeze();
+
+            LastScanPreviewImage.Source = bitmap;
+            LastScanPreviewPlaceholder.Visibility = Visibility.Collapsed;
+        }
+        catch
+        {
+            LastScanPreviewImage.Source = null;
+            LastScanPreviewPlaceholder.Visibility = Visibility.Visible;
+        }
+    }
+
+    private static string? ResolveSavedFolder(MarkExportResult? exportResult, PrintPipelineResult? printResult)
+    {
+        if (exportResult is { Success: true, ExportDirectory.Length: > 0 })
+            return exportResult.ExportDirectory;
+        if (printResult?.Export?.DirectoryPath is { Length: > 0 } printFolder)
+            return printFolder;
+        if (exportResult?.DiagnosticsFilePath is { Length: > 0 } diag)
+            return Path.GetDirectoryName(diag);
+        return null;
+    }
+
+    private static string BuildExportStatus(MarkExportResult? exportResult, bool validCode)
+    {
+        if (exportResult == null)
+            return "Автосохранение выключено.";
+        if (validCode && exportResult.Success)
+            return "Сохранено локально: " + exportResult.ExportDirectory;
+        if (!validCode && !string.IsNullOrWhiteSpace(exportResult.DiagnosticsFilePath))
+            return "Диагностика сохранена: " + exportResult.DiagnosticsFilePath;
+        if (!string.IsNullOrWhiteSpace(exportResult.Error))
+            return "Ошибка сохранения: " + exportResult.Error;
+        return "Файлы сохраняются локально по дате.";
+    }
+
+    private static string BuildLastScanCopyText(
+        ParseResult r,
+        string raw,
+        string source,
+        MarkExportResult? exportResult,
+        PrintPipelineResult? printResult,
+        string parseError)
+    {
+        var code = r.Code;
+        return string.Join(Environment.NewLine, new[]
+        {
+            "status=" + (r.IsValid ? "valid" : "invalid"),
+            "error=" + parseError,
+            "source=" + source,
+            "gtin=" + (code?.Gtin ?? ""),
+            "serial=" + (code?.Serial ?? ""),
+            "ai91=" + (code?.VerificationKey ?? ""),
+            "ai92=" + (code?.VerificationCode ?? ""),
+            "ai93=" + (code?.AdditionalField93 ?? ""),
+            "gsCount=" + Gs1BarcodeEncoding.CountGs(code?.RawData ?? raw),
+            "rawEscaped=" + FormatRawForDisplay(raw),
+            "export=" + (exportResult?.ExportDirectory ?? ""),
+            "print=" + (printResult?.Export?.DirectoryPath ?? "")
+        });
+    }
+
+    private Brush BrushFromResource(string key) =>
+        (Brush)FindResource(key);
 
     private static string FormatParseError(
         ParseResult r,
@@ -574,6 +693,29 @@ public partial class MainWindow : Window
     {
         AutoSaveCheck.IsChecked = _settings.AutoSaveExports;
         ExportPathText.Text = _settings.EffectiveExportDirectory;
+        ExportStatusText.Text = _settings.AutoSaveExports
+            ? "Файлы сохраняются локально по дате."
+            : "Автосохранение выключено.";
+        ExportStatusText.Foreground = _settings.AutoSaveExports
+            ? BrushFromResource("SuccessBrush")
+            : BrushFromResource("MutedTextBrush");
+    }
+
+    private void RefreshDiagnosticsUi()
+    {
+        DiagnosticModeText.Text = _settings.ScannerMode switch
+        {
+            ScannerMode.Com => "COM-порт",
+            ScannerMode.RawInput => "HID",
+            _ => "Не выбран"
+        };
+
+        DiagnosticScannerText.Text = _settings.ScannerMode switch
+        {
+            ScannerMode.Com when !string.IsNullOrWhiteSpace(_settings.ComPort) => _settings.ComPort,
+            ScannerMode.RawInput when !string.IsNullOrWhiteSpace(_settings.ScannerDevicePath) => "Raw Input",
+            _ => "—"
+        };
     }
 
     private void OnAutoSaveChanged(object sender, RoutedEventArgs e)

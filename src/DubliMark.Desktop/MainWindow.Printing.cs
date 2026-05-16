@@ -15,6 +15,8 @@ public partial class MainWindow
     private PrintPipelineService _printPipeline = null!;
     private IReadOnlyList<PrintTemplate> _printTemplates = Array.Empty<PrintTemplate>();
     private LastSuccessfulScan? _lastSuccessfulScan;
+    private string? _lastScanFolder;
+    private string? _lastScanCopyText;
 
     private void InitializePrintServices()
     {
@@ -78,6 +80,7 @@ public partial class MainWindow
         if (result.BlockedDuplicate)
         {
             LastPrintStatusText.Text = result.Error ?? "";
+            ShowToast("Повторная печать заблокирована", ToastKind.Warning);
             return;
         }
 
@@ -87,12 +90,15 @@ public partial class MainWindow
             LastPrintStatusText.Text = string.IsNullOrWhiteSpace(folder)
                 ? "Напечатано"
                 : "Напечатано и сохранено: " + folder;
+            ShowToast("Напечатано", ToastKind.Success);
             return;
         }
 
         LastPrintStatusText.Text = string.IsNullOrWhiteSpace(result.Error)
             ? "Печать не выполнялась"
             : "Ошибка печати: " + result.Error;
+        if (!string.IsNullOrWhiteSpace(result.Error))
+            ShowToast("Ошибка печати: " + result.Error, ToastKind.Error);
     }
 
     private static void AddPrintResult(StackPanel sp, PrintPipelineResult? printResult)
@@ -123,9 +129,23 @@ public partial class MainWindow
         if (_printTemplates.Count == 0)
             _printTemplates = _printTemplateService.LoadOrCreateDefaults();
 
-        AutoPrintStatusText.Text = "Автопечать: " + (_settings.AutoPrintEnabled ? "включена" : "выключена");
-        PrintTemplateText.Text = "Шаблон: " + (ResolveActiveTemplate().Name);
-        PrintPrinterText.Text = "Принтер: " + (string.IsNullOrWhiteSpace(_settings.PrinterName) ? "по умолчанию" : _settings.PrinterName);
+        AutoPrintQuickToggle.IsChecked = _settings.AutoPrintEnabled;
+        AutoPrintStatusText.Text = _settings.AutoPrintEnabled ? "Вкл." : "Выкл.";
+        PrintTemplateText.Text = ResolveActiveTemplate().Name;
+        PrintPrinterText.Text = string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName;
+        PrintCopiesText.Text = Math.Max(1, _settings.PrintCopies).ToString();
+        TemplateLargeText.Text = _printTemplates.FirstOrDefault(t => t.LabelWidthMm >= 40)?.Name ?? "ЧЗ 40×30 мм";
+        TemplateSmallText.Text = _printTemplates.FirstOrDefault(t => t.LabelWidthMm <= 30)?.Name ?? "ЧЗ 30×20 мм";
+    }
+
+    private void OnAutoPrintQuickToggleChanged(object sender, RoutedEventArgs e)
+    {
+        if (_isLoadingSettings)
+            return;
+
+        _settings.AutoPrintEnabled = AutoPrintQuickToggle.IsChecked == true;
+        _settings.Save();
+        RefreshPrintSettingsUi();
     }
 
     private async void OnPrintLastClick(object sender, RoutedEventArgs e)
@@ -180,6 +200,21 @@ public partial class MainWindow
 
     private void OnOpenPrintFolderClick(object sender, RoutedEventArgs e) =>
         OpenFolder(_settings.EffectivePrintDirectory);
+
+    private void OnOpenExportRootFolderClick(object sender, RoutedEventArgs e) =>
+        OpenFolder(_settings.EffectiveExportDirectory);
+
+    private void OnOpenLastScanFolderClick(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(_lastScanFolder))
+            OpenFolder(_lastScanFolder);
+    }
+
+    private void OnCopyLastScanClick(object sender, RoutedEventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(_lastScanCopyText))
+            Clipboard.SetText(_lastScanCopyText);
+    }
 
     private static void OpenFolder(string folder)
     {

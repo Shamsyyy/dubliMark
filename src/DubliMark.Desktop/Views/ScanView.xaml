@@ -1,0 +1,78 @@
+<UserControl x:Class="DubliMark.Desktop.Views.ScanView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="Segoe UI">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Margin="24,0,24,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.15*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource HeroCard}" Margin="0,0,16,16">
+                <StackPanel>
+                    <TextBlock Text="Сканирование" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Text="Live-панель сканера, статуса GS и последнего payload."
+                               Style="{StaticResource MutedText}" Margin="0,6,0,20"/>
+
+                    <UniformGrid Columns="3" Margin="0,0,0,18">
+                        <Border Style="{StaticResource DataPill}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="Статус" Style="{StaticResource MutedText}"/>
+                                <TextBlock Text="Ожидание" Foreground="{StaticResource WarningBrush}" FontSize="18" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource DataPill}" Margin="4,0">
+                            <StackPanel>
+                                <TextBlock Text="GS 0x1D" Style="{StaticResource MutedText}"/>
+                                <TextBlock Text="контроль" Foreground="{StaticResource SuccessBrush}" FontSize="18" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource DataPill}" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Источник" Style="{StaticResource MutedText}"/>
+                                <TextBlock Text="COM / HID / Image" Foreground="{StaticResource TextBrush}" FontSize="16" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Button Style="{StaticResource PrimaryButton}" Content="Настроить сканер" Click="OnSetupScannerProxyClick"/>
+                        <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Content="Диагностика HID" Click="OnHidDiagnosticsProxyClick"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="DataMatrix Preview" Style="{StaticResource CardTitle}"/>
+                    <Border Background="#F7FAFC" CornerRadius="18" Width="220" Height="220" Margin="0,18,0,18" Padding="18">
+                        <Grid>
+                            <Rectangle Fill="#111820" Width="132" Height="132" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <TextBlock Text="preview" Foreground="#111820" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="Preview на главной странице строится из normalized payload с настоящим GS 0x1D."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Live scan feed" Style="{StaticResource CardTitle}"/>
+                    <TextBlock Text="Последние события сканирования отображаются в истории на главной панели. Здесь подготовлена отдельная рабочая зона под расширенную ленту."
+                               Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>
