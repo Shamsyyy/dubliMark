@@ -1,0 +1,15 @@
+---
+description: DataMatrix print/export payload and layout safety
+globs: src/DubliMark.Core/Print/*.cs,src/DubliMark.Core/Export/*.cs,src/DubliMark.Desktop/**/*Print*.cs
+alwaysApply: false
+---
+
+# Printing and Export Rules
+
+- DataMatrix must be encoded from the normalized payload with real GS `0x1D`.
+- Escaped `[GS]` is display-only and must not be used for DataMatrix encoding or print payloads.
+- PDF label output must use the exact selected template size.
+- Do not silently fall back to A4 for label printing.
+- Do not send Chestny ZNAK payloads, AI91/AI92 crypto tails, or exports outside the local machine.
+- Keep print/export changes covered by focused tests when behavior changes.
+- Preserve existing template dimensions, DataMatrix placement, and copy count semantics unless explicitly requested.

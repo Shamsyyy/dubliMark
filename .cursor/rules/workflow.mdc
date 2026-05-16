@@ -1,0 +1,15 @@
+---
+description: DubliMark development workflow
+alwaysApply: true
+---
+
+# Workflow
+
+- Start with analysis and read the relevant files before editing.
+- For non-trivial changes, provide a plan before making edits.
+- Keep edits scoped to the user's request.
+- Do not change business logic without an explicit request.
+- Do not touch COM, HID, RawInput, GS1 parsing, printing, or export unless the task asks for it.
+- After code changes, run `dotnet restore`, `dotnet build`, and `dotnet test`.
+- After rule/config-only changes, verify the requested structure and avoid broad code validation.
+- End with a short report covering files changed, validation performed, and any blockers.

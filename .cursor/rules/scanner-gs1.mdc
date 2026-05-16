@@ -1,0 +1,16 @@
+---
+description: Protect scanner, GS1, and Chestny ZNAK payload safety
+globs: src/DubliMark.Desktop/Services/*.cs,src/DubliMark.Core/Parsing/*.cs,tests/**/*.cs
+alwaysApply: false
+---
+
+# Scanner and GS1 Safety
+
+- Never break preservation of GS = `char 0x1D`.
+- Do not replace GS with text, whitespace, Enter, Tab, or visible placeholder characters.
+- Use escaped `[GS]` only for display/log UI, never as the stored or printed payload.
+- Do not cut AI 92 by fixed length.
+- Do not alter AI 91, AI 92, AI 93, or the crypto tail unless explicitly requested and tested.
+- Do not rewrite RawInput, COM, scanner buffering, or GS1 parsing without focused tests.
+- Do not use real Chestny ZNAK codes in tests, logs, documentation, prompts, or memory.
+- Before touching scanner/parser code, read the RawInput, Serial, `Gs1Parser`, and `Gs1BarcodeEncoding` files.

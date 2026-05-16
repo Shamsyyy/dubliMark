@@ -1,0 +1,15 @@
+---
+description: Shared UI state and print template synchronization
+globs: src/DubliMark.Desktop/**/*.cs,src/DubliMark.Desktop/**/*.xaml
+alwaysApply: false
+---
+
+# Settings and Template Sync
+
+- Selected print template must be a single global state.
+- Dashboard, PrintView, TemplatesView, and Settings must stay synchronized.
+- Do not use hardcoded or mock template lists in views.
+- Template ComboBox, selected cards, summaries, and previews must use the same source.
+- Settings changes must refresh all connected views without requiring app restart.
+- Persist selected template through settings and validate that it still exists in the shared template list.
+- Prefer `PrintTemplateService` plus shared MainWindow/UI state over local copies in individual views.

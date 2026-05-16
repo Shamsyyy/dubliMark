@@ -72,8 +72,11 @@ CLAUDE.md
 
 # Local generated databases
 *.db
+*.sqlite
 *.db-shm
 *.db-wal
+memory/
+coordination/
 
 # OS
 .DS_Store
