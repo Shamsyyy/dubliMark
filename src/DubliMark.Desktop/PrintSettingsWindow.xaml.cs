@@ -11,6 +11,7 @@ namespace DubliMark.Desktop;
 
 public partial class PrintSettingsWindow : Window
 {
+    private const string DefaultPrinterDisplayName = "По умолчанию";
     private readonly AppSettings _baseSettings;
     private readonly IReadOnlyList<PrintTemplate> _templates;
 
@@ -26,14 +27,24 @@ public partial class PrintSettingsWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        PrinterCombo.ItemsSource = MarkPrintService.GetInstalledPrinters();
+        PrinterCombo.ItemsSource = new[] { DefaultPrinterDisplayName }
+            .Concat(MarkPrintService.GetInstalledPrinters())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
         TemplateCombo.ItemsSource = _templates.Select(t => t.Name).ToList();
 
         AutoPrintCheck.IsChecked = _baseSettings.AutoPrintEnabled;
         SilentPrintCheck.IsChecked = _baseSettings.PrintWithoutConfirmation;
         SaveBeforePrintCheck.IsChecked = _baseSettings.SavePrintFileBeforePrint;
-        PrinterCombo.SelectedItem = _baseSettings.PrinterName;
+        PrinterCombo.SelectedItem = string.IsNullOrWhiteSpace(_baseSettings.PrinterName)
+            ? DefaultPrinterDisplayName
+            : _baseSettings.PrinterName;
+        if (PrinterCombo.SelectedIndex < 0)
+            PrinterCombo.SelectedIndex = 0;
+
         TemplateCombo.SelectedItem = _baseSettings.DefaultPrintTemplateName ?? _templates.FirstOrDefault()?.Name;
+        if (TemplateCombo.SelectedIndex < 0 && _templates.Count > 0)
+            TemplateCombo.SelectedIndex = 0;
         CopiesText.Text = _baseSettings.PrintCopies.ToString();
         DelayText.Text = _baseSettings.PrintDelayMs.ToString();
         DuplicateText.Text = _baseSettings.DuplicatePrintBlockSeconds.ToString();
@@ -125,7 +136,9 @@ public partial class PrintSettingsWindow : Window
             ScannerCustomGsRequiresShift = _baseSettings.ScannerCustomGsRequiresShift,
             ScannerCustomGsRequiresAlt = _baseSettings.ScannerCustomGsRequiresAlt,
             AutoPrintEnabled = AutoPrintCheck.IsChecked == true,
-            PrinterName = PrinterCombo.SelectedItem as string,
+            PrinterName = string.Equals(PrinterCombo.SelectedItem as string, DefaultPrinterDisplayName, StringComparison.OrdinalIgnoreCase)
+                ? null
+                : PrinterCombo.SelectedItem as string,
             PrintCopies = ParsePositive(CopiesText.Text, 1),
             PrintWithoutConfirmation = SilentPrintCheck.IsChecked == true,
             PrintDelayMs = ParseNonNegative(DelayText.Text),

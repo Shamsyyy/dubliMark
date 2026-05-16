@@ -38,6 +38,14 @@ public partial class MainWindow : Window
 
     private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
+        if ((System.Windows.Input.Keyboard.Modifiers & System.Windows.Input.ModifierKeys.Control) == System.Windows.Input.ModifierKeys.Control
+            && (e.Key == System.Windows.Input.Key.K || e.Key == System.Windows.Input.Key.Oem2))
+        {
+            FocusGlobalSearch();
+            e.Handled = true;
+            return;
+        }
+
         if (_isScannerSetupInProgress || _setupWindow != null)
             return;
 
@@ -59,6 +67,7 @@ public partial class MainWindow : Window
         RefreshPorts();
         SelectSavedPort();
         RestartScanner();
+        SyncConnectedViews();
         Focus();
     }
 
@@ -94,6 +103,8 @@ public partial class MainWindow : Window
                 "COM-порты не найдены. Переключите сканер в режим Virtual COM или используйте HID (кнопка «Настроить сканер»).";
             PortsHintText.Visibility = Visibility.Visible;
         }
+
+        SyncScannerPageState();
     }
 
     private void OnRefreshClick(object sender, RoutedEventArgs e) => RefreshPorts();
@@ -118,6 +129,7 @@ public partial class MainWindow : Window
             SetStatus($"COM {port} подключен", isError: false);
             ComConnectionPanel.Visibility = Visibility.Collapsed;
             PortsCombo.Focusable = false;
+            SyncConnectedViews();
             Focus();
         }
         catch (Exception ex)
@@ -155,6 +167,7 @@ public partial class MainWindow : Window
                 RestartScanner();
                 SetStatus("Сканер HID настроен", isError: false);
                 ErrorText.Text = string.Empty;
+                SyncConnectedViews();
                 Focus();
             }
         }
@@ -180,6 +193,7 @@ public partial class MainWindow : Window
         SetStatus("Настройки сброшены", isError: false);
         ErrorText.Text = string.Empty;
         WaitText.Text = "Ожидание сканирования...";
+        SyncConnectedViews();
     }
 
     private void RestartScanner()
@@ -195,7 +209,7 @@ public partial class MainWindow : Window
         }
         else
         {
-            PortsCombo.Focusable = false;
+            PortsCombo.Focusable = true;
         }
 
         UpdateStatusFromSettings();
@@ -232,6 +246,7 @@ public partial class MainWindow : Window
 
         if (IsLoaded)
             ShowToast(text, isError ? ToastKind.Error : ToastKind.Success);
+        SyncConnectedViews();
     }
 
     private void OnBarcode(object? sender, string raw)
@@ -390,7 +405,9 @@ public partial class MainWindow : Window
 
         UpdateLastScanDashboard(r, raw, source, exportResult, printResult, imageGsCount, parseError);
         AddHistoryRow(r, printResult);
+        RecordUiScanHistory(r, raw, source, exportResult, printResult, imageGsCount, parseError);
         ShowScanToast(r, exportResult, printResult);
+        SyncConnectedViews();
 
         while (ResultPanel.Children.Count > 20)
             ResultPanel.Children.RemoveAt(ResultPanel.Children.Count - 1);
@@ -699,10 +716,19 @@ public partial class MainWindow : Window
         ExportStatusText.Foreground = _settings.AutoSaveExports
             ? BrushFromResource("SuccessBrush")
             : BrushFromResource("MutedTextBrush");
+        SyncExportPageState();
     }
 
     private void RefreshDiagnosticsUi()
     {
+        if (ScannerModeCombo != null)
+        {
+            var wasLoading = _isLoadingSettings;
+            _isLoadingSettings = true;
+            ScannerModeCombo.SelectedIndex = _settings.ScannerMode == ScannerMode.RawInput ? 1 : 0;
+            _isLoadingSettings = wasLoading;
+        }
+
         DiagnosticModeText.Text = _settings.ScannerMode switch
         {
             ScannerMode.Com => "COM-порт",
@@ -726,6 +752,7 @@ public partial class MainWindow : Window
         _settings.AutoSaveExports = AutoSaveCheck.IsChecked == true;
         _settings.Save();
         RefreshExportSettingsUi();
+        SyncConnectedViews();
     }
 
     private void OnChooseExportFolderClick(object sender, RoutedEventArgs e)
@@ -744,6 +771,7 @@ public partial class MainWindow : Window
         _settings.ExportDirectory = dlg.FolderName;
         _settings.Save();
         RefreshExportSettingsUi();
+        SyncConnectedViews();
     }
 
     private void OnOpenExportFolderClick(object sender, RoutedEventArgs e)

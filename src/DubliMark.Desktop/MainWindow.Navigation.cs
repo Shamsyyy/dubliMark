@@ -35,7 +35,7 @@ public partial class MainWindow
         NavigateTo(GetTemplatesView(), NavTemplatesButton, "Шаблоны");
 
     private void OnNavigateHistoryClick(object sender, RoutedEventArgs e) =>
-        NavigateTo(_historyView ??= new HistoryView(), NavHistoryButton, "История");
+        NavigateTo(GetHistoryView(), NavHistoryButton, "История");
 
     private void OnNavigateExportClick(object sender, RoutedEventArgs e) =>
         NavigateTo(GetExportView(), NavExportButton, "Экспорт");
@@ -44,7 +44,7 @@ public partial class MainWindow
         NavigateTo(GetDiagnosticsView(), NavDiagnosticsButton, "Диагностика");
 
     private void OnNavigateAccountClick(object sender, RoutedEventArgs e) =>
-        NavigateTo(_accountView ??= new AccountView(), NavAccountButton, "Личный кабинет");
+        NavigateTo(GetAccountView(), NavAccountButton, "Личный кабинет");
 
     private ScanView GetScanView()
     {
@@ -52,8 +52,14 @@ public partial class MainWindow
             return _scanView;
 
         _scanView = new ScanView();
+        _scanView.ConnectRequested += OnScanViewConnectRequested;
+        _scanView.RefreshPortsRequested += OnScanViewRefreshPortsRequested;
         _scanView.SetupScannerRequested += OnSetupScannerClick;
         _scanView.HidDiagnosticsRequested += OnHidDiagnosticsClick;
+        _scanView.LoadImageRequested += OnLoadImageClick;
+        _scanView.PasteImageRequested += OnPasteImageClick;
+        _scanView.ModeSelectionRequested += OnScanViewModeSelectionRequested;
+        SyncScannerPageState();
         return _scanView;
     }
 
@@ -65,6 +71,13 @@ public partial class MainWindow
         _printView = new PrintView();
         _printView.PrintLastRequested += OnPrintLastClick;
         _printView.PrintSettingsRequested += OnPrintSettingsClick;
+        _printView.OpenPrintFolderRequested += OnOpenPrintFolderClick;
+        _printView.TestPrintRequested += OnPrintSettingsClick;
+        _printView.AutoPrintChanged += OnPrintViewAutoPrintChanged;
+        _printView.PrinterChanged += OnPrintViewPrinterChanged;
+        _printView.TemplateChanged += OnPrintViewTemplateChanged;
+        _printView.CopiesChanged += OnPrintViewCopiesChanged;
+        SyncPrintPageState();
         return _printView;
     }
 
@@ -75,7 +88,22 @@ public partial class MainWindow
 
         _templatesView = new TemplatesView();
         _templatesView.ManageTemplatesRequested += OnPrintTemplatesClick;
+        _templatesView.TemplateSelected += OnTemplatesViewTemplateSelected;
+        SyncTemplatesPageState();
         return _templatesView;
+    }
+
+    private HistoryView GetHistoryView()
+    {
+        if (_historyView != null)
+            return _historyView;
+
+        _historyView = new HistoryView();
+        _historyView.OpenFolderRequested += OnHistoryOpenFolderRequested;
+        _historyView.CopyRequested += OnHistoryCopyRequested;
+        _historyView.ReprintRequested += OnHistoryReprintRequested;
+        SyncHistoryPageState();
+        return _historyView;
     }
 
     private ExportView GetExportView()
@@ -85,6 +113,9 @@ public partial class MainWindow
 
         _exportView = new ExportView();
         _exportView.ChooseExportFolderRequested += OnChooseExportFolderClick;
+        _exportView.OpenExportFolderRequested += OnOpenExportRootFolderClick;
+        _exportView.AutoSaveChanged += OnExportViewAutoSaveChanged;
+        SyncExportPageState();
         return _exportView;
     }
 
@@ -96,12 +127,27 @@ public partial class MainWindow
         _diagnosticsView = new DiagnosticsView();
         _diagnosticsView.HidDiagnosticsRequested += OnHidDiagnosticsClick;
         _diagnosticsView.ResetSettingsRequested += OnResetSettingsClick;
+        SyncDiagnosticsPageState();
         return _diagnosticsView;
+    }
+
+    private AccountView GetAccountView()
+    {
+        if (_accountView != null)
+            return _accountView;
+
+        _accountView = new AccountView();
+        _accountView.ProfileSettingsRequested += (_, _) =>
+            ShowToast("Профиль будет подключен к личному кабинету позже", ToastKind.Warning);
+        _accountView.SignOutRequested += (_, _) =>
+            ShowToast("Авторизация будет добавлена позже", ToastKind.Warning);
+        return _accountView;
     }
 
     private void NavigateTo(object content, Button activeButton, string pageTitle)
     {
         PageTitleText.Text = pageTitle;
+        SyncConnectedViews();
         if (ReferenceEquals(PageHost.Content, content))
         {
             SetActiveNav(activeButton);

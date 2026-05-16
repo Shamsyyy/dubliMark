@@ -33,6 +33,10 @@ public partial class MainWindow
         if (string.IsNullOrWhiteSpace(message))
             return;
 
+        RecordNotification(message, kind);
+        if (ToastPanel == null)
+            return;
+
         _toastQueue.Enqueue(new ToastMessage(message, kind));
         if (!_isToastVisible)
             ShowNextToast();

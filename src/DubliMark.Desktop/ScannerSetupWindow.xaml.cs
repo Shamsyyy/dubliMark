@@ -36,13 +36,13 @@ public partial class ScannerSetupWindow : Window
             if (e.IsFastScan && !string.IsNullOrWhiteSpace(e.DevicePath))
             {
                 _detectedDevicePath = e.DevicePath;
-                StatusText.Text = $"✓ Сканер обнаружен\n{e.DevicePath}\n(средний интервал: {e.AverageIntervalMs:F0} мс)";
+                StatusText.Text = $"Сканер обнаружен\n{e.DevicePath}\n(средний интервал: {e.AverageIntervalMs:F0} мс)";
                 StatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
                 DoneButton.IsEnabled = true;
             }
             else
             {
-                StatusText.Text = "⚠ Сканирование слишком медленное или устройство не определено.\nПовторите сканирование сканером, не с клавиатуры.";
+                StatusText.Text = "Сканирование слишком медленное или устройство не определено.\nПовторите сканирование сканером, не с клавиатуры.";
                 StatusText.Foreground = System.Windows.Media.Brushes.Orange;
             }
         });

@@ -10,11 +10,14 @@ namespace DubliMark.Desktop;
 public partial class PrintTemplatesWindow : Window
 {
     private readonly List<PrintTemplate> _templates;
+    private readonly string? _initialActiveTemplateName;
 
     public IReadOnlyList<PrintTemplate> Templates => _templates;
+    public string? SelectedTemplateName { get; private set; }
 
-    public PrintTemplatesWindow(IReadOnlyList<PrintTemplate> templates)
+    public PrintTemplatesWindow(IReadOnlyList<PrintTemplate> templates, string? activeTemplateName = null)
     {
+        _initialActiveTemplateName = activeTemplateName;
         _templates = templates.Count > 0
             ? templates.ToList()
             : PrintTemplateService.CreateDefaultTemplates();
@@ -25,7 +28,11 @@ public partial class PrintTemplatesWindow : Window
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         RefreshList();
-        if (_templates.Count > 0)
+        var activeIndex = _templates.FindIndex(t =>
+            string.Equals(t.Name, _initialActiveTemplateName, StringComparison.OrdinalIgnoreCase));
+        if (activeIndex >= 0)
+            TemplateList.SelectedIndex = activeIndex;
+        else if (_templates.Count > 0)
             TemplateList.SelectedIndex = 0;
     }
 
@@ -41,6 +48,7 @@ public partial class PrintTemplatesWindow : Window
             return;
 
         LoadTemplate(_templates[TemplateList.SelectedIndex]);
+        SelectedTemplateName = _templates[TemplateList.SelectedIndex].Name;
     }
 
     private void LoadTemplate(PrintTemplate template)
@@ -71,6 +79,7 @@ public partial class PrintTemplatesWindow : Window
         _templates.Add(PrintTemplateService.CreateDefaultTemplates()[0] with { Name = "Новый шаблон" });
         RefreshList();
         TemplateList.SelectedIndex = _templates.Count - 1;
+        SelectedTemplateName = _templates[^1].Name;
     }
 
     private void OnCopyClick(object sender, RoutedEventArgs e)
@@ -82,6 +91,7 @@ public partial class PrintTemplatesWindow : Window
         _templates.Add(copy);
         RefreshList();
         TemplateList.SelectedIndex = _templates.Count - 1;
+        SelectedTemplateName = copy.Name;
     }
 
     private void OnDeleteClick(object sender, RoutedEventArgs e)
@@ -92,6 +102,7 @@ public partial class PrintTemplatesWindow : Window
         _templates.RemoveAt(TemplateList.SelectedIndex);
         RefreshList();
         TemplateList.SelectedIndex = 0;
+        SelectedTemplateName = _templates[0].Name;
     }
 
     private void OnApplyClick(object sender, RoutedEventArgs e)
@@ -109,8 +120,9 @@ public partial class PrintTemplatesWindow : Window
         _templates[TemplateList.SelectedIndex] = template;
         RefreshList();
         TemplateList.SelectedItem = template.Name;
+        SelectedTemplateName = template.Name;
         DrawPreview(template);
-        StatusText.Text = "Шаблон обновлён.";
+        StatusText.Text = "Шаблон обновлен.";
     }
 
     private PrintTemplate BuildTemplateFromFields()
@@ -197,7 +209,10 @@ public partial class PrintTemplatesWindow : Window
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
         if (TemplateList.SelectedIndex >= 0)
+        {
             _templates[TemplateList.SelectedIndex] = BuildTemplateFromFields();
+            SelectedTemplateName = _templates[TemplateList.SelectedIndex].Name;
+        }
         DialogResult = true;
         Close();
     }

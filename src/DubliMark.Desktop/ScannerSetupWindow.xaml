@@ -1,32 +1,106 @@
 <Window x:Class="DubliMark.Desktop.ScannerSetupWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Настройка сканера" Height="320" Width="520"
-        Background="#1e1e1e" Foreground="White" FontFamily="Consolas"
-        WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:ui="clr-namespace:DubliMark.Desktop"
+        Title="Настройка сканера"
+        Height="380"
+        Width="580"
+        MinHeight="360"
+        MinWidth="540"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI"
+        WindowStartupLocation="CenterOwner">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0"
+                            ResizeBorderThickness="0"
+                            GlassFrameThickness="0"
+                            CornerRadius="0"/>
+    </shell:WindowChrome.WindowChrome>
 
-        <TextBlock Grid.Row="0" TextWrapping="Wrap" FontSize="14" LineHeight="22">
-            Отсканируйте любой штрихкод сканером (HID).
-            Приложение определит устройство по скорости ввода (&lt;50 мс между символами).
-        </TextBlock>
+    <Border Style="{StaticResource DialogWindowFrame}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="42"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <Border Grid.Row="1" Background="#2d2d30" Padding="16" CornerRadius="4" Margin="0,16">
-            <TextBlock x:Name="StatusText" Text="⏳ Ожидание сканирования..."
-                       FontSize="16" TextWrapping="Wrap" VerticalAlignment="Center"/>
-        </Border>
+            <Border Grid.Row="0"
+                    Style="{StaticResource DialogTitleBar}"
+                    ui:DialogWindowChrome.IsDragArea="True">
+                <Grid>
+                    <TextBlock Text="Настройка сканера" Style="{StaticResource DialogTitleText}"/>
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                        <Button Style="{StaticResource TitleBarButton}" Content="—" ui:DialogWindowChrome.WindowCommand="Minimize"/>
+                        <Button Style="{StaticResource TitleBarCloseButton}" Content="×" ui:DialogWindowChrome.WindowCommand="Close"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button Content="Отмена" Click="OnCancelClick" Width="100" Margin="0,0,8,0"
-                    Background="#3e3e42" Foreground="White" BorderThickness="0" Padding="10,6"/>
-            <Button x:Name="DoneButton" Content="Готово" Click="OnDoneClick" Width="100"
-                    IsEnabled="False" Background="#0e639c" Foreground="White"
-                    BorderThickness="0" Padding="10,6"/>
-        </StackPanel>
-    </Grid>
+            <Grid Grid.Row="1" Margin="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Style="{StaticResource HeroCard}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="Настройка сканера" Style="{StaticResource CardTitle}" FontSize="21"/>
+                        <TextBlock Text="Отсканируйте любой штрихкод HID-сканером. Приложение определит устройство по скорости ввода."
+                                   Style="{StaticResource MutedText}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1" Style="{StaticResource Card}" Padding="22">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="52"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Width="36"
+                                Height="36"
+                                CornerRadius="18"
+                                Background="#142A3D"
+                                BorderBrush="#2F80ED"
+                                BorderThickness="1"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Center">
+                            <Ellipse Width="10" Height="10" Fill="{StaticResource AccentBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Статус подключения" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>
+                            <TextBlock x:Name="StatusText"
+                                       Text="Ожидание сканирования..."
+                                       FontSize="17"
+                                       FontWeight="SemiBold"
+                                       TextWrapping="Wrap"
+                                       LineHeight="24"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+                    <Button Content="Отмена"
+                            Click="OnCancelClick"
+                            Style="{StaticResource SecondaryButton}"
+                            MinWidth="110"
+                            Margin="0,0,8,0"/>
+                    <Button x:Name="DoneButton"
+                            Content="Готово"
+                            Click="OnDoneClick"
+                            Style="{StaticResource PrimaryButton}"
+                            MinWidth="110"
+                            IsEnabled="False"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
 </Window>

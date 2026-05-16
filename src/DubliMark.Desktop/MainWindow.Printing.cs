@@ -72,6 +72,40 @@ public partial class MainWindow
         return template ?? _printTemplates[0];
     }
 
+    private PrintTemplate EnsureActiveTemplateSelection()
+    {
+        var template = ResolveActiveTemplate();
+        if (!string.Equals(_settings.DefaultPrintTemplateName, template.Name, StringComparison.OrdinalIgnoreCase))
+        {
+            _settings.DefaultPrintTemplateName = template.Name;
+            _settings.Save();
+        }
+
+        return template;
+    }
+
+    private void SetActivePrintTemplate(string? templateName, bool showToast = true)
+    {
+        if (string.IsNullOrWhiteSpace(templateName))
+            return;
+
+        if (_printTemplates.Count == 0)
+            _printTemplates = _printTemplateService.LoadOrCreateDefaults();
+
+        var template = _printTemplates.FirstOrDefault(t =>
+            string.Equals(t.Name, templateName, StringComparison.OrdinalIgnoreCase));
+        if (template == null)
+            return;
+
+        _settings.DefaultPrintTemplateName = template.Name;
+        _settings.Save();
+        RefreshPrintSettingsUi();
+        SyncConnectedViews();
+
+        if (showToast)
+            ShowToast("Шаблон печати выбран: " + template.Name, ToastKind.Success);
+    }
+
     private void UpdatePrintStatus(PrintPipelineResult? result)
     {
         if (result == null)
@@ -81,6 +115,7 @@ public partial class MainWindow
         {
             LastPrintStatusText.Text = result.Error ?? "";
             ShowToast("Повторная печать заблокирована", ToastKind.Warning);
+            SyncPrintPageState();
             return;
         }
 
@@ -91,6 +126,7 @@ public partial class MainWindow
                 ? "Напечатано"
                 : "Напечатано и сохранено: " + folder;
             ShowToast("Напечатано", ToastKind.Success);
+            SyncPrintPageState();
             return;
         }
 
@@ -99,6 +135,7 @@ public partial class MainWindow
             : "Ошибка печати: " + result.Error;
         if (!string.IsNullOrWhiteSpace(result.Error))
             ShowToast("Ошибка печати: " + result.Error, ToastKind.Error);
+        SyncPrintPageState();
     }
 
     private static void AddPrintResult(StackPanel sp, PrintPipelineResult? printResult)
@@ -129,13 +166,17 @@ public partial class MainWindow
         if (_printTemplates.Count == 0)
             _printTemplates = _printTemplateService.LoadOrCreateDefaults();
 
+        var activeTemplate = EnsureActiveTemplateSelection();
+
         AutoPrintQuickToggle.IsChecked = _settings.AutoPrintEnabled;
         AutoPrintStatusText.Text = _settings.AutoPrintEnabled ? "Вкл." : "Выкл.";
-        PrintTemplateText.Text = ResolveActiveTemplate().Name;
+        PrintTemplateText.Text = activeTemplate.Name;
         PrintPrinterText.Text = string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName;
         PrintCopiesText.Text = Math.Max(1, _settings.PrintCopies).ToString();
         TemplateLargeText.Text = _printTemplates.FirstOrDefault(t => t.LabelWidthMm >= 40)?.Name ?? "ЧЗ 40×30 мм";
         TemplateSmallText.Text = _printTemplates.FirstOrDefault(t => t.LabelWidthMm <= 30)?.Name ?? "ЧЗ 30×20 мм";
+        SyncPrintPageState();
+        SyncTemplatesPageState();
     }
 
     private void OnAutoPrintQuickToggleChanged(object sender, RoutedEventArgs e)
@@ -146,6 +187,7 @@ public partial class MainWindow
         _settings.AutoPrintEnabled = AutoPrintQuickToggle.IsChecked == true;
         _settings.Save();
         RefreshPrintSettingsUi();
+        SyncConnectedViews();
     }
 
     private async void OnPrintLastClick(object sender, RoutedEventArgs e)
@@ -179,22 +221,29 @@ public partial class MainWindow
         if (window.ShowDialog() == true && window.ResultSettings != null)
         {
             _settings = window.ResultSettings;
+            EnsureActiveTemplateSelection();
             _settings.Save();
-            RefreshPrintSettingsUi();
+            RefreshSettingsIntoUi();
         }
     }
 
     private void OnPrintTemplatesClick(object sender, RoutedEventArgs e)
     {
-        var window = new PrintTemplatesWindow(_printTemplates) { Owner = this };
+        var window = new PrintTemplatesWindow(_printTemplates, _settings.DefaultPrintTemplateName) { Owner = this };
         if (window.ShowDialog() == true)
         {
             _printTemplates = window.Templates;
             _printTemplateService.SaveTemplates(_printTemplates);
+            if (!string.IsNullOrWhiteSpace(window.SelectedTemplateName)
+                && _printTemplates.Any(t => string.Equals(t.Name, window.SelectedTemplateName, StringComparison.OrdinalIgnoreCase)))
+            {
+                _settings.DefaultPrintTemplateName = window.SelectedTemplateName;
+            }
             if (!_printTemplates.Any(t => string.Equals(t.Name, _settings.DefaultPrintTemplateName, StringComparison.OrdinalIgnoreCase)))
                 _settings.DefaultPrintTemplateName = _printTemplates.FirstOrDefault()?.Name ?? "ЧЗ 30x20 мм";
+            EnsureActiveTemplateSelection();
             _settings.Save();
-            RefreshPrintSettingsUi();
+            RefreshSettingsIntoUi();
         }
     }
 

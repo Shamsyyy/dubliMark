@@ -75,26 +75,26 @@ public partial class HidDiagnosticsWindow : Window
 
             SummaryText.Text =
                 $"Длина: {raw.Length} | GS в буфере: {gsCount} | GS восстановлено картой: {diag?.GsRestoredCount ?? 0} | " +
-                $"Тип: {(code?.CodeType.ToString() ?? "—")} | AI93: {(code?.AdditionalField93 != null ? "да" : "нет")} | " +
+                $"Тип: {(code?.CodeType.ToString() ?? "-")} | AI93: {(code?.AdditionalField93 != null ? "да" : "нет")} | " +
                 $"AI91: {(has91 ? "да" : "нет")} | AI92: {(has92 ? "да" : "нет")} | " +
                 $"Разбор: {(parse.IsValid ? "OK" : parse.ErrorMessage)}";
 
             if (parse.IsValid && isShort)
             {
                 GsHintText.Text =
-                    "Короткий код маркировки (~30 байт). AI 91/92 в матрице отсутствуют — это нормально, не обрезка HID.";
+                    "Короткий код маркировки (~30 байт). AI 91/92 в матрице отсутствуют - это нормально, не обрезка HID.";
                 GsHintText.Foreground = System.Windows.Media.Brushes.LightGreen;
             }
             else if (gsCount == 0)
             {
                 GsHintText.Text =
-                    "Разделитель GS (0x1D) не получен. Включите в меню сканера «GS separator» / «FNC1» / «Transmit GS» " +
+                    "Разделитель GS (0x1D) не получен. Включите в меню сканера \"GS separator\" / \"FNC1\" / \"Transmit GS\" " +
                     "или переключите на Virtual COM. Для полного кода (~80 байт) без GS данные могут быть обрезаны прошивкой.";
             }
             else if (!has91 || !has92)
             {
                 GsHintText.Text =
-                    "GS есть, но AI 91/92 не распознаны. Если это короткая матрица — код может быть полным. " +
+                    "GS есть, но AI 91/92 не распознаны. Если это короткая матрица - код может быть полным. " +
                     "Для печати полного дубля нужен код ~80+ байт со сканера/COM.";
             }
             else
