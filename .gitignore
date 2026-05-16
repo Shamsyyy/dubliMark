@@ -63,6 +63,18 @@ publish/
 .idea/
 *.sln.iml
 
+# Local AI/tooling state
+.claude/
+.claude-flow/
+.swarm/
+.mcp.json
+CLAUDE.md
+
+# Local generated databases
+*.db
+*.db-shm
+*.db-wal
+
 # OS
 .DS_Store
 Thumbs.db
