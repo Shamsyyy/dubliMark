@@ -1,0 +1,104 @@
+<UserControl x:Class="DoubleMark.Desktop.Views.DiagnosticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="Segoe UI">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="24,0,24,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Style="{StaticResource HeroCard}" Margin="0,0,16,16">
+                <StackPanel>
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Диагностика" Style="{StaticResource SectionTitle}"/>
+                            <TextBlock Text="HID, GS 0x1D, AI91/AI92 и состояние последнего разбора без изменения scanner pipeline."
+                                       Style="{StaticResource MutedText}" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <Border x:Name="DiagnosticsStatusBadge" Grid.Column="2" Style="{StaticResource PillBadge}" MinWidth="86" VerticalAlignment="Top">
+                            <TextBlock x:Name="DiagnosticsStatusText" Text="—" FontWeight="SemiBold" TextAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
+                        </Border>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Режим" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock x:Name="DiagnosticsModeText" Grid.Row="0" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="1" Text="Сканер" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock x:Name="DiagnosticsScannerText" Grid.Row="1" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="2" Text="Последняя проверка" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock x:Name="DiagnosticsLastCheckText" Grid.Row="2" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
+                        <TextBlock Grid.Row="3" Text="GS count" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock x:Name="DiagnosticsGsCountText" Grid.Row="3" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
+                    </Grid>
+
+                    <UniformGrid Columns="2">
+                        <Button Style="{StaticResource PrimaryButton}" Content="Запустить HID диагностику" Click="OnHidDiagnosticsProxyClick" Margin="0,0,6,0"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Сбросить настройки" Click="OnResetProxyClick" Margin="6,0,0,0"/>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="0,0,0,16">
+                <StackPanel>
+                    <TextBlock Text="GS / AI health" Style="{StaticResource CardTitle}"/>
+                    <UniformGrid Columns="2" Margin="0,16,0,16">
+                        <Border Style="{StaticResource DataPill}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="AI 91" Style="{StaticResource MutedText}"/>
+                                <TextBlock x:Name="DiagnosticsAi91Text" Text="—" Foreground="{StaticResource SuccessBrush}" FontSize="17" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource DataPill}" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="AI 92" Style="{StaticResource MutedText}"/>
+                                <TextBlock x:Name="DiagnosticsAi92Text" Text="—" Foreground="{StaticResource SuccessBrush}" FontSize="17" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+                    <Border Style="{StaticResource SoftSurface}" Margin="0,0,0,12">
+                        <TextBlock x:Name="DiagnosticsWarningText" Text="—" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap"/>
+                    </Border>
+                    <Border Style="{StaticResource SoftSurface}">
+                        <TextBlock Text="GS никогда не заменяется на пробел, Enter, Tab или видимый символ. [GS] используется только как display escaping."
+                                   Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="Raw Input keys" Style="{StaticResource CardTitle}"/>
+                    <TextBlock Text="Последняя HID-сессия из RawInputScannerService.LastScanDiagnostics." Style="{StaticResource MutedText}" Margin="0,5,0,14"/>
+                    <Border Style="{StaticResource SoftSurface}" MinHeight="150" MaxHeight="260">
+                        <TextBox x:Name="DiagnosticsRawKeyText"
+                                 Text="Нет HID-сессии"
+                                 Style="{StaticResource LogTextBox}"
+                                 MinHeight="120"/>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

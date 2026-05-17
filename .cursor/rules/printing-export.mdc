@@ -1,6 +1,6 @@
 ---
 description: DataMatrix print/export payload and layout safety
-globs: src/DubliMark.Core/Print/*.cs,src/DubliMark.Core/Export/*.cs,src/DubliMark.Desktop/**/*Print*.cs
+globs: src/DoubleMark.Core/Print/*.cs,src/DoubleMark.Core/Export/*.cs,src/DoubleMark.Desktop/**/*Print*.cs
 alwaysApply: false
 ---
 

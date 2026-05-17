@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\DoubleMark.Core\DoubleMark.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Supabase" Version="1.1.1" />
+    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="ZXing.Net" Version="0.16.9" />
+    <PackageReference Include="ZXing.Net.Bindings.Windows.Compatibility" Version="0.16.12" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <AssemblyName>DoubleMark.Desktop</AssemblyName>
+    <RootNamespace>DoubleMark.Desktop</RootNamespace>
+    <Product>DoubleMark</Product>
+    <Company>DoubleMark</Company>
+    <ApplicationIcon>Assets\Branding\doublemark-logo.ico</ApplicationIcon>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Branding\doublemark-logo.png" />
+    <Resource Include="Assets\Branding\doublemark-logo.ico" />
+    <Resource Include="Assets\Branding\doublemark-logo.svg" />
+    <Resource Include="Assets\Branding\doublemark-tray.ico" />
+    <Resource Include="Assets\Branding\doublemark-favicon.png" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+  </PropertyGroup>
+
+</Project>

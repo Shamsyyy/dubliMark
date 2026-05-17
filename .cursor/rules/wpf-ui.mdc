@@ -1,12 +1,12 @@
 ---
 description: WPF UI and dark premium style rules
-globs: src/DubliMark.Desktop/**/*.xaml,src/DubliMark.Desktop/**/*.xaml.cs
+globs: src/DoubleMark.Desktop/**/*.xaml,src/DoubleMark.Desktop/**/*.xaml.cs
 alwaysApply: false
 ---
 
 # WPF UI Rules
 
-- `src/DubliMark.Desktop/Resources/Theme.xaml` is the main design source.
+- `src/DoubleMark.Desktop/Resources/Theme.xaml` is the main design source.
 - Do not duplicate styles when an existing resource can be reused.
 - Avoid inline styles unless the value is genuinely one-off or computed.
 - Controls must be readable: clear labels, stable spacing, visible focus/selection, and no clipped text.

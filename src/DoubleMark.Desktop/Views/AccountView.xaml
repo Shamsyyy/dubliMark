@@ -1,0 +1,113 @@
+<UserControl x:Class="DoubleMark.Desktop.Views.AccountView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="Segoe UI">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="24,0,24,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="430"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource HeroCard}" Margin="0,0,16,0">
+                <StackPanel>
+                    <Border Width="96" Height="96" CornerRadius="48" Background="#E7D6C5" HorizontalAlignment="Left">
+                        <TextBlock x:Name="InitialsText" Text="DM" Foreground="#1A2028" FontSize="30" FontWeight="Bold"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock x:Name="AccountTitleText" Text="Аккаунт DoubleMark" Foreground="{StaticResource TextBrush}" FontSize="26" FontWeight="SemiBold" Margin="0,20,0,2"/>
+                    <TextBlock x:Name="AccountEmailText" Text="Войдите в аккаунт" Style="{StaticResource MutedText}"/>
+                    <TextBlock x:Name="AccountStatusText" Text="Загружаем аккаунт..." Style="{StaticResource MutedText}" Foreground="{StaticResource AccentBrush}" TextWrapping="Wrap" Margin="0,16,0,0"/>
+
+                    <UniformGrid Columns="2" Margin="0,24,0,0">
+                        <Border Style="{StaticResource DataPill}" Margin="0,0,8,0">
+                            <StackPanel>
+                                <TextBlock Text="Тариф" Style="{StaticResource MutedText}"/>
+                                <TextBlock x:Name="PlanText" Text="—" Foreground="{StaticResource SuccessBrush}" FontSize="18" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource DataPill}" Margin="8,0,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Статус" Style="{StaticResource MutedText}"/>
+                                <TextBlock x:Name="SubscriptionStatusText" Text="—" Foreground="{StaticResource SuccessBrush}" FontSize="18" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <UniformGrid Columns="2" Margin="0,22,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Настройки" Click="OnProfileSettingsClick" Margin="0,0,6,0"/>
+                        <Button Style="{StaticResource DangerButton}" Content="Выйти" Click="OnSignOutClick" Margin="6,0,0,0"/>
+                    </UniformGrid>
+                    <Button Style="{StaticResource PrimaryButton}" Content="Выбрать тариф" Click="OnOpenPricingClick" Margin="0,12,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Grid.Column="1">
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,18">
+                            <TextBlock Text="Личный кабинет DoubleMark" Style="{StaticResource SectionTitle}"/>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Content="Обновить данные" Click="OnRefreshClick"/>
+                        </DockPanel>
+                        <UniformGrid Columns="2">
+                            <StackPanel Margin="0,0,12,0">
+                                <TextBlock Text="Организация" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="OrganizationText" Text="—" Style="{StaticResource MetricValue}" FontWeight="SemiBold" Margin="0,4,0,12"/>
+                                <TextBlock Text="ИНН" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="InnText" Text="—" Style="{StaticResource MetricValue}" FontWeight="SemiBold" Margin="0,4,0,12"/>
+                            </StackPanel>
+                            <StackPanel Margin="12,0,0,0">
+                                <TextBlock Text="Телефон" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="PhoneText" Text="—" Style="{StaticResource MetricValue}" FontWeight="SemiBold" Margin="0,4,0,12"/>
+                                <TextBlock Text="Роль" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="RoleText" Text="—" Style="{StaticResource MetricValue}" FontWeight="SemiBold" Margin="0,4,0,12"/>
+                            </StackPanel>
+                        </UniformGrid>
+                    </StackPanel>
+                </Border>
+
+                <UniformGrid Columns="3" Margin="0,0,0,16">
+                    <Border Style="{StaticResource DataPill}" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="Период с" Style="{StaticResource MutedText}"/>
+                            <TextBlock x:Name="PeriodStartText" Text="—" Style="{StaticResource MetricValue}" FontSize="16"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource DataPill}" Margin="8,0">
+                        <StackPanel>
+                            <TextBlock Text="Период до" Style="{StaticResource MutedText}"/>
+                            <TextBlock x:Name="PeriodEndText" Text="—" Style="{StaticResource MetricValue}" FontSize="16"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource DataPill}" Margin="8,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Устройства" Style="{StaticResource MutedText}"/>
+                            <TextBlock x:Name="DevicesLimitText" Text="—" Style="{StaticResource MetricValue}" FontSize="16"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <UniformGrid Columns="2" Margin="0,0,0,16">
+                    <Border Style="{StaticResource Card}" Margin="0,0,8,0">
+                        <StackPanel>
+                            <TextBlock Text="Платежи" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
+                            <StackPanel x:Name="PaymentsPanel"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Margin="8,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Устройства" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
+                            <StackPanel x:Name="DevicesPanel"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <UniformGrid Columns="3">
+                    <Button Style="{StaticResource SecondaryButton}" Content="Открыть ЛК на сайте" Click="OnOpenAccountSiteClick" Margin="0,0,6,0"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Сменить пароль" Click="OnResetPasswordClick" Margin="6,0"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Выбрать тариф" Click="OnOpenPricingClick" Margin="6,0,0,0"/>
+                </UniformGrid>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

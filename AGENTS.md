@@ -1,6 +1,6 @@
-# DubliMark Agent Instructions
+# DoubleMark Agent Instructions
 
-DubliMark is a C# / .NET 8 / WPF desktop app for DataMatrix and Chestny ZNAK workflows.
+DoubleMark is a C# / .NET 8 / WPF desktop app for DataMatrix and Chestny ZNAK workflows.
 
 ## Prime Safety Rule
 
@@ -20,11 +20,11 @@ Never break preservation of GS = `char 0x1D` or the AI 91/92 crypto tail.
 
 Read these before any scanner, parser, print, or template-sensitive change:
 
-- `src/DubliMark.Desktop/Services/RawInputScannerService.cs`
-- `src/DubliMark.Desktop/Services/SerialScannerService.cs`
-- `src/DubliMark.Core/Parsing/Gs1Parser.cs`
-- `src/DubliMark.Core/Parsing/Gs1BarcodeEncoding.cs`
-- DataMatrix/PDF generation files under `src/DubliMark.Core/Export/` and `src/DubliMark.Core/Print/`
+- `src/DoubleMark.Desktop/Services/RawInputScannerService.cs`
+- `src/DoubleMark.Desktop/Services/SerialScannerService.cs`
+- `src/DoubleMark.Core/Parsing/Gs1Parser.cs`
+- `src/DoubleMark.Core/Parsing/Gs1BarcodeEncoding.cs`
+- DataMatrix/PDF generation files under `src/DoubleMark.Core/Export/` and `src/DoubleMark.Core/Print/`
 - Existing tests under `tests/`
 
 ## Roles

@@ -70,6 +70,14 @@ publish/
 .mcp.json
 CLAUDE.md
 
+# Local secrets/config
+.env
+.env.*
+!.env.example
+appsettings.local.json
+secrets.json
+doublemark-session.bin
+
 # Local generated databases
 *.db
 *.sqlite

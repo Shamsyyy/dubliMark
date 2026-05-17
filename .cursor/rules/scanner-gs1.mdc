@@ -1,6 +1,6 @@
 ---
 description: Protect scanner, GS1, and Chestny ZNAK payload safety
-globs: src/DubliMark.Desktop/Services/*.cs,src/DubliMark.Core/Parsing/*.cs,tests/**/*.cs
+globs: src/DoubleMark.Desktop/Services/*.cs,src/DoubleMark.Core/Parsing/*.cs,tests/**/*.cs
 alwaysApply: false
 ---
 

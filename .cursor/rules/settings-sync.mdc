@@ -1,6 +1,6 @@
 ---
 description: Shared UI state and print template synchronization
-globs: src/DubliMark.Desktop/**/*.cs,src/DubliMark.Desktop/**/*.xaml
+globs: src/DoubleMark.Desktop/**/*.cs,src/DoubleMark.Desktop/**/*.xaml
 alwaysApply: false
 ---
 
