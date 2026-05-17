@@ -15,16 +15,23 @@
 
             <Border Grid.Column="0" Style="{StaticResource HeroCard}" Margin="0,0,16,16">
                 <StackPanel>
-                    <DockPanel Margin="0,0,0,18">
-                        <StackPanel>
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
                             <TextBlock Text="Сканирование" Style="{StaticResource SectionTitle}"/>
                             <TextBlock Text="Рабочая панель COM/HID без отдельного pipeline: все действия идут в существующие handlers."
                                        Style="{StaticResource MutedText}" Margin="0,5,0,0"/>
                         </StackPanel>
-                        <Border x:Name="ScanStatusBadge" DockPanel.Dock="Right" Style="{StaticResource PillBadge}">
-                            <TextBlock x:Name="ScanStatusText" Text="Ожидание" FontWeight="SemiBold"/>
+                        <Border x:Name="ScanStatusBadge" Grid.Column="2" Style="{StaticResource PillBadge}"
+                                VerticalAlignment="Top" MinWidth="86">
+                            <TextBlock x:Name="ScanStatusText" Text="Ожидание" FontWeight="SemiBold"
+                                       TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </Border>
-                    </DockPanel>
+                    </Grid>
 
                     <UniformGrid Columns="3" Margin="0,0,0,18">
                         <Border Style="{StaticResource DataPill}" Margin="0,0,8,0">
@@ -95,12 +102,20 @@
 
             <Border Grid.Column="1" Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
-                    <DockPanel Margin="0,0,0,14">
-                        <TextBlock Text="Live preview" Style="{StaticResource CardTitle}"/>
-                        <Border x:Name="ScanValidationBadge" DockPanel.Dock="Right" Style="{StaticResource PillBadge}">
-                            <TextBlock x:Name="ScanValidationText" Text="Ожидание" FontWeight="SemiBold"/>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Live preview" Style="{StaticResource CardTitle}"
+                                   VerticalAlignment="Center"/>
+                        <Border x:Name="ScanValidationBadge" Grid.Column="2" Style="{StaticResource PillBadge}"
+                                VerticalAlignment="Center" MinWidth="86">
+                            <TextBlock x:Name="ScanValidationText" Text="Ожидание" FontWeight="SemiBold"
+                                       TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </Border>
-                    </DockPanel>
+                    </Grid>
                     <Border Background="#F7FAFC" CornerRadius="18" Width="236" Height="236" Padding="16" HorizontalAlignment="Center">
                         <Grid>
                             <Image x:Name="ScanPreviewImage" Stretch="Uniform"/>

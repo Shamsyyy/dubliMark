@@ -427,9 +427,9 @@
     </Style>
 
     <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource BaseButton}">
-        <Setter Property="Foreground" Value="#FFB4B4"/>
-        <Setter Property="Background" Value="#1C171B"/>
-        <Setter Property="BorderBrush" Value="#6B2730"/>
+        <Setter Property="Foreground" Value="#FFE3E3"/>
+        <Setter Property="Background" Value="#3A1118"/>
+        <Setter Property="BorderBrush" Value="#B73545"/>
     </Style>
 
     <Style TargetType="{x:Type Button}" BasedOn="{StaticResource SecondaryButton}"/>

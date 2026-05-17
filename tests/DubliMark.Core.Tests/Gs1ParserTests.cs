@@ -54,7 +54,7 @@ public class Gs1ParserTests
     }
 
     [Fact]
-    public void Parse_SerialNot13Chars_ShouldSucceedWithInfo()
+    public void Parse_SerialNot13Chars_ShouldSucceedWithoutWarning()
     {
         var shortSerial = "SN12345";
         var raw = $"010460043993125621{shortSerial}{GS}91EE06{GS}92dGVzdGNyeXB0b2hhc2hleGFtcGxlMTIzNDU2Nzg5MA==";
@@ -62,9 +62,7 @@ public class Gs1ParserTests
 
         result.IsValid.Should().BeTrue();
         result.Code!.Serial.Should().Be(shortSerial);
-        result.InfoMessages.Should().ContainSingle();
-        result.InfoMessages[0].Should().Contain("7");
-        result.InfoMessages[0].Should().Contain("13");
+        result.InfoMessages.Should().BeEmpty();
     }
 
     // ───── Full codes (AI 91/92) ─────
@@ -186,6 +184,41 @@ public class Gs1ParserTests
         result.Code.Gtin.Should().Be("04620219556479");
         result.Code.Serial.Should().Be("5BZqLW");
         result.Code.AdditionalField93.Should().Be("pSfJ");
+        result.InfoMessages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Parse_ShortCzWithoutGs_WithShiftedDigitSymbolInSerial_ShouldNotWarnByItself()
+    {
+        var raw = "0104602547000886215qaei(93Uzm3";
+        var result = _parser.Parse(raw);
+        result.IsValid.Should().BeTrue();
+        result.Code!.Gtin.Should().Be("04602547000886");
+        result.Code.Serial.Should().Be("5qaei(");
+        result.Code.AdditionalField93.Should().Be("Uzm3");
+        result.InfoMessages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Parse_ShortCzWithoutGs_WithDigitInSerial_ShouldStayGreen()
+    {
+        var raw = "0104602547000886215qaei993Uzm3";
+        var result = _parser.Parse(raw);
+        result.IsValid.Should().BeTrue();
+        result.Code!.Serial.Should().Be("5qaei9");
+        result.Code.AdditionalField93.Should().Be("Uzm3");
+        result.InfoMessages.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Parse_ShortCzWithoutGs_WithThreeCharAi93_ShouldNotWarnByItself()
+    {
+        var raw = "0104607041131753215mhIhabfoM9xG93FTb";
+        var result = _parser.Parse(raw);
+        result.IsValid.Should().BeTrue();
+        result.Code!.Serial.Should().Be("5mhIhabfoM9xG");
+        result.Code.AdditionalField93.Should().Be("FTb");
+        result.InfoMessages.Should().BeEmpty();
     }
 
     [Fact]

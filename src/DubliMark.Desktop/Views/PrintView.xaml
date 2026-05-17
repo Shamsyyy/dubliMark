@@ -15,18 +15,23 @@
 
             <Border Style="{StaticResource HeroCard}" Margin="0,0,16,16">
                 <StackPanel>
-                    <DockPanel Margin="0,0,0,18">
-                        <StackPanel>
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
                             <TextBlock Text="Печать" Style="{StaticResource SectionTitle}"/>
                             <TextBlock Text="Настройки берутся из текущей конфигурации. Payload не меняется: печать использует normalized с реальным GS."
-                                       Style="{StaticResource MutedText}" Margin="0,5,0,0"/>
+                                       Style="{StaticResource MutedText}" Margin="0,5,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
                             <TextBlock x:Name="PrintAutoStateText" Text="Выкл." Style="{StaticResource MutedText}" Margin="0,3,10,0"/>
                             <CheckBox x:Name="PrintAutoToggle" Style="{StaticResource ToggleSwitch}"
                                       Checked="OnAutoPrintToggleChanged" Unchecked="OnAutoPrintToggleChanged"/>
                         </StackPanel>
-                    </DockPanel>
+                    </Grid>
 
                     <Grid Margin="0,0,0,14">
                         <Grid.ColumnDefinitions>
@@ -68,7 +73,7 @@
                     <Button Style="{StaticResource TealButton}" Content="Печать последнего ЧЗ" Click="OnPrintLastProxyClick"/>
                     <UniformGrid Columns="3" Margin="0,12,0,0">
                         <Button Style="{StaticResource SecondaryButton}" Content="Настройки" Click="OnPrintSettingsProxyClick" Margin="0,0,6,0"/>
-                        <Button Style="{StaticResource SecondaryButton}" Content="Папка печати" Click="OnOpenPrintFolderProxyClick" Margin="3,0,6,0"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Папка" Click="OnOpenPrintFolderProxyClick" Margin="3,0,6,0"/>
                         <Button Style="{StaticResource SecondaryButton}" Content="Тест" Click="OnTestPrintProxyClick" Margin="3,0,0,0"/>
                     </UniformGrid>
 
@@ -85,12 +90,17 @@
             <StackPanel Grid.Column="1">
                 <Border Style="{StaticResource Card}" Margin="0,0,0,16">
                     <StackPanel>
-                        <DockPanel Margin="0,0,0,16">
-                            <TextBlock Text="Preview этикетки" Style="{StaticResource CardTitle}"/>
-                            <Border DockPanel.Dock="Right" Style="{StaticResource PillBadge}">
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Preview этикетки" Style="{StaticResource CardTitle}" TextTrimming="CharacterEllipsis"/>
+                            <Border Grid.Column="2" Style="{StaticResource PillBadge}" MinWidth="88">
                                 <TextBlock x:Name="PrintTemplateSizeText" Text="—" Style="{StaticResource MutedText}"/>
                             </Border>
-                        </DockPanel>
+                        </Grid>
                         <Border Background="#F7FAFC" CornerRadius="18" Width="320" Height="220" Padding="16" HorizontalAlignment="Center">
                             <Grid>
                                 <Image x:Name="PrintPreviewImage" Stretch="Uniform"/>
@@ -105,12 +115,19 @@
 
                 <Border Style="{StaticResource Card}">
                     <StackPanel>
-                        <DockPanel Margin="0,0,0,14">
-                            <TextBlock Text="Очередь и последние печати" Style="{StaticResource CardTitle}"/>
-                            <Border DockPanel.Dock="Right" Style="{StaticResource PillBadge}">
-                                <TextBlock x:Name="PrintQueueText" Text="Нет активных заданий" Style="{StaticResource MutedText}"/>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Очередь и последние печати" Style="{StaticResource CardTitle}"
+                                       TextWrapping="Wrap" VerticalAlignment="Center"/>
+                            <Border Grid.Column="2" Style="{StaticResource PillBadge}" MinWidth="106" VerticalAlignment="Center">
+                                <TextBlock x:Name="PrintQueueText" Text="Нет активных заданий" Style="{StaticResource MutedText}"
+                                           TextTrimming="CharacterEllipsis" TextAlignment="Center"/>
                             </Border>
-                        </DockPanel>
+                        </Grid>
                         <TextBlock x:Name="PrintFolderText" Text="—" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,12"/>
                         <StackPanel x:Name="RecentPrintsPanel"/>
                     </StackPanel>

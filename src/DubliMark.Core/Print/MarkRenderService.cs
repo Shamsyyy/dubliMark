@@ -58,8 +58,8 @@ public sealed class MarkRenderService
 
     public static string NormalizePayload(string raw, ParseResult result)
     {
-        if (result.IsValid && result.Code?.RawData is { Length: > 0 } parsedRaw)
-            return parsedRaw;
+        if (result.IsValid && result.Code != null)
+            return Gs1BarcodeEncoding.BuildBarcodePayload(result.Code);
 
         var normalized = Gs1BarcodeEncoding.NormalizeForParse(raw);
         return normalized.FoundAi01 ? normalized.Payload : raw;
@@ -104,6 +104,7 @@ public sealed class MarkRenderService
         var hints = new Dictionary<EncodeHintType, object>
         {
             [EncodeHintType.CHARACTER_SET] = "ISO-8859-1",
+            [EncodeHintType.GS1_FORMAT] = true,
             [EncodeHintType.MARGIN] = 1
         };
         return writer.encode(payload, BarcodeFormat.DATA_MATRIX, widthPx, heightPx, hints);

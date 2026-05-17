@@ -50,6 +50,36 @@ public sealed class MarkExportServiceTests
     }
 
     [Fact]
+    public void Save_ShortCodeWithoutGs_RebuildsGsForDataMatrix()
+    {
+        using var temp = new TempFolder();
+        var raw = "0104620219556479215BZqLW93pSfJ";
+        var parsed = _parser.Parse(raw);
+        var writer = new CapturingArtifactWriter();
+        var service = new MarkExportService(writer);
+
+        var result = service.Save(new MarkExportRequest
+        {
+            RawPayload = raw,
+            ParseResult = parsed,
+            Source = "HID",
+            ExportRoot = temp.ExportRoot,
+            DiagnosticsRoot = temp.DiagnosticsRoot,
+            Timestamp = new DateTimeOffset(2026, 5, 16, 23, 35, 0, TimeSpan.Zero)
+        });
+
+        result.Success.Should().BeTrue();
+        var expected = $"0104620219556479215BZqLW{GS}93pSfJ";
+        writer.PngPayload.Should().Be(expected);
+        writer.PdfPayload.Should().Be(expected);
+        result.NormalizedPayload.Should().Be(expected);
+
+        var json = ReadJson(result.Files!.JsonPath);
+        json.RootElement.GetProperty("gsCount").GetInt32().Should().Be(1);
+        json.RootElement.GetProperty("normalizedTextEscaped").GetString().Should().Contain("[GS]");
+    }
+
+    [Fact]
     public void Save_ShortCodeWithAi93_WritesShortFields()
     {
         using var temp = new TempFolder();

@@ -16,7 +16,7 @@
                             GlassFrameThickness="0"
                             UseAeroCaptionButtons="False"/>
     </shell:WindowChrome.WindowChrome>
-    <Grid x:Name="RootShell">
+    <Grid x:Name="RootShell" PreviewMouseDown="OnRootShellPreviewMouseDown">
         <Grid.RowDefinitions>
             <RowDefinition Height="38"/>
             <RowDefinition Height="*"/>
@@ -179,7 +179,7 @@
                 </StackPanel>
 
                 <Grid Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
-                    <Border Height="44" CornerRadius="12"
+                    <Border x:Name="GlobalSearchFrame" Height="44" CornerRadius="12"
                             Background="{StaticResource SoftPanelBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1"
                             Effect="{StaticResource CardShadow}">
                         <Grid>
@@ -200,9 +200,9 @@
                             </Grid>
                         </Grid>
                     </Border>
-                    <Popup x:Name="SearchPopup" PlacementTarget="{Binding ElementName=GlobalSearchBox}" Placement="Bottom"
-                           AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="False">
-                        <Border Style="{StaticResource SoftSurface}" Width="520" MaxHeight="360" Padding="12" Effect="{StaticResource CardShadow}">
+                    <Popup x:Name="SearchPopup" PlacementTarget="{Binding ElementName=GlobalSearchFrame}" Placement="Bottom"
+                           AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="True">
+                        <Border Style="{StaticResource SoftSurface}" Width="{Binding ActualWidth, ElementName=GlobalSearchFrame}" MaxHeight="360" Padding="12" Effect="{StaticResource CardShadow}">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel>
                                     <TextBlock Text="Результаты поиска" Style="{StaticResource MutedText}" Margin="0,0,0,10"/>
@@ -241,7 +241,7 @@
                             Click="OnAccountMenuClick">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="40"/>
+                                <ColumnDefinition Width="52"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="18"/>
                             </Grid.ColumnDefinitions>
@@ -249,9 +249,10 @@
                                 <TextBlock Text="ИП" Foreground="#1A2028" FontWeight="Bold" FontSize="13"
                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
                             </Border>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="2,0,0,0">
                                 <TextBlock Text="Иван Петров" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" FontSize="13"/>
-                                <TextBlock Text="ООО «Ромашка»" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
+                                <TextBlock Text="ООО «Ромашка»" Foreground="{StaticResource MutedTextBrush}" FontSize="12"
+                                           TextTrimming="CharacterEllipsis"/>
                             </StackPanel>
                             <Path Grid.Column="2" Width="10" Height="7" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.6"
                                   VerticalAlignment="Center" Data="M1,1 L5,5 L9,1"/>
@@ -281,10 +282,10 @@
             <ScrollViewer x:Name="DashboardScrollViewer" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <Grid Margin="24,0,24,24">
                     <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1.08*"/>
                         <ColumnDefinition Width="1.12*"/>
-                        <ColumnDefinition Width="1.18*"/>
-                        <ColumnDefinition Width="0.88*"/>
-                        <ColumnDefinition Width="1.04*"/>
+                        <ColumnDefinition Width="1.06*"/>
+                        <ColumnDefinition Width="1.02*"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -344,12 +345,12 @@
                                 </Grid>
                             </StackPanel>
 
-                            <UniformGrid Columns="3" Margin="0,2,0,12">
-                                <Button Style="{StaticResource SecondaryButton}" Click="OnSetupScannerClick" Margin="0,0,6,0" Padding="10,9" Content="Настроить сканер"/>
-                                <Button Style="{StaticResource SecondaryButton}" Click="OnHidDiagnosticsClick" Margin="3,0" Padding="10,9" Content="Диагностика HID"/>
-                                <Button Style="{StaticResource SecondaryButton}" Click="OnLoadImageClick" Margin="6,0,0,0" Padding="10,9" Content="Загрузить изображение"/>
+                            <UniformGrid Columns="2" Margin="0,2,0,12">
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnSetupScannerClick" Margin="0,0,6,6" Padding="10,9" Content="Настройки"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnHidDiagnosticsClick" Margin="6,0,0,6" Padding="10,9" Content="HID diag"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnLoadImageClick" Margin="0,6,6,0" Padding="10,9" Content="Изображение"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnPasteImageClick" Margin="6,6,0,0" Padding="10,9" Content="Буфер"/>
                             </UniformGrid>
-                            <Button Style="{StaticResource SecondaryButton}" Click="OnPasteImageClick" Padding="10,8" Content="Из буфера обмена" Margin="0,0,0,10"/>
                             <TextBlock x:Name="PortsHintText" Style="{StaticResource MutedText}" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" Visibility="Collapsed"/>
                             <TextBlock x:Name="WaitText" Text="Ожидание сканирования..." Style="{StaticResource MutedText}" Margin="0,8,0,0"/>
                             <Border x:Name="HidHelpPanel" Visibility="Collapsed"/>
@@ -358,17 +359,23 @@
 
                     <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource Card}" Margin="0,0,16,16">
                         <StackPanel>
-                            <DockPanel Margin="0,0,0,18">
-                                <Path DockPanel.Dock="Left" Width="23" Height="23" Stretch="Uniform" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8"
+                            <Grid Margin="0,0,0,18">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Path Grid.Column="0" Width="23" Height="23" Stretch="Uniform" Stroke="{StaticResource AccentBrush}" StrokeThickness="1.8"
                                       Data="M5,8 L5,3 L15,3 L15,8 M5,14 L3,14 L3,8 L17,8 L17,14 L15,14 M6,12 L14,12 L14,18 L6,18 Z"/>
-                                <TextBlock Text="Автопечать" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
-                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
+                                <TextBlock Grid.Column="1" Text="Автопечать" Style="{StaticResource CardTitle}" Margin="12,0,8,0"
+                                           TextTrimming="CharacterEllipsis"/>
+                                <StackPanel Grid.Column="2" Orientation="Horizontal">
                                     <TextBlock x:Name="AutoPrintStatusText" Text="Выкл." Style="{StaticResource MutedText}" Margin="0,0,10,0" VerticalAlignment="Center"/>
                                     <CheckBox x:Name="AutoPrintQuickToggle" Style="{StaticResource ToggleSwitch}"
                                               Checked="OnAutoPrintQuickToggleChanged"
                                               Unchecked="OnAutoPrintQuickToggleChanged"/>
                                 </StackPanel>
-                            </DockPanel>
+                            </Grid>
 
                             <Grid Margin="0,0,0,12">
                                 <Grid.ColumnDefinitions>
@@ -413,8 +420,8 @@
                             </Button>
 
                             <UniformGrid Columns="2" Margin="0,0,0,10">
-                                <Button Style="{StaticResource SecondaryButton}" Click="OnPrintSettingsClick" Margin="0,0,6,0" Content="Настройки печати"/>
-                                <Button Style="{StaticResource SecondaryButton}" Click="OnOpenPrintFolderClick" Margin="6,0,0,0" Content="Открыть папку печати"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnPrintSettingsClick" Margin="0,0,6,0" Content="Настройки"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnOpenPrintFolderClick" Margin="6,0,0,0" Content="Папка печати"/>
                             </UniformGrid>
                             <TextBlock x:Name="LastPrintStatusText" Style="{StaticResource MutedText}" Foreground="#8ED6FF" TextWrapping="Wrap"/>
                         </StackPanel>
@@ -422,18 +429,23 @@
 
                     <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource Card}" Margin="0,0,16,16">
                         <StackPanel>
-                            <DockPanel Margin="0,0,0,18">
-                                <Path DockPanel.Dock="Left" Width="23" Height="23" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.7"
+                            <Grid Margin="0,0,0,18">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Path Grid.Column="0" Width="23" Height="23" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.7"
                                       Data="M4,4 L16,4 L16,16 L4,16 Z M7,7 L9,7 M11,7 L13,7 M7,10 L9,10 M11,10 L13,10 M7,13 L9,13 M11,13 L13,13"/>
-                                <TextBlock Text="Шаблоны печати" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
-                            </DockPanel>
+                                <TextBlock Grid.Column="1" Text="Шаблоны" Style="{StaticResource CardTitle}" Margin="12,0,0,0"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </Grid>
 
                             <TextBlock x:Name="TemplatesSummaryText" Text="—" Style="{StaticResource MutedText}" Margin="0,0,0,10"/>
                             <ScrollViewer MaxHeight="178" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,16">
                                 <StackPanel x:Name="DashboardTemplatesPanel"/>
                             </ScrollViewer>
 
-                            <Button Style="{StaticResource SecondaryButton}" Click="OnNavigateTemplatesClick" Content="Управление шаблонами"/>
+                            <Button Style="{StaticResource SecondaryButton}" Click="OnNavigateTemplatesClick" Content="Управление" Padding="12,10"/>
                         </StackPanel>
                     </Border>
 
@@ -448,34 +460,40 @@
                                 </Border>
                                 <StackPanel Margin="16,6,0,0">
                                     <TextBlock Text="Иван Петров" Foreground="{StaticResource TextBrush}" FontSize="17" FontWeight="SemiBold"/>
-                                    <TextBlock Text="ivan.petrov@romashka.ru" Style="{StaticResource MutedText}"/>
+                                    <TextBlock Text="ivan.petrov@romashka.ru" Style="{StaticResource MutedText}" TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                             </StackPanel>
                             </Border>
 
                             <Grid Margin="0,0,0,18">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="128"/>
+                                    <ColumnDefinition Width="92"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="26"/>
-                                    <RowDefinition Height="26"/>
-                                    <RowDefinition Height="26"/>
-                                    <RowDefinition Height="26"/>
+                                    <RowDefinition Height="30"/>
+                                    <RowDefinition Height="30"/>
+                                    <RowDefinition Height="32"/>
+                                    <RowDefinition Height="32"/>
                                 </Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Text="Организация" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock Grid.Row="0" Grid.Column="1" Text="ООО «Ромашка»" Style="{StaticResource MetricValue}" FontWeight="SemiBold"/>
+                                <TextBlock Grid.Row="0" Grid.Column="1" Text="ООО «Ромашка»" Style="{StaticResource MetricValue}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                 <TextBlock Grid.Row="1" Text="Магазин" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Магазин №1" Style="{StaticResource MetricValue}" FontWeight="SemiBold"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="Магазин №1" Style="{StaticResource MetricValue}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
                                 <TextBlock Grid.Row="2" Text="Тариф" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="Профи" Style="{StaticResource StatusBadge}" Background="#173D2B"/>
+                                <Border Grid.Row="2" Grid.Column="1" CornerRadius="8" Padding="10,4" Background="#173D2B"
+                                        HorizontalAlignment="Left" Margin="0,0,0,4">
+                                    <TextBlock Text="Профи" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" FontSize="12"/>
+                                </Border>
                                 <TextBlock Grid.Row="3" Text="Статус" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock Grid.Row="3" Grid.Column="1" Text="Активен" Style="{StaticResource StatusBadge}" Background="#173D2B"/>
+                                <Border Grid.Row="3" Grid.Column="1" CornerRadius="8" Padding="10,4" Background="#173D2B"
+                                        HorizontalAlignment="Left">
+                                    <TextBlock Text="Активен" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" FontSize="12"/>
+                                </Border>
                             </Grid>
 
                             <UniformGrid Columns="2">
-                                <Button Style="{StaticResource SecondaryButton}" Margin="0,0,6,0" Content="Настройки профиля"/>
+                                <Button Style="{StaticResource SecondaryButton}" Margin="0,0,6,0" Content="Профиль"/>
                                 <Button Style="{StaticResource DangerButton}" Margin="6,0,0,0" Content="Выход"/>
                             </UniformGrid>
                         </StackPanel>
@@ -490,8 +508,13 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Margin="0,0,4,0">
-                                <DockPanel Margin="0,0,0,18">
-                                    <StackPanel Orientation="Horizontal">
+                                <Grid Margin="0,0,0,18">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
                                         <Border Width="28" Height="28" CornerRadius="14" Background="#183E2D">
                                             <Path Width="15" Height="15" Stretch="Uniform" Stroke="{StaticResource SuccessBrush}" StrokeThickness="2"
                                                   Data="M2,7 L5.5,10.5 L12,3"/>
@@ -501,12 +524,12 @@
                                             <TextBlock Text="Живой статус распознавания и локального сохранения" Style="{StaticResource MutedText}"/>
                                         </StackPanel>
                                     </StackPanel>
-                                    <Border x:Name="LastScanStatusBadgeBorder" DockPanel.Dock="Right" Style="{StaticResource PillBadge}"
-                                            Background="#182536" BorderBrush="{StaticResource BorderBrushSoft}">
+                                    <Border x:Name="LastScanStatusBadgeBorder" Grid.Column="2" Style="{StaticResource PillBadge}"
+                                            Background="#182536" BorderBrush="{StaticResource BorderBrushSoft}" VerticalAlignment="Top" MinWidth="96">
                                         <TextBlock x:Name="LastScanStatusText" Text="Ожидание" Foreground="{StaticResource MutedTextBrush}"
-                                                   FontWeight="SemiBold" FontSize="13"/>
+                                                   FontWeight="SemiBold" FontSize="13" TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                     </Border>
-                                </DockPanel>
+                                </Grid>
 
                                 <UniformGrid Columns="2" Margin="0,0,0,14">
                                     <Border Style="{StaticResource DataPill}" Margin="0,0,8,8">
@@ -600,10 +623,15 @@
                                 <TextBlock Text="Автосохранение" Foreground="{StaticResource TextBrush}" Margin="10,2,0,0"/>
                             </StackPanel>
 
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                                <Button Style="{StaticResource SecondaryButton}" Click="OnChooseExportFolderClick" Content="Выбрать папку" Padding="12,8"/>
-                                <Button Style="{StaticResource SecondaryButton}" Click="OnOpenExportRootFolderClick" Content="Открыть папку" Padding="12,8" Margin="10,0,0,0"/>
-                            </StackPanel>
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Style="{StaticResource SecondaryButton}" Click="OnChooseExportFolderClick" Content="Выбрать" Padding="10,8"/>
+                                <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Click="OnOpenExportRootFolderClick" Content="Открыть" Padding="10,8"/>
+                            </Grid>
 
                             <TextBlock x:Name="ExportStatusText" Text="Файлы сохраняются локально по дате." Style="{StaticResource MutedText}" Foreground="{StaticResource SuccessBrush}" TextWrapping="Wrap"/>
                         </StackPanel>
@@ -611,15 +639,21 @@
 
                     <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Style="{StaticResource Card}" Margin="0,0,16,0">
                         <StackPanel>
-                            <DockPanel Margin="0,0,0,12">
-                                <StackPanel Orientation="Horizontal">
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
                                     <Path Width="22" Height="22" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.7"
                                           Data="M10,3 A7,7 0 1 0 10,17 A7,7 0 1 0 10,3 M10,6 L10,10 L13,12"/>
                                     <TextBlock Text="История" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
                                     <TextBlock Text="(последние сканы)" Style="{StaticResource MutedText}" Margin="6,3,0,0"/>
                                 </StackPanel>
-                                <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Padding="10,6" Content="Открыть всю историю"/>
-                            </DockPanel>
+                                <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Padding="12,6"
+                                        MinWidth="154" Content="Открыть всю историю"/>
+                            </Grid>
 
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
@@ -656,19 +690,19 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
-                                    <RowDefinition Height="28"/>
-                                    <RowDefinition Height="28"/>
-                                    <RowDefinition Height="28"/>
-                                    <RowDefinition Height="28"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
                                 <TextBlock Grid.Row="0" Text="Режим" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock x:Name="DiagnosticModeText" Grid.Row="0" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" Foreground="{StaticResource SuccessBrush}"/>
+                                <TextBlock x:Name="DiagnosticModeText" Grid.Row="0" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" Foreground="{StaticResource SuccessBrush}" TextWrapping="Wrap"/>
                                 <TextBlock Grid.Row="1" Text="Сканер" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock x:Name="DiagnosticScannerText" Grid.Row="1" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}"/>
+                                <TextBlock x:Name="DiagnosticScannerText" Grid.Row="1" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
                                 <TextBlock Grid.Row="2" Text="Статус" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock x:Name="DiagnosticStatusText" Grid.Row="2" Grid.Column="1" Text="Не подключен" Style="{StaticResource MetricValue}" Foreground="{StaticResource WarningBrush}"/>
+                                <TextBlock x:Name="DiagnosticStatusText" Grid.Row="2" Grid.Column="1" Text="Не подключен" Style="{StaticResource MetricValue}" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap"/>
                                 <TextBlock Grid.Row="3" Text="Последняя проверка" Style="{StaticResource MetricLabel}"/>
-                                <TextBlock x:Name="DiagnosticLastCheckText" Grid.Row="3" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}"/>
+                                <TextBlock x:Name="DiagnosticLastCheckText" Grid.Row="3" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
                             </Grid>
 
                             <Button Style="{StaticResource SecondaryButton}" Click="OnHidDiagnosticsClick" Content="Запустить диагностику" Margin="0,0,0,12"/>

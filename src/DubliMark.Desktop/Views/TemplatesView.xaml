@@ -11,14 +11,20 @@
 
             <Border Style="{StaticResource HeroCard}" Margin="0,0,16,0">
                 <StackPanel>
-                    <DockPanel Margin="0,0,0,18">
-                        <StackPanel>
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
                             <TextBlock Text="Шаблоны печати" Style="{StaticResource SectionTitle}"/>
                             <TextBlock Text="Локальные шаблоны templates.json. Редактирование открывается в существующем окне управления."
-                                       Style="{StaticResource MutedText}" Margin="0,5,0,0"/>
+                                       Style="{StaticResource MutedText}" Margin="0,5,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Управление" Click="OnManageTemplatesProxyClick"/>
-                    </DockPanel>
+                        <Button Grid.Column="2" Style="{StaticResource PrimaryButton}" Content="Управление" Click="OnManageTemplatesProxyClick"
+                                Padding="12,9" VerticalAlignment="Top"/>
+                    </Grid>
                     <StackPanel x:Name="TemplatesListPanel"/>
                 </StackPanel>
             </Border>
@@ -61,11 +67,11 @@
                             </Border>
                         </UniformGrid>
 
-                        <UniformGrid Columns="4" Margin="0,20,0,0">
-                            <Button Style="{StaticResource SecondaryButton}" Content="Создать" Margin="0,0,6,0" Click="OnManageTemplatesProxyClick"/>
-                            <Button Style="{StaticResource SecondaryButton}" Content="Копировать" Margin="3,0,6,0" Click="OnManageTemplatesProxyClick"/>
-                            <Button Style="{StaticResource SecondaryButton}" Content="Сохранить" Margin="3,0,6,0" Click="OnManageTemplatesProxyClick"/>
-                            <Button Style="{StaticResource DangerButton}" Content="Удалить" Margin="3,0,0,0" Click="OnManageTemplatesProxyClick"/>
+                        <UniformGrid Columns="2" Margin="0,20,0,0">
+                            <Button Style="{StaticResource SecondaryButton}" Content="Создать" Margin="0,0,6,6" Click="OnManageTemplatesProxyClick"/>
+                            <Button Style="{StaticResource SecondaryButton}" Content="Копировать" Margin="6,0,0,6" Click="OnManageTemplatesProxyClick"/>
+                            <Button Style="{StaticResource SecondaryButton}" Content="Сохранить" Margin="0,6,6,0" Click="OnManageTemplatesProxyClick"/>
+                            <Button Style="{StaticResource DangerButton}" Content="Удалить" Margin="6,6,0,0" Click="OnManageTemplatesProxyClick"/>
                         </UniformGrid>
                     </StackPanel>
 

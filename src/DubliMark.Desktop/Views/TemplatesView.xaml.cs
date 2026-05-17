@@ -94,15 +94,7 @@ public partial class TemplatesView : UserControl
             Height = 56,
             CornerRadius = new CornerRadius(8),
             Background = (Brush)new BrushConverter().ConvertFrom("#E8EEF5")!,
-            Child = new Rectangle
-            {
-                Width = 30,
-                Height = 30,
-                Fill = (Brush)new BrushConverter().ConvertFrom("#101820")!,
-                HorizontalAlignment = HorizontalAlignment.Left,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(8, 0, 0, 0)
-            }
+            Child = BuildMiniMatrix(30, new Thickness(8, 0, 0, 0))
         };
         Grid.SetColumn(preview, 2);
         grid.Children.Add(preview);
@@ -139,28 +131,94 @@ public partial class TemplatesView : UserControl
         Canvas.SetTop(label, offsetY);
         TemplatePreviewCanvas.Children.Add(label);
 
-        var dm = new Rectangle
-        {
-            Width = template.DataMatrixWidthMm * scale,
-            Height = template.DataMatrixHeightMm * scale,
-            Fill = (Brush)new BrushConverter().ConvertFrom("#111820")!
-        };
+        var dmSize = Math.Min(template.DataMatrixWidthMm * scale, template.DataMatrixHeightMm * scale);
+        var dm = BuildMatrixCanvas(dmSize);
         Canvas.SetLeft(dm, offsetX + template.DataMatrixXmm * scale);
         Canvas.SetTop(dm, offsetY + template.DataMatrixYmm * scale);
         TemplatePreviewCanvas.Children.Add(dm);
 
         var name = new TextBlock
         {
-            Text = template.Name,
+            Text = "GTIN 0460",
             Foreground = (Brush)new BrushConverter().ConvertFrom("#344054")!,
-            FontSize = 11,
+            FontSize = 10,
             FontWeight = FontWeights.SemiBold,
-            Width = Math.Max(80, labelWidth - template.DataMatrixXmm * scale - dm.Width - 8),
+            Width = Math.Max(80, labelWidth - template.DataMatrixXmm * scale - dmSize - 8),
             TextTrimming = TextTrimming.CharacterEllipsis
         };
-        Canvas.SetLeft(name, Math.Min(offsetX + template.LabelWidthMm * scale - name.Width - 6, offsetX + template.DataMatrixXmm * scale + dm.Width + 8));
+        Canvas.SetLeft(name, Math.Min(offsetX + template.LabelWidthMm * scale - name.Width - 6, offsetX + template.DataMatrixXmm * scale + dmSize + 8));
         Canvas.SetTop(name, offsetY + Math.Max(4, template.DataMatrixYmm * scale));
         TemplatePreviewCanvas.Children.Add(name);
+
+        var serial = new TextBlock
+        {
+            Text = "SN 5H0QHE",
+            Foreground = (Brush)new BrushConverter().ConvertFrom("#344054")!,
+            FontSize = 10,
+            FontWeight = FontWeights.SemiBold,
+            Width = name.Width,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        Canvas.SetLeft(serial, Canvas.GetLeft(name));
+        Canvas.SetTop(serial, Canvas.GetTop(name) + 20);
+        TemplatePreviewCanvas.Children.Add(serial);
+
+        var date = new TextBlock
+        {
+            Text = "2026-05-17 13:07",
+            Foreground = (Brush)new BrushConverter().ConvertFrom("#344054")!,
+            FontSize = 8,
+            Width = Math.Max(120, labelWidth - 12),
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
+        Canvas.SetLeft(date, offsetX + 8);
+        Canvas.SetTop(date, offsetY + labelHeight - 20);
+        TemplatePreviewCanvas.Children.Add(date);
+    }
+
+    private static FrameworkElement BuildMiniMatrix(double size, Thickness margin)
+    {
+        var canvas = BuildMatrixCanvas(size);
+        canvas.HorizontalAlignment = HorizontalAlignment.Left;
+        canvas.VerticalAlignment = VerticalAlignment.Center;
+        canvas.Margin = margin;
+        return canvas;
+    }
+
+    private static Canvas BuildMatrixCanvas(double size)
+    {
+        var canvas = new Canvas
+        {
+            Width = size,
+            Height = size,
+            Background = Brushes.White
+        };
+
+        var dark = (Brush)new BrushConverter().ConvertFrom("#101820")!;
+        const int cells = 18;
+        var cell = size / cells;
+        for (var y = 0; y < cells; y++)
+        {
+            for (var x = 0; x < cells; x++)
+            {
+                var finder = x == 0 || y == 0 || (x == cells - 1 && y % 2 == 0) || (y == cells - 1 && x % 2 == 0);
+                var data = ((x * 7 + y * 11 + x * y) % 5) < 2;
+                if (!finder && !data)
+                    continue;
+
+                var rect = new Rectangle
+                {
+                    Width = Math.Ceiling(cell),
+                    Height = Math.Ceiling(cell),
+                    Fill = dark
+                };
+                Canvas.SetLeft(rect, x * cell);
+                Canvas.SetTop(rect, y * cell);
+                canvas.Children.Add(rect);
+            }
+        }
+
+        return canvas;
     }
 
     private void OnManageTemplatesProxyClick(object sender, RoutedEventArgs e) =>

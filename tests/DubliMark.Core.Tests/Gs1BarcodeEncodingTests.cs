@@ -1,4 +1,5 @@
 using System.Text;
+using DubliMark.Core.Models;
 using FluentAssertions;
 using DubliMark.Core.Parsing;
 
@@ -112,5 +113,25 @@ public class Gs1BarcodeEncodingTests
 
         var norm = Gs1BarcodeEncoding.NormalizeForParse(bytes);
         norm.Payload.Should().Contain(((char)0xE8).ToString());
+    }
+
+    [Fact]
+    public void BuildBarcodePayload_WithoutGs_ReinsertsSeparators()
+    {
+        var raw = "0104620219556479215BZqLW93pSfJ";
+        var parsed = _parser.Parse(raw);
+        parsed.IsValid.Should().BeTrue();
+
+        var payload = Gs1BarcodeEncoding.BuildBarcodePayload(parsed.Code!);
+        payload.Should().Be($"0104620219556479215BZqLW{GS}93pSfJ");
+        Gs1BarcodeEncoding.CountGs(payload).Should().Be(1);
+    }
+
+    [Fact]
+    public void BuildBarcodePayload_WithGs_KeepsOriginalBytes()
+    {
+        var raw = $"0104620219556479215BZqLW{GS}93pSfJ";
+        var parsed = _parser.Parse(raw);
+        Gs1BarcodeEncoding.BuildBarcodePayload(parsed.Code!).Should().Be(raw);
     }
 }

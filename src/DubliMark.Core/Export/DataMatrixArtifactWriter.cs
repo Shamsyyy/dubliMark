@@ -27,6 +27,7 @@ public sealed class DataMatrixArtifactWriter : IDataMatrixArtifactWriter
         var hints = new Dictionary<EncodeHintType, object>
         {
             [EncodeHintType.CHARACTER_SET] = "ISO-8859-1",
+            [EncodeHintType.GS1_FORMAT] = true,
             [EncodeHintType.MARGIN] = 1
         };
 

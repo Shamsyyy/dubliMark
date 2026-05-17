@@ -59,12 +59,18 @@
 
             <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource Card}">
                 <StackPanel>
-                    <DockPanel Margin="0,0,0,16">
-                        <TextBlock Text="Preview" Style="{StaticResource CardTitle}"/>
-                        <Border x:Name="HistoryPreviewBadge" DockPanel.Dock="Right" Style="{StaticResource PillBadge}">
-                            <TextBlock x:Name="HistoryPreviewStatusText" Text="—" FontWeight="SemiBold"/>
+                    <Grid Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Preview" Style="{StaticResource CardTitle}"/>
+                        <Border x:Name="HistoryPreviewBadge" Grid.Column="2" Style="{StaticResource PillBadge}" MinWidth="86">
+                            <TextBlock x:Name="HistoryPreviewStatusText" Text="—" FontWeight="SemiBold"
+                                       TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </Border>
-                    </DockPanel>
+                    </Grid>
                     <Border Background="#F7FAFC" CornerRadius="18" Width="230" Height="230" Padding="16" HorizontalAlignment="Center" Margin="0,0,0,16">
                         <Grid>
                             <Image x:Name="HistoryPreviewImage" Stretch="Uniform"/>
@@ -74,8 +80,10 @@
                     </Border>
                     <TextBlock x:Name="HistoryPreviewTitleText" Text="—" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextWrapping="Wrap"/>
                     <TextBlock x:Name="HistoryPreviewMetaText" Text="—" Style="{StaticResource MutedText}" Margin="0,6,0,12" TextWrapping="Wrap"/>
-                    <Border Style="{StaticResource SoftSurface}" Margin="0,0,0,12">
-                        <TextBlock x:Name="HistoryPreviewPayloadText" Text="—" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                    <Border Style="{StaticResource SoftSurface}" Margin="0,0,0,12" MaxHeight="118">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <TextBlock x:Name="HistoryPreviewPayloadText" Text="—" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
+                        </ScrollViewer>
                     </Border>
                     <UniformGrid Columns="3">
                         <Button Style="{StaticResource SecondaryButton}" Content="Папка" Click="OnOpenSelectedFolderClick" Margin="0,0,6,0"/>

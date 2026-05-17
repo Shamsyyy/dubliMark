@@ -93,12 +93,8 @@ public partial class PrintView : UserControl
         Canvas.SetTop(label, offsetY);
         PrintPreviewMockCanvas.Children.Add(label);
 
-        var dm = new Rectangle
-        {
-            Width = state.DataMatrixWidthMm * scale,
-            Height = state.DataMatrixHeightMm * scale,
-            Fill = (Brush)new BrushConverter().ConvertFrom("#111820")!
-        };
+        var dmSize = Math.Min(state.DataMatrixWidthMm * scale, state.DataMatrixHeightMm * scale);
+        var dm = BuildMatrixCanvas(dmSize);
         Canvas.SetLeft(dm, offsetX + state.DataMatrixXmm * scale);
         Canvas.SetTop(dm, offsetY + state.DataMatrixYmm * scale);
         PrintPreviewMockCanvas.Children.Add(dm);
@@ -109,12 +105,48 @@ public partial class PrintView : UserControl
             Foreground = (Brush)new BrushConverter().ConvertFrom("#111820")!,
             FontWeight = FontWeights.Bold,
             FontSize = 11,
-            Width = Math.Max(86, labelWidth - state.DataMatrixXmm * scale - dm.Width - 10),
+            Width = Math.Max(86, labelWidth - state.DataMatrixXmm * scale - dmSize - 10),
             TextTrimming = TextTrimming.CharacterEllipsis
         };
-        Canvas.SetLeft(templateName, Math.Min(offsetX + labelWidth - templateName.Width - 6, offsetX + state.DataMatrixXmm * scale + dm.Width + 8));
+        Canvas.SetLeft(templateName, Math.Min(offsetX + labelWidth - templateName.Width - 6, offsetX + state.DataMatrixXmm * scale + dmSize + 8));
         Canvas.SetTop(templateName, offsetY + Math.Max(4, state.DataMatrixYmm * scale));
         PrintPreviewMockCanvas.Children.Add(templateName);
+    }
+
+    private static Canvas BuildMatrixCanvas(double size)
+    {
+        var canvas = new Canvas
+        {
+            Width = size,
+            Height = size,
+            Background = Brushes.White
+        };
+
+        var dark = (Brush)new BrushConverter().ConvertFrom("#111820")!;
+        const int cells = 10;
+        var cell = size / cells;
+        for (var y = 0; y < cells; y++)
+        {
+            for (var x = 0; x < cells; x++)
+            {
+                var finder = x == 0 || y == cells - 1 || (x % 2 == 0 && y == 0) || (x == cells - 1 && y % 2 == 0);
+                var data = ((x * 5 + y * 7 + x * y) % 4) == 0;
+                if (!finder && !data)
+                    continue;
+
+                var rect = new Rectangle
+                {
+                    Width = Math.Ceiling(cell),
+                    Height = Math.Ceiling(cell),
+                    Fill = dark
+                };
+                Canvas.SetLeft(rect, x * cell);
+                Canvas.SetTop(rect, y * cell);
+                canvas.Children.Add(rect);
+            }
+        }
+
+        return canvas;
     }
 
     private void RenderRecentPrints(IReadOnlyList<ScanHistoryItem> recentPrints)

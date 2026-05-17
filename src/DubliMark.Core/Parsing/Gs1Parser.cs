@@ -124,14 +124,14 @@ public class Gs1Parser
         return Success(raw, gtin, serial, key, code, field93, codeType);
     }
 
-    private static IReadOnlyList<string> BuildInfoMessages(string serial) =>
-        serial.Length == ExpectedSerialLength
-            ? Array.Empty<string>()
-            : new[]
-            {
-                $"Серийный номер (AI 21): {serial.Length} симв. — по спецификации ЧЗ обычно {ExpectedSerialLength}. " +
-                "Фактическая длина зависит от сканера/декодера."
-            };
+    private static IReadOnlyList<string> BuildInfoMessages(
+        string raw,
+        string serial,
+        MarkingCodeType codeType,
+        string? field93)
+    {
+        return [];
+    }
 
     /// <summary>
     /// Short codes from small matrices sometimes arrive without GS when HID strips FNC1.
@@ -150,7 +150,11 @@ public class Gs1Parser
         if (s.Contains(GS))
             return false;
 
-        var ai93Idx = s.IndexOf("93", 18, StringComparison.Ordinal);
+        var expectedAi93Idx = 18 + ExpectedSerialLength;
+        var ai93Idx = s.Length >= expectedAi93Idx + 2
+                      && s.AsSpan(expectedAi93Idx, 2).SequenceEqual("93")
+            ? expectedAi93Idx
+            : s.IndexOf("93", 18, StringComparison.Ordinal);
         if (ai93Idx < 20)
             return false;
 
@@ -226,7 +230,7 @@ public class Gs1Parser
         new()
         {
             IsValid = true,
-            InfoMessages = BuildInfoMessages(serial),
+            InfoMessages = BuildInfoMessages(raw, serial, codeType, field93),
             Code = new MarkingCode
             {
                 Gtin = gtin,

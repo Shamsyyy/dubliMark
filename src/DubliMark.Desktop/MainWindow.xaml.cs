@@ -269,12 +269,81 @@ public partial class MainWindow : Window
         _lastBarcode = raw;
         _lastBarcodeUtc = now;
 
-        var result = _parser.Parse(raw);
         var source = GetScannerExportSource();
+        var result = AddScanContextWarnings(_parser.Parse(raw), raw, source);
         var export = SaveExportIfEnabled(result, raw, source);
         var print = await ProcessPrintAfterScanAsync(result, raw, source, forcePrint: false, allowDuplicate: false);
         DisplayResult(result, raw, source, export, print);
     }
+
+    private ParseResult AddScanContextWarnings(ParseResult result, string raw, string source)
+    {
+        if (!result.IsValid || result.Code == null)
+            return result;
+        if (!string.Equals(source, "HID", StringComparison.OrdinalIgnoreCase))
+            return result;
+        if (result.Code.CodeType != MarkingCodeType.Short || raw.Contains(Gs1BarcodeEncoding.GsChar))
+            return result;
+
+        var conflict = _uiHistory.FirstOrDefault(item =>
+            string.Equals(item.Gtin, result.Code.Gtin, StringComparison.Ordinal)
+            && string.Equals(item.Ai93, result.Code.AdditionalField93 ?? "—", StringComparison.Ordinal)
+            && IsLikelySameCodeWithConflictingSerial(result.Code.Serial, item.Serial));
+
+        if (conflict == null)
+            return result;
+
+        var messages = result.InfoMessages
+            .Append("Повторный скан того же GTIN/AI93 отличается в серийном номере как возможное клавиатурное искажение HID. " +
+                    "Пересканируйте код в окне DubliMark или используйте Virtual COM.")
+            .ToArray();
+        return result with { InfoMessages = messages };
+    }
+
+    private static bool IsLikelySameCodeWithConflictingSerial(string current, string previous)
+    {
+        if (current.Length != previous.Length)
+            return false;
+
+        var differences = 0;
+        for (var i = 0; i < current.Length; i++)
+        {
+            if (current[i] == previous[i])
+                continue;
+
+            differences++;
+            if (differences > 1)
+                return false;
+
+            if (!LooksLikeKeyboardVariant(current[i], previous[i]))
+                return false;
+        }
+
+        return differences == 1;
+    }
+
+    private static bool LooksLikeKeyboardVariant(char current, char previous)
+    {
+        if (ShiftedDigitToDigit(current) == previous || ShiftedDigitToDigit(previous) == current)
+            return true;
+
+        return char.ToUpperInvariant(current) == char.ToUpperInvariant(previous);
+    }
+
+    private static char? ShiftedDigitToDigit(char ch) => ch switch
+    {
+        ')' => '0',
+        '!' => '1',
+        '@' => '2',
+        '#' => '3',
+        '$' => '4',
+        '%' => '5',
+        '^' => '6',
+        '&' => '7',
+        '*' => '8',
+        '(' => '9',
+        _ => null
+    };
 
     private void OnLoadImageClick(object sender, RoutedEventArgs e)
     {
@@ -449,7 +518,8 @@ public partial class MainWindow : Window
         LastScanAi91Text.Text = code?.VerificationKey ?? "—";
         LastScanAi92Text.Text = code?.VerificationCode ?? code?.AdditionalField93 ?? "—";
         LastScanSerialText.Text = code?.Serial ?? "—";
-        LastScanGsCountText.Text = (imageGsCount ?? Gs1BarcodeEncoding.CountGs(code?.RawData ?? raw)).ToString();
+        var displayedPayload = exportResult?.NormalizedPayload ?? code?.RawData ?? raw;
+        LastScanGsCountText.Text = (imageGsCount ?? Gs1BarcodeEncoding.CountGs(displayedPayload)).ToString();
         LastScanSourceText.Text = source;
 
         var savedPath = ResolveSavedFolder(exportResult, printResult);

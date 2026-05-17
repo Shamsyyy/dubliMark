@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using DubliMark.Core.Models;
 
 namespace DubliMark.Core.Parsing;
 
@@ -166,6 +167,36 @@ public static class Gs1BarcodeEncoding
 
     public static int CountGs(string raw) =>
         raw.Count(c => c == GsChar);
+
+    /// <summary>
+    /// Canonical GS1 payload for DataMatrix encoding. Re-inserts GS when HID/COM delivered
+    /// a concatenated string without FNC1/GS separators.
+    /// </summary>
+    public static string BuildBarcodePayload(MarkingCode code)
+    {
+        ArgumentNullException.ThrowIfNull(code);
+
+        if (CountGs(code.RawData) > 0)
+            return code.RawData;
+
+        var gs = GsChar.ToString();
+        var sb = new StringBuilder();
+        sb.Append("01").Append(code.Gtin).Append("21").Append(code.Serial);
+
+        if (code.VerificationKey != null || code.VerificationCode != null)
+        {
+            if (code.VerificationKey != null)
+                sb.Append(gs).Append("91").Append(code.VerificationKey);
+            if (code.VerificationCode != null)
+                sb.Append(gs).Append("92").Append(code.VerificationCode);
+        }
+        else if (code.AdditionalField93 != null)
+            sb.Append(gs).Append("93").Append(code.AdditionalField93);
+        else if (code.CodeType == MarkingCodeType.Short)
+            sb.Append(gs);
+
+        return sb.ToString();
+    }
 
     public static string ToHex(string raw) =>
         string.Join(" ", raw.Select(c => ((byte)c).ToString("X2")));

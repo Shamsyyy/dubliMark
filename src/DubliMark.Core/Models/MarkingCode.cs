@@ -31,7 +31,7 @@ public record ParseResult
     public MarkingCode? Code { get; init; }
     public string? ErrorMessage { get; init; }
     public ParseErrorCode? ErrorCode { get; init; }
-    /// <summary>Информационные замечания (не ошибки), напр. длина серийника ≠ 13.</summary>
+    /// <summary>Информационные замечания (не ошибки), напр. неполный проверочный хвост короткого кода.</summary>
     public IReadOnlyList<string> InfoMessages { get; init; } = Array.Empty<string>();
 }
 

@@ -15,16 +15,22 @@
 
             <Border Style="{StaticResource HeroCard}" Margin="0,0,16,16">
                 <StackPanel>
-                    <DockPanel Margin="0,0,0,18">
-                        <StackPanel>
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
                             <TextBlock Text="Диагностика" Style="{StaticResource SectionTitle}"/>
                             <TextBlock Text="HID, GS 0x1D, AI91/AI92 и состояние последнего разбора без изменения scanner pipeline."
-                                       Style="{StaticResource MutedText}" Margin="0,5,0,0"/>
+                                       Style="{StaticResource MutedText}" Margin="0,5,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <Border x:Name="DiagnosticsStatusBadge" DockPanel.Dock="Right" Style="{StaticResource PillBadge}">
-                            <TextBlock x:Name="DiagnosticsStatusText" Text="—" FontWeight="SemiBold"/>
+                        <Border x:Name="DiagnosticsStatusBadge" Grid.Column="2" Style="{StaticResource PillBadge}" MinWidth="86" VerticalAlignment="Top">
+                            <TextBlock x:Name="DiagnosticsStatusText" Text="—" FontWeight="SemiBold" TextAlignment="Center"
+                                       TextTrimming="CharacterEllipsis"/>
                         </Border>
-                    </DockPanel>
+                    </Grid>
 
                     <Grid Margin="0,0,0,16">
                         <Grid.ColumnDefinitions>
@@ -32,19 +38,19 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="32"/>
-                            <RowDefinition Height="32"/>
-                            <RowDefinition Height="32"/>
-                            <RowDefinition Height="32"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <TextBlock Grid.Row="0" Text="Режим" Style="{StaticResource MetricLabel}"/>
-                        <TextBlock x:Name="DiagnosticsModeText" Grid.Row="0" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}"/>
+                        <TextBlock x:Name="DiagnosticsModeText" Grid.Row="0" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
                         <TextBlock Grid.Row="1" Text="Сканер" Style="{StaticResource MetricLabel}"/>
-                        <TextBlock x:Name="DiagnosticsScannerText" Grid.Row="1" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}"/>
+                        <TextBlock x:Name="DiagnosticsScannerText" Grid.Row="1" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
                         <TextBlock Grid.Row="2" Text="Последняя проверка" Style="{StaticResource MetricLabel}"/>
-                        <TextBlock x:Name="DiagnosticsLastCheckText" Grid.Row="2" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}"/>
+                        <TextBlock x:Name="DiagnosticsLastCheckText" Grid.Row="2" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
                         <TextBlock Grid.Row="3" Text="GS count" Style="{StaticResource MetricLabel}"/>
-                        <TextBlock x:Name="DiagnosticsGsCountText" Grid.Row="3" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}"/>
+                        <TextBlock x:Name="DiagnosticsGsCountText" Grid.Row="3" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
                     </Grid>
 
                     <UniformGrid Columns="2">

@@ -145,8 +145,8 @@ public sealed class MarkExportService
 
     private static string NormalizePayload(string raw, ParseResult result)
     {
-        if (result.IsValid && result.Code?.RawData is { Length: > 0 } parsedRaw)
-            return parsedRaw;
+        if (result.IsValid && result.Code != null)
+            return Gs1BarcodeEncoding.BuildBarcodePayload(result.Code);
 
         var normalized = Gs1BarcodeEncoding.NormalizeForParse(raw);
         return normalized.FoundAi01 ? normalized.Payload : raw;

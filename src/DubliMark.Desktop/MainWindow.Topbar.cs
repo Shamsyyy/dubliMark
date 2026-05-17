@@ -10,6 +10,7 @@ public partial class MainWindow
 {
     private readonly List<UiNotification> _notifications = new();
     private int _unreadNotifications;
+    private bool _isSearchPopupClosing;
 
     private void FocusGlobalSearch()
     {
@@ -38,9 +39,50 @@ public partial class MainWindow
     {
         if (e.Key == Key.Escape)
         {
+            CloseGlobalSearchPopup();
+            e.Handled = true;
+        }
+    }
+
+    private void OnRootShellPreviewMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!SearchPopup.IsOpen)
+            return;
+
+        if (IsWithin(GlobalSearchFrame, e.OriginalSource) ||
+            (SearchPopup.Child is DependencyObject popupChild && IsWithin(popupChild, e.OriginalSource)))
+            return;
+
+        SearchPopup.IsOpen = false;
+    }
+
+    private static bool IsWithin(DependencyObject root, object? source)
+    {
+        if (source is not DependencyObject current)
+            return false;
+
+        while (current != null)
+        {
+            if (ReferenceEquals(current, root))
+                return true;
+
+            current = VisualTreeHelper.GetParent(current);
+        }
+
+        return false;
+    }
+
+    private void CloseGlobalSearchPopup()
+    {
+        _isSearchPopupClosing = true;
+        try
+        {
             SearchPopup.IsOpen = false;
             Focus();
-            e.Handled = true;
+        }
+        finally
+        {
+            _isSearchPopupClosing = false;
         }
     }
 
@@ -118,7 +160,7 @@ public partial class MainWindow
         };
         button.Click += (_, _) =>
         {
-            SearchPopup.IsOpen = false;
+            CloseGlobalSearchPopup();
             action();
         };
         SearchResultsPanel.Children.Add(button);
@@ -192,13 +234,18 @@ public partial class MainWindow
 
     private void OnNotificationsClick(object sender, RoutedEventArgs e)
     {
+        if (!_isSearchPopupClosing)
+            SearchPopup.IsOpen = false;
         NotificationsPopup.IsOpen = !NotificationsPopup.IsOpen;
         _unreadNotifications = 0;
         UpdateNotificationsUi();
     }
 
-    private void OnWorkspaceClick(object sender, RoutedEventArgs e) =>
+    private void OnWorkspaceClick(object sender, RoutedEventArgs e)
+    {
+        SearchPopup.IsOpen = false;
         WorkspacePopup.IsOpen = !WorkspacePopup.IsOpen;
+    }
 
     private void OnWorkspaceOptionClick(object sender, RoutedEventArgs e)
     {
@@ -210,8 +257,11 @@ public partial class MainWindow
         }
     }
 
-    private void OnAccountMenuClick(object sender, RoutedEventArgs e) =>
+    private void OnAccountMenuClick(object sender, RoutedEventArgs e)
+    {
+        SearchPopup.IsOpen = false;
         AccountPopup.IsOpen = !AccountPopup.IsOpen;
+    }
 
     private void OnAccountProfileClick(object sender, RoutedEventArgs e)
     {

@@ -203,7 +203,9 @@ public partial class MainWindow
         string parseError)
     {
         var code = r.Code;
-        var normalized = code?.RawData ?? Gs1BarcodeEncoding.NormalizeForParse(raw).Payload;
+        var normalized = exportResult?.NormalizedPayload
+                         ?? code?.RawData
+                         ?? Gs1BarcodeEncoding.NormalizeForParse(raw).Payload;
         _lastRawEscaped = FormatRawForDisplay(raw);
         _lastNormalizedEscaped = FormatRawForDisplay(normalized);
         _lastRawHex = Gs1BarcodeEncoding.ToHex(raw);
