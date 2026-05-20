@@ -14,6 +14,7 @@ namespace DoubleMark.Desktop;
 public partial class MainWindow
 {
     private readonly List<ScanHistoryItem> _uiHistory = new();
+    private const int InMemoryHistoryLimit = ScanHistoryStore.MaxEntries;
     private string _lastRawEscaped = "—";
     private string _lastNormalizedEscaped = "—";
     private string _lastRawHex = "—";
@@ -73,7 +74,14 @@ public partial class MainWindow
         {
             ScannerStatus = status,
             ScannerStatusKind = isError ? UiStatusKind.Error : hasSuccess ? UiStatusKind.Success : UiStatusKind.Warning,
-            Mode = _settings.ScannerMode == ScannerMode.RawInput ? "HID" : "COM-порт",
+            Mode = _settings.ScannerMode switch
+            {
+                ScannerMode.Auto => "Авто",
+                ScannerMode.Hid => "HID",
+                ScannerMode.RawInput => "RawInput",
+                ScannerMode.Com => "COM",
+                _ => "Не выбран"
+            },
             SelectedPort = PortsCombo.SelectedItem as string ?? _settings.ComPort,
             Ports = ports,
             PortHint = PortsHintText.Visibility == Visibility.Visible ? PortsHintText.Text ?? "" : "",
@@ -107,6 +115,7 @@ public partial class MainWindow
 
         return new PrintViewState
         {
+            PrintModeLabel = _settings.PrintMode == Settings.PrintMode.Auto ? "Автоматическая" : "Ручная",
             AutoPrintEnabled = _settings.AutoPrintEnabled,
             Printers = printers,
             SelectedPrinter = string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName,
@@ -115,7 +124,7 @@ public partial class MainWindow
             Copies = Math.Max(1, _settings.PrintCopies),
             PrintFolder = _settings.EffectivePrintDirectory,
             LastPrintStatus = LastPrintStatusText.Text,
-            QueueStatus = _settings.AutoPrintEnabled ? "Автопечать готова" : "Ручная печать",
+            QueueStatus = _settings.PrintMode == Settings.PrintMode.Auto ? "Автопечать готова" : "Ручная печать",
             TemplateSize = $"{template.LabelWidthMm:0.#} × {template.LabelHeightMm:0.#} мм",
             DataMatrixSize = $"{template.DataMatrixWidthMm:0.#} × {template.DataMatrixHeightMm:0.#} мм",
             LabelWidthMm = template.LabelWidthMm,
@@ -178,6 +187,9 @@ public partial class MainWindow
             ? ""
             : _lastParseError;
 
+        var ports = PortsCombo?.Items.OfType<string>().ToList()
+                    ?? new List<string>();
+
         return new DiagnosticsViewState
         {
             Mode = DiagnosticModeText.Text,
@@ -186,14 +198,23 @@ public partial class MainWindow
             StatusKind = StatusKindFromText(DiagnosticStatusText.Text),
             LastCheck = DiagnosticLastCheckText.Text,
             GsCount = LastScanGsCountText.Text,
+            Ai01 = _lastGtin,
+            Ai21 = LastScanSerialText.Text,
             Ai91 = LastScanAi91Text.Text,
             Ai92 = LastScanAi92Text.Text,
+            PrintMode = _settings.PrintMode.ToString(),
+            Printer = string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName,
+            Template = _settings.DefaultPrintTemplateName ?? "—",
+            LastPrintStatus = LastPrintStatusText.Text,
+            AvailableComPorts = ports.Count == 0 ? "—" : string.Join(", ", ports),
+            RawEscaped = _lastRawEscaped,
+            RawHex = _lastRawHex,
             RawKeySummary = rawSummary,
             Warning = warning
         };
     }
 
-    private void RecordUiScanHistory(
+    private void UpdateScanUiSnapshot(
         ParseResult r,
         string raw,
         string source,
@@ -213,6 +234,21 @@ public partial class MainWindow
         _lastAi93 = code?.AdditionalField93 ?? "—";
         _lastCodeType = code == null ? "—" : CodeTypeShort(code.CodeType);
         _lastParseError = parseError;
+    }
+
+    private void AppendUiScanHistory(
+        ParseResult r,
+        string raw,
+        string source,
+        MarkExportResult? exportResult,
+        PrintPipelineResult? printResult,
+        int? imageGsCount,
+        string parseError)
+    {
+        var code = r.Code;
+        var normalized = exportResult?.NormalizedPayload
+                         ?? code?.RawData
+                         ?? Gs1BarcodeEncoding.NormalizeForParse(raw).Payload;
 
         var status = r.IsValid
             ? r.InfoMessages.Count > 0 ? "Предупреждение" : "Успешно"
@@ -251,8 +287,32 @@ public partial class MainWindow
             PreviewImage = LastScanPreviewImage.Source
         });
 
-        while (_uiHistory.Count > 100)
+        while (_uiHistory.Count > InMemoryHistoryLimit)
             _uiHistory.RemoveAt(_uiHistory.Count - 1);
+
+        PersistScanHistory();
+    }
+
+    private void LoadPersistedScanHistory()
+    {
+        var fromFile = ScanHistoryStore.Load();
+        var fromExports = ScanHistoryImporter.FromExports(
+            _settings.EffectiveExportDirectory,
+            ScanHistoryStore.MaxEntries);
+        _uiHistory.Clear();
+        _uiHistory.AddRange(ScanHistoryImporter.Merge(fromFile, fromExports, ScanHistoryStore.MaxEntries));
+        RebuildDashboardHistoryRows();
+        LoggingService.Info("ScanHistory",
+            $"Loaded {_uiHistory.Count} items (file={fromFile.Count}, exports={fromExports.Count})");
+    }
+
+    private void PersistScanHistory() => ScanHistoryStore.Save(_uiHistory);
+
+    private void RebuildDashboardHistoryRows()
+    {
+        ResultPanel.Children.Clear();
+        foreach (var item in _uiHistory.Take(20))
+            AddDashboardHistoryRow(item);
     }
 
     private void OnScanViewConnectRequested(object? sender, RoutedEventArgs e)
@@ -271,20 +331,24 @@ public partial class MainWindow
 
     private void OnScanViewModeSelectionRequested(object? sender, string mode)
     {
-        if (mode == "HID")
+        _settings.ScannerMode = mode switch
         {
-            ShowToast("HID подключается через «Настроить сканер»", ToastKind.Warning);
-            return;
-        }
-
-        ComConnectionPanel.Visibility = Visibility.Visible;
-        PortsCombo.Focusable = true;
-        ShowToast("Выбран режим COM. Выберите порт и нажмите подключить.", ToastKind.Success);
+            "HID" => ScannerMode.Hid,
+            "COM" => ScannerMode.Com,
+            _ => ScannerMode.Auto
+        };
+        _settings.Save();
+        var result = RestartScanner();
+        if (_settings.ScannerMode == ScannerMode.Hid)
+            ShowToast("HID: выберите устройство в «Настроить сканер»", ToastKind.Warning);
+        else
+            ShowToast(result.Message, result.Success ? ToastKind.Success : ToastKind.Warning);
+        SyncConnectedViews();
     }
 
     private void OnPrintViewAutoPrintChanged(object? sender, bool enabled)
     {
-        _settings.AutoPrintEnabled = enabled;
+        _settings.PrintMode = enabled ? Settings.PrintMode.Auto : Settings.PrintMode.Manual;
         AutoPrintQuickToggle.IsChecked = enabled;
         _settings.Save();
         RefreshPrintSettingsUi();

@@ -80,6 +80,7 @@ public partial class MainWindow
         _printView.PrinterChanged += OnPrintViewPrinterChanged;
         _printView.TemplateChanged += OnPrintViewTemplateChanged;
         _printView.CopiesChanged += OnPrintViewCopiesChanged;
+        _printView.RefreshPrintersRequested += OnRefreshPrintersClick;
         SyncPrintPageState();
         return _printView;
     }
@@ -101,7 +102,7 @@ public partial class MainWindow
         if (_historyView != null)
             return _historyView;
 
-        _historyView = new HistoryView();
+        _historyView = new HistoryView { TemplateService = _printTemplateService };
         _historyView.OpenFolderRequested += OnHistoryOpenFolderRequested;
         _historyView.CopyRequested += OnHistoryCopyRequested;
         _historyView.ReprintRequested += OnHistoryReprintRequested;
@@ -130,6 +131,10 @@ public partial class MainWindow
         _diagnosticsView = new DiagnosticsView();
         _diagnosticsView.HidDiagnosticsRequested += OnHidDiagnosticsClick;
         _diagnosticsView.ResetSettingsRequested += OnResetSettingsClick;
+        _diagnosticsView.OpenLogsRequested += OnOpenLogsFolderClick;
+        _diagnosticsView.CopyDiagnosticsRequested += OnCopyDiagnosticsClick;
+        _diagnosticsView.RefreshComPortsRequested += OnRefreshClick;
+        _diagnosticsView.RefreshPrintersRequested += OnRefreshPrintersClick;
         SyncDiagnosticsPageState();
         return _diagnosticsView;
     }

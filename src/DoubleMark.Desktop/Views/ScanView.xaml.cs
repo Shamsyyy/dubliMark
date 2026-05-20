@@ -19,7 +19,7 @@ public partial class ScanView : UserControl
     public ScanView()
     {
         InitializeComponent();
-        ScanModeCombo.ItemsSource = new[] { "COM-порт", "HID" };
+        ScanModeCombo.ItemsSource = new[] { "Авто", "COM", "HID" };
     }
 
     public string? SelectedPort => ScanPortsCombo.SelectedItem as string;
@@ -29,7 +29,13 @@ public partial class ScanView : UserControl
         _updating = true;
         try
         {
-            ScanModeCombo.SelectedItem = state.Mode == "HID" ? "HID" : "COM-порт";
+            ScanModeCombo.SelectedItem = state.Mode switch
+            {
+                "HID" => "HID",
+                "COM" or "COM-порт" => "COM",
+                "Авто" or "Auto" => "Авто",
+                _ => "Авто"
+            };
             ScanPortsCombo.ItemsSource = state.Ports;
             ScanPortsCombo.SelectedItem = state.SelectedPort;
             if (ScanPortsCombo.SelectedIndex < 0 && state.Ports.Count > 0)

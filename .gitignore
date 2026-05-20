@@ -55,6 +55,10 @@ coverage*.cobertura.xml
 # Publish
 publish/
 **/publish/
+dist/
+installer/Output/
+*.pfx
+*.snk
 
 # Crash dumps
 *.mdmp
@@ -75,6 +79,8 @@ CLAUDE.md
 .env.*
 !.env.example
 appsettings.local.json
+appsettings.json
+!appsettings.example.json
 secrets.json
 doublemark-session.bin
 

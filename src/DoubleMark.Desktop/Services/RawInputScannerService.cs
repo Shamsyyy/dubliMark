@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using DoubleMark.Desktop.Settings;
 
 namespace DoubleMark.Desktop.Services;
@@ -25,7 +26,12 @@ public class RawInputScannerService : IScannerSource
     /// <summary>Last completed HID scan — for diagnostics UI.</summary>
     public static RawInputScanDiagnostics? LastScanDiagnostics { get; private set; }
 
+    /// <summary>Last completed HID scan metadata (device path, speed).</summary>
+    public static RawInputScanEventArgs? LastScanEvent { get; private set; }
+
     private HwndSource? _source;
+    private IntPtr _registeredHwnd;
+    private bool _rawInputRegistered;
     private LowLevelKeyboardHook? _lowLevelHook;
     private readonly StringBuilder _buffer = new();
     private readonly List<RawInputKeyEvent> _scanKeys = new();
@@ -64,6 +70,10 @@ public class RawInputScannerService : IScannerSource
     private const ushort RI_KEY_E0 = 0x02;
     private const double FastScanThresholdMs = 50;
     private const double ResetIntervalMs = 50;
+    private const int IdleFlushMs = 150;
+    private const int MinScannerBarcodeLength = 12;
+
+    private DispatcherTimer? _idleFlushTimer;
 
     private static readonly bool DebugKeys =
         string.Equals(Environment.GetEnvironmentVariable("DUBLIMARK_DEBUG_SCANNER"), "1",
@@ -80,9 +90,39 @@ public class RawInputScannerService : IScannerSource
 
     public void ConfigureGsMapping(ScannerGsSettings settings) => _gsSettings = settings;
 
+    public void AttachWhenReady(Window window, string? scannerDevicePath, bool wizardMode,
+        ScannerGsSettings? gsSettings = null)
+    {
+        void TryAttach()
+        {
+            var helper = new WindowInteropHelper(window);
+            if (helper.Handle == IntPtr.Zero)
+                return;
+
+            Attach(window, scannerDevicePath, wizardMode, gsSettings);
+        }
+
+        if (window.IsLoaded)
+        {
+            TryAttach();
+            return;
+        }
+
+        window.SourceInitialized += OnSourceInitialized;
+        return;
+
+        void OnSourceInitialized(object? sender, EventArgs e)
+        {
+            window.SourceInitialized -= OnSourceInitialized;
+            TryAttach();
+        }
+    }
+
     public void Attach(Window window, string? scannerDevicePath, bool wizardMode,
         ScannerGsSettings? gsSettings = null)
     {
+        Stop();
+
         _wizardMode = wizardMode;
         _scannerDevicePath = scannerDevicePath;
         _requirePathFilter = !wizardMode && !string.IsNullOrWhiteSpace(scannerDevicePath);
@@ -90,9 +130,11 @@ public class RawInputScannerService : IScannerSource
             _gsSettings = gsSettings;
 
         var helper = new WindowInteropHelper(window);
-        _source = HwndSource.FromHwnd(helper.Handle);
-        if (_source == null)
-            throw new InvalidOperationException("Window not initialized");
+        if (helper.Handle == IntPtr.Zero)
+            throw new InvalidOperationException("Window handle not ready");
+
+        _source = HwndSource.FromHwnd(helper.Handle)
+                  ?? throw new InvalidOperationException("Window not initialized");
 
         _source.AddHook(WndProc);
 
@@ -108,9 +150,14 @@ public class RawInputScannerService : IScannerSource
                 new[] { rid }, 1,
                 (uint)Marshal.SizeOf<RawInputInterop.RAWINPUTDEVICE>()))
         {
+            _source.RemoveHook(WndProc);
+            _source = null;
             throw new InvalidOperationException(
                 "Failed to register Raw Input: " + Marshal.GetLastWin32Error());
         }
+
+        _rawInputRegistered = true;
+        _registeredHwnd = helper.Handle;
 
         if (UseLowLevelHook)
         {
@@ -121,8 +168,28 @@ public class RawInputScannerService : IScannerSource
 
     public void Stop()
     {
+        _idleFlushTimer?.Stop();
+        _idleFlushTimer = null;
+
         _lowLevelHook?.Dispose();
         _lowLevelHook = null;
+
+        if (_rawInputRegistered)
+        {
+            var remove = new RawInputInterop.RAWINPUTDEVICE
+            {
+                UsagePage = 0x01,
+                Usage = 0x06,
+                Flags = 0x00000001,
+                Target = _registeredHwnd
+            };
+            RawInputInterop.RegisterRawInputDevices(
+                new[] { remove }, 1,
+                (uint)Marshal.SizeOf<RawInputInterop.RAWINPUTDEVICE>());
+            _rawInputRegistered = false;
+            _registeredHwnd = IntPtr.Zero;
+        }
+
         _source?.RemoveHook(WndProc);
         _source = null;
         ResetBuffer();
@@ -153,10 +220,10 @@ public class RawInputScannerService : IScannerSource
 
             var path = GetDevicePath(raw.Header.Device);
 
-            if (_requirePathFilter)
+            if (_requirePathFilter
+                && !HidDeviceInfo.MatchesConfiguredDevice(path, _scannerDevicePath))
             {
-                if (path == null || !path.Equals(_scannerDevicePath, StringComparison.OrdinalIgnoreCase))
-                    return IntPtr.Zero;
+                return IntPtr.Zero;
             }
 
             if (HandleKey(raw.Keyboard, path, "raw"))
@@ -254,6 +321,7 @@ public class RawInputScannerService : IScannerSource
             _buffer.Append((char)0x1D);
             _gsRestoredCount++;
             RecordKey(kb, isE0, false, (char)0x1D, RawInputKeyAction.GsRestored, source, gsNote);
+            ScheduleIdleFlush();
             return true;
         }
 
@@ -272,6 +340,7 @@ public class RawInputScannerService : IScannerSource
             {
                 _buffer.Append(ch.Value);
                 RecordKey(kb, isE0, false, ch, RawInputKeyAction.Char, source);
+                ScheduleIdleFlush();
             }
 
             return true;
@@ -390,6 +459,8 @@ public class RawInputScannerService : IScannerSource
 
     private void CompleteBarcode(string? devicePath)
     {
+        _idleFlushTimer?.Stop();
+
         if (_buffer.Length == 0)
             return;
 
@@ -397,10 +468,24 @@ public class RawInputScannerService : IScannerSource
         var avgInterval = _intervals.Count > 0 ? _intervals.Average() : 0;
         var isFast = _intervals.Count > 0 && avgInterval < FastScanThresholdMs;
 
+        if (!_requirePathFilter
+            && !isFast
+            && data.Length < MinScannerBarcodeLength)
+        {
+            LoggingService.Debug("Scanner.HID",
+                $"Ignored slow keyboard input (len={data.Length}, avg={avgInterval:F0}ms)");
+            ResetBuffer();
+            return;
+        }
+
+        var resolvedPath = _currentDevicePath ?? devicePath;
         var diagnostics = new RawInputScanDiagnostics
         {
             CompletedUtc = DateTime.UtcNow,
             Barcode = data,
+            DevicePath = resolvedPath,
+            AverageIntervalMs = avgInterval,
+            IsFastScan = isFast,
             GsRestoredCount = _gsRestoredCount,
             Keys = _scanKeys.ToList()
         };
@@ -411,11 +496,12 @@ public class RawInputScannerService : IScannerSource
         var args = new RawInputScanEventArgs
         {
             Barcode = data,
-            DevicePath = _currentDevicePath ?? devicePath,
+            DevicePath = resolvedPath,
             AverageIntervalMs = avgInterval,
             IsFastScan = isFast,
             Diagnostics = diagnostics
         };
+        LastScanEvent = args;
 
         ScanCompleted?.Invoke(this, args);
         BarcodeReceived?.Invoke(this, data);
@@ -499,8 +585,32 @@ public class RawInputScannerService : IScannerSource
         return false;
     }
 
+    private void ScheduleIdleFlush()
+    {
+        if (_source?.Dispatcher == null || _buffer.Length == 0)
+            return;
+
+        _idleFlushTimer ??= new DispatcherTimer(
+            TimeSpan.FromMilliseconds(IdleFlushMs),
+            DispatcherPriority.Background,
+            OnIdleFlushTick,
+            _source.Dispatcher);
+        _idleFlushTimer.Stop();
+        _idleFlushTimer.Start();
+    }
+
+    private void OnIdleFlushTick(object? sender, EventArgs e)
+    {
+        _idleFlushTimer?.Stop();
+        if (_buffer.Length >= MinScannerBarcodeLength)
+            CompleteBarcode(_currentDevicePath);
+        else if (_buffer.Length > 0)
+            ResetBuffer();
+    }
+
     private void ResetBuffer()
     {
+        _idleFlushTimer?.Stop();
         _buffer.Clear();
         _intervals.Clear();
         _scanKeys.Clear();

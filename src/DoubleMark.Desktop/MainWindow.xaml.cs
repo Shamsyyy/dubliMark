@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,6 +9,7 @@ using DoubleMark.Core.Parsing;
 using DoubleMark.Core.Print;
 using DoubleMark.Desktop.Services;
 using DoubleMark.Desktop.Settings;
+using DoubleMark.Desktop.Views;
 using Microsoft.Win32;
 
 namespace DoubleMark.Desktop;
@@ -34,8 +34,11 @@ public partial class MainWindow : Window
         InitializeAccountServices();
         InitializeNavigation();
         Loaded += OnLoaded;
+        Closed += OnClosed;
         PreviewKeyDown += OnPreviewKeyDown;
     }
+
+    private void OnClosed(object? sender, EventArgs e) => PersistScanHistory();
 
     private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
@@ -50,7 +53,10 @@ public partial class MainWindow : Window
         if (_isScannerSetupInProgress || _setupWindow != null)
             return;
 
-        if (!ScannerSourceFactory.IsHidConfigured(_settings) || _scanner is not RawInputScannerService)
+        if (_scanner == null)
+            return;
+
+        if (_settings.ScannerMode is not (ScannerMode.Hid or ScannerMode.Auto or ScannerMode.RawInput))
             return;
 
         if (e.Key is System.Windows.Input.Key.Return or System.Windows.Input.Key.Tab)
@@ -61,11 +67,14 @@ public partial class MainWindow : Window
     {
         _isLoadingSettings = true;
         AppDataMigrationService.MigrateLegacyData();
+        ScannerSourceFactory.ResetHidBindingSession();
         _settings = AppSettings.Load();
+        LoadPersistedScanHistory();
         _printTemplates = _printTemplateService.LoadOrCreateDefaults();
         RefreshExportSettingsUi();
         RefreshPrintSettingsUi();
         _isLoadingSettings = false;
+        InitializeScannerUi();
         RefreshPorts();
         SelectSavedPort();
         RestartScanner();
@@ -89,59 +98,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RefreshPorts()
-    {
-        var ports = SerialScannerService.GetAvailablePorts();
-        PortsCombo.ItemsSource = ports;
-
-        if (ports.Length > 0)
-        {
-            PortsHintText.Visibility = Visibility.Collapsed;
-            if (PortsCombo.SelectedIndex < 0)
-                PortsCombo.SelectedIndex = 0;
-        }
-        else
-        {
-            PortsHintText.Text =
-                "COM-порты не найдены. Переключите сканер в режим Virtual COM или используйте HID (кнопка «Настроить сканер»).";
-            PortsHintText.Visibility = Visibility.Visible;
-        }
-
-        SyncScannerPageState();
-    }
-
-    private void OnRefreshClick(object sender, RoutedEventArgs e) => RefreshPorts();
-
-    private void OnConnectClick(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            var port = PortsCombo.SelectedItem as string;
-            if (port == null)
-            {
-                SetStatus("Порт не выбран", isError: true);
-                return;
-            }
-
-            _settings.ComPort = port;
-            _settings.ScannerMode = ScannerMode.Com;
-            _settings.ScannerDevicePath = null;
-            _settings.Save();
-
-            RestartScanner();
-            SetStatus($"COM {port} подключен", isError: false);
-            ComConnectionPanel.Visibility = Visibility.Collapsed;
-            PortsCombo.Focusable = false;
-            SyncConnectedViews();
-            Focus();
-        }
-        catch (Exception ex)
-        {
-            ErrorText.Text = ex.Message;
-            SetStatus("Ошибка: " + ex.Message, isError: true);
-        }
-    }
-
     private void OnHidDiagnosticsClick(object sender, RoutedEventArgs e)
     {
         var dlg = new HidDiagnosticsWindow(_settings) { Owner = this };
@@ -149,39 +105,8 @@ public partial class MainWindow : Window
         Focus();
     }
 
-    private void OnSetupScannerClick(object sender, RoutedEventArgs e)
-    {
-        if (_isScannerSetupInProgress || _setupWindow != null)
-            return;
-
-        _isScannerSetupInProgress = true;
-        StopScanner();
-
-        try
-        {
-            _setupWindow = new ScannerSetupWindow(_settings) { Owner = this };
-            _setupWindow.Closed += (_, _) => _setupWindow = null;
-
-            if (_setupWindow.ShowDialog() == true && _setupWindow.ResultSettings != null)
-            {
-                _settings = _setupWindow.ResultSettings;
-                _settings.Save();
-                ComConnectionPanel.Visibility = Visibility.Visible;
-                RestartScanner();
-                SetStatus("Сканер HID настроен", isError: false);
-                ErrorText.Text = string.Empty;
-                SyncConnectedViews();
-                Focus();
-            }
-        }
-        finally
-        {
-            _isScannerSetupInProgress = false;
-            _setupWindow = null;
-            if (_scanner == null)
-                RestartScanner();
-        }
-    }
+    private void OnSetupScannerClick(object sender, RoutedEventArgs e) =>
+        OnSetupScannerClickSafe(sender, e);
 
     private void OnResetSettingsClick(object sender, RoutedEventArgs e)
     {
@@ -199,38 +124,33 @@ public partial class MainWindow : Window
         SyncConnectedViews();
     }
 
-    private void RestartScanner()
-    {
-        StopScanner();
-        _scanner = ScannerSourceFactory.Create(this, _settings);
-        _scanner.BarcodeReceived += OnBarcode;
-
-        if (_settings.ScannerMode == ScannerMode.Com && !string.IsNullOrWhiteSpace(_settings.ComPort))
-        {
-            ComConnectionPanel.Visibility = Visibility.Collapsed;
-            PortsCombo.Focusable = false;
-        }
-        else
-        {
-            PortsCombo.Focusable = true;
-        }
-
-        UpdateStatusFromSettings();
-        Focus();
-    }
-
     private void UpdateStatusFromSettings()
     {
         switch (_settings.ScannerMode)
         {
+            case ScannerMode.Auto when _scanner is IScannerTransportAware { ActiveTransportSummary: { Length: > 0 } s }:
+                SetStatus($"Авто: {s}", isError: false);
+                break;
+            case ScannerMode.Auto:
+                SetStatus("Авто: подключение сканера…", isError: false);
+                break;
             case ScannerMode.Com when !string.IsNullOrWhiteSpace(_settings.ComPort):
                 SetStatus($"COM {_settings.ComPort} подключен", isError: false);
                 break;
-            case ScannerMode.RawInput when !string.IsNullOrWhiteSpace(_settings.ScannerDevicePath):
+            case ScannerMode.Hid when ScannerSourceFactory.IsHidConfigured(_settings):
                 SetStatus("HID сканер подключен", isError: false);
                 break;
+            case ScannerMode.Hid:
+                SetStatus("HID не настроен — «Настройки»", isError: true);
+                break;
+            case ScannerMode.RawInput:
+                SetStatus(ScannerSourceFactory.IsRawInputConfigured(_settings)
+                    ? "RawInput включён"
+                    : "RawInput не настроен — «Настройки»",
+                    isError: false);
+                break;
             default:
-                SetStatus("HID не настроен — «Настроить сканер»", isError: false);
+                SetStatus("Сканер не настроен — «Настройки»", isError: false);
                 break;
         }
 
@@ -265,17 +185,70 @@ public partial class MainWindow : Window
         if (_isScannerSetupInProgress || _setupWindow != null)
             return;
 
+        var source = GetScannerExportSource();
+        var rebound = TryAutoBindHidDevice(source);
+        await OnScanCompletedAsync(raw, source);
+
+        if (rebound && _settings.ScannerMode is ScannerMode.Hid or ScannerMode.Auto)
+            RestartScanner();
+    }
+
+    private bool TryAutoBindHidDevice(string source)
+    {
+        if (_settings.ScannerMode is not (ScannerMode.Hid or ScannerMode.Auto))
+            return false;
+
+        if (source is not ("HID" or "Auto"))
+            return false;
+
+        if (!HidDeviceAutoBinder.TryBindFromLastScan(_settings, out var message))
+            return false;
+
+        if (!string.IsNullOrWhiteSpace(message))
+            ShowToast(message, ToastKind.Success);
+        return true;
+    }
+
+    private async Task<(ParseResult Result, MarkExportResult? Export, PrintPipelineResult? Print)> ProcessScanCoreAsync(
+        string raw,
+        string source)
+    {
+        if (string.IsNullOrEmpty(raw))
+        {
+            LoggingService.Warn("Scanner", "Empty scan ignored");
+            return (new ParseResult { IsValid = false, ErrorMessage = "Пустой скан" }, null, null);
+        }
+
         var now = DateTime.UtcNow;
         if (raw == _lastBarcode && now - _lastBarcodeUtc < BarcodeDedupeWindow)
-            return;
+        {
+            LoggingService.Debug("Scanner", "Duplicate scan ignored (barcode debounce)");
+            return (new ParseResult { IsValid = false, ErrorMessage = "Повторный скан проигнорирован" }, null, null);
+        }
 
         _lastBarcode = raw;
         _lastBarcodeUtc = now;
 
-        var source = GetScannerExportSource();
+        ScanDiagnosticsHelper.LogScanReceived(source, raw);
+
         var result = AddScanContextWarnings(_parser.Parse(raw), raw, source);
+        ScanDiagnosticsHelper.LogParseResult(source, result, raw);
+        UpdateScanDiagnostics(source, raw, result);
+
         var export = await SaveExportIfEnabledAsync(result, raw, source);
         var print = await ProcessPrintAfterScanAsync(result, raw, source, forcePrint: false, allowDuplicate: false);
+        return (result, export, print);
+    }
+
+    private async Task OnScanCompletedAsync(string raw, string source)
+    {
+        var (result, export, print) = await ProcessScanCoreAsync(raw, source);
+        if (result.ErrorMessage == "Повторный скан проигнорирован")
+        {
+            ShowToast("Повторный скан проигнорирован", ToastKind.Warning);
+            return;
+        }
+
         DisplayResult(result, raw, source, export, print);
     }
 
@@ -399,9 +372,7 @@ public partial class MainWindow : Window
     private async Task ProcessDecodedImageAsync(ImageDecodeResult decoded, string source)
     {
         ErrorText.Text = decoded.NormalizeNote ?? string.Empty;
-        var result = _parser.Parse(decoded.Raw);
-        var export = await SaveExportIfEnabledAsync(result, decoded.Raw, source);
-        var print = await ProcessPrintAfterScanAsync(result, decoded.Raw, source, forcePrint: false, allowDuplicate: false);
+        var (result, export, print) = await ProcessScanCoreAsync(decoded.Raw, source);
         DisplayResult(
             result,
             decoded.Raw,
@@ -417,10 +388,7 @@ public partial class MainWindow : Window
     private async Task ProcessDecodedRaw(string raw, string source)
     {
         ErrorText.Text = string.Empty;
-        var result = _parser.Parse(raw);
-        var export = await SaveExportIfEnabledAsync(result, raw, source);
-        var print = await ProcessPrintAfterScanAsync(result, raw, source, forcePrint: false, allowDuplicate: false);
-        DisplayResult(result, raw, source, export, print);
+        await OnScanCompletedAsync(raw, source);
     }
 
     private static string FriendlyDecodeError(string? error) =>
@@ -455,13 +423,23 @@ public partial class MainWindow : Window
         });
     }
 
-    private string GetScannerExportSource() =>
-        _settings.ScannerMode switch
+    private string GetScannerExportSource()
+    {
+        if (_scanner is IScannerTransportAware aware
+            && !string.IsNullOrWhiteSpace(aware.LastBarcodeTransport))
         {
+            return aware.LastBarcodeTransport;
+        }
+
+        return _settings.ScannerMode switch
+        {
+            ScannerMode.Auto => "Auto",
             ScannerMode.Com => "COM",
-            ScannerMode.RawInput => "HID",
+            ScannerMode.Hid => "HID",
+            ScannerMode.RawInput => "RawInput",
             _ => "Manual"
         };
+    }
 
     private void DisplayResult(
         ParseResult r,
@@ -483,11 +461,9 @@ public partial class MainWindow : Window
         WaitText.Text = r.IsValid ? "Код получен" : "Ошибка сканирования";
 
         UpdateLastScanDashboard(r, raw, source, exportResult, printResult, imageGsCount, parseError);
-        if (_accountSnapshot.Subscription.IsActive)
-        {
-            AddHistoryRow(r, printResult);
-            RecordUiScanHistory(r, raw, source, exportResult, printResult, imageGsCount, parseError);
-        }
+        UpdateScanUiSnapshot(r, raw, source, exportResult, printResult, imageGsCount, parseError);
+        AppendUiScanHistory(r, raw, source, exportResult, printResult, imageGsCount, parseError);
+        AddDashboardHistoryRow(_uiHistory[0]);
         ShowScanToast(r, exportResult, printResult);
         SyncConnectedViews();
 
@@ -548,36 +524,34 @@ public partial class MainWindow : Window
         _lastScanCopyText = BuildLastScanCopyText(r, raw, source, exportResult, printResult, parseError);
         UpdatePreview(r, raw, source);
 
-        DiagnosticLastCheckText.Text = DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss");
+        LastScanTimeText.Text = "Время скана: " + ScanHistoryFormats.FormatTimestamp(DateTime.Now);
+        DiagnosticLastCheckText.Text = ScanHistoryFormats.FormatTimestamp(DateTime.Now);
     }
 
-    private void AddHistoryRow(ParseResult r, PrintPipelineResult? printResult)
+    private void AddDashboardHistoryRow(ScanHistoryItem item)
     {
-        var code = r.Code;
-        var status = r.IsValid
-            ? r.InfoMessages.Count > 0 ? "Предупреждение" : "Успешно"
-            : "Ошибка";
-        var statusBrush = r.IsValid
-            ? r.InfoMessages.Count > 0 ? BrushFromResource("WarningBrush") : BrushFromResource("SuccessBrush")
-            : BrushFromResource("DangerBrush");
-
-        var row = new Grid
+        var statusBrush = item.StatusKind switch
         {
-            MinHeight = 30
+            UiStatusKind.Success => BrushFromResource("SuccessBrush"),
+            UiStatusKind.Warning => BrushFromResource("WarningBrush"),
+            UiStatusKind.Error => BrushFromResource("DangerBrush"),
+            _ => BrushFromResource("MutedTextBrush")
         };
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
+
+        var row = new Grid { MinHeight = 30 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(168) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(150) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(170) });
 
-        row.Children.Add(HistoryCell(DateTime.Now.ToString("dd.MM.yyyy HH:mm:ss"), 0));
-        row.Children.Add(HistoryCell(status, 1, statusBrush));
-        row.Children.Add(HistoryCell(code?.VerificationKey ?? "—", 2));
-        row.Children.Add(HistoryCell(code?.VerificationCode ?? code?.AdditionalField93 ?? "—", 3));
-        row.Children.Add(HistoryCell(printResult?.Render?.Template.Name ?? (r.IsValid ? ResolveActiveTemplate().Name : "—"), 4));
-        row.Children.Add(HistoryCell(string.IsNullOrWhiteSpace(_settings.PrinterName) ? "по умолчанию" : _settings.PrinterName, 5));
+        row.Children.Add(HistoryCell(ScanHistoryFormats.FormatTimestamp(item.Timestamp), 0));
+        row.Children.Add(HistoryCell(item.Status, 1, statusBrush));
+        row.Children.Add(HistoryCell(item.Ai91, 2));
+        row.Children.Add(HistoryCell(item.Ai92 != "—" ? item.Ai92 : item.Ai93, 3));
+        row.Children.Add(HistoryCell(item.Template, 4));
+        row.Children.Add(HistoryCell(item.Printer, 5));
 
         var shell = new Border
         {
@@ -808,21 +782,33 @@ public partial class MainWindow : Window
         {
             var wasLoading = _isLoadingSettings;
             _isLoadingSettings = true;
-            ScannerModeCombo.SelectedIndex = _settings.ScannerMode == ScannerMode.RawInput ? 1 : 0;
+            ScannerModeCombo.SelectedIndex = _settings.ScannerMode switch
+            {
+                ScannerMode.Com => 1,
+                ScannerMode.Hid => 2,
+                ScannerMode.RawInput => 2,
+                _ => 0
+            };
             _isLoadingSettings = wasLoading;
         }
 
         DiagnosticModeText.Text = _settings.ScannerMode switch
         {
-            ScannerMode.Com => "COM-порт",
-            ScannerMode.RawInput => "HID",
+            ScannerMode.Auto => "Авто (COM + HID)",
+            ScannerMode.Com => "COM",
+            ScannerMode.Hid => "HID",
+            ScannerMode.RawInput => "RawInput",
             _ => "Не выбран"
         };
 
         DiagnosticScannerText.Text = _settings.ScannerMode switch
         {
             ScannerMode.Com when !string.IsNullOrWhiteSpace(_settings.ComPort) => _settings.ComPort,
-            ScannerMode.RawInput when !string.IsNullOrWhiteSpace(_settings.ScannerDevicePath) => "Raw Input",
+            ScannerMode.Hid when !string.IsNullOrWhiteSpace(_settings.EffectiveHidDevicePath) =>
+                _settings.EffectiveHidDevicePath!,
+            ScannerMode.RawInput => string.IsNullOrWhiteSpace(_settings.SelectedRawInputDeviceId)
+                ? "Все клавиатуры"
+                : _settings.SelectedRawInputDeviceId!,
             _ => "—"
         };
     }
@@ -878,6 +864,11 @@ public partial class MainWindow : Window
             return;
 
         _scanner.BarcodeReceived -= OnBarcode;
+        if (_scanner is SerialScannerService serial)
+            serial.ConnectionLost -= OnComConnectionLost;
+        else if (_scanner is AutoScannerSource auto)
+            auto.ConnectionLost -= OnComConnectionLost;
+
         _scanner.Stop();
 
         if (_scanner is IDisposable disposable)

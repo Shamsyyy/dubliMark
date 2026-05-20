@@ -23,7 +23,7 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel>
                         <TextBlock Text="История" Style="{StaticResource SectionTitle}"/>
-                        <TextBlock Text="Последние сканы текущей сессии, фильтры, preview и действия без повторной обработки payload."
+                        <TextBlock Text="Сохранённые сканы (до 100 000 записей, включая папку экспорта), дата и время с точностью до секунды."
                                    Style="{StaticResource MutedText}" Margin="0,5,0,0"/>
                     </StackPanel>
                     <TextBox x:Name="HistorySearchBox" Grid.Column="1" Style="{StaticResource InputBox}"
@@ -37,7 +37,7 @@
                 <StackPanel>
                     <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="154"/>
+                            <ColumnDefinition Width="168"/>
                             <ColumnDefinition Width="116"/>
                             <ColumnDefinition Width="98"/>
                             <ColumnDefinition Width="*"/>
@@ -52,7 +52,7 @@
                         <TextBlock Grid.Column="5" Text="Действия" Style="{StaticResource MetricLabel}"/>
                     </Grid>
                     <StackPanel x:Name="HistoryRowsPanel"/>
-                    <TextBlock x:Name="HistoryEmptyText" Text="История текущей сессии пока пуста" Style="{StaticResource MutedText}"
+                    <TextBlock x:Name="HistoryEmptyText" Text="История сканов пока пуста" Style="{StaticResource MutedText}"
                                Visibility="Collapsed" Margin="0,12,0,0"/>
                 </StackPanel>
             </Border>

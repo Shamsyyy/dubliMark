@@ -12,7 +12,7 @@ public sealed record SupabaseConfig(string Url, string AnonKey)
 
 public static class SupabaseConfigLoader
 {
-    private const string LocalConfigFileName = "appsettings.local.json";
+    private static readonly string[] ConfigFileNames = { "appsettings.json", "appsettings.local.json" };
     private static readonly string[] EnvFileNames = { ".env.local", ".env" };
 
     public static SupabaseConfig Load()
@@ -50,7 +50,7 @@ public static class SupabaseConfigLoader
     private static Dictionary<string, string>? LoadLocalConfig()
     {
         var paths = CandidateDirectories()
-            .Select(directory => Path.Combine(directory, LocalConfigFileName));
+            .SelectMany(directory => ConfigFileNames.Select(fileName => Path.Combine(directory, fileName)));
 
         foreach (var path in paths.Distinct(StringComparer.OrdinalIgnoreCase))
         {

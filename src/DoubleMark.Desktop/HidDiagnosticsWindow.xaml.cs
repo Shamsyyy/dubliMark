@@ -27,9 +27,14 @@ public partial class HidDiagnosticsWindow : Window
         _scanner.ConfigureGsMapping(gs);
         _scanner.KeyCaptured += OnKeyCaptured;
         _scanner.BarcodeReceived += OnBarcode;
-        _scanner.Attach(this,
-            settings.ScannerDevicePath,
-            wizardMode: string.IsNullOrWhiteSpace(settings.ScannerDevicePath),
+        var devicePath = settings.ScannerMode == ScannerMode.Hid
+            ? settings.EffectiveHidDevicePath
+            : settings.SelectedRawInputDeviceId ?? settings.ScannerDevicePath;
+
+        _scanner.AttachWhenReady(
+            this,
+            devicePath,
+            wizardMode: string.IsNullOrWhiteSpace(devicePath),
             gs);
         Focus();
     }

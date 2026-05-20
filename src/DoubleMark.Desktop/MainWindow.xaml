@@ -327,7 +327,8 @@
                                     <TextBlock Text="Режим:" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
                                     <ComboBox x:Name="ScannerModeCombo" Grid.Column="1" Style="{StaticResource DashboardComboBox}"
                                               SelectedIndex="0" SelectionChanged="OnDashboardScannerModeChanged">
-                                        <ComboBoxItem Content="COM-порт"/>
+                                        <ComboBoxItem Content="Авто"/>
+                                        <ComboBoxItem Content="COM"/>
                                         <ComboBoxItem Content="HID"/>
                                     </ComboBox>
                                     <TextBlock Grid.Column="3" Text="Порт:" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
@@ -335,7 +336,18 @@
                                 </Grid>
                                 <Grid Margin="0,0,0,12">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="54"/>
                                         <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Скорость:" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="BaudRateCombo" Grid.Column="1" Style="{StaticResource DashboardComboBox}"
+                                              SelectionChanged="OnBaudRateChanged"/>
+                                </Grid>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="108"/>
                                         <ColumnDefinition Width="10"/>
                                         <ColumnDefinition Width="108"/>
                                     </Grid.ColumnDefinitions>
@@ -347,6 +359,7 @@
                                         </StackPanel>
                                     </Button>
                                     <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Click="OnRefreshClick" Content="Обновить"/>
+                                    <Button Grid.Column="4" Style="{StaticResource SecondaryButton}" Click="OnDisconnectClick" Content="Отключить"/>
                                 </Grid>
                             </StackPanel>
 
@@ -380,6 +393,19 @@
                                               Checked="OnAutoPrintQuickToggleChanged"
                                               Unchecked="OnAutoPrintQuickToggleChanged"/>
                                 </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="84"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Режим" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="PrintModeCombo" Grid.Column="1" Style="{StaticResource DashboardComboBox}"
+                                          SelectionChanged="OnPrintModeChanged">
+                                    <ComboBoxItem Content="Ручная"/>
+                                    <ComboBoxItem Content="Автоматическая"/>
+                                </ComboBox>
                             </Grid>
 
                             <Grid Margin="0,0,0,12">
@@ -526,6 +552,7 @@
                                         </Border>
                                         <StackPanel Margin="12,0,0,0">
                                             <TextBlock Text="Последний скан" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}"/>
+                                            <TextBlock x:Name="LastScanTimeText" Text="Время скана: —" Style="{StaticResource MutedText}" Margin="0,4,0,0"/>
                                             <TextBlock Text="Живой статус распознавания и локального сохранения" Style="{StaticResource MutedText}"/>
                                         </StackPanel>
                                     </StackPanel>
@@ -654,7 +681,7 @@
                                     <Path Width="22" Height="22" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.7"
                                           Data="M10,3 A7,7 0 1 0 10,17 A7,7 0 1 0 10,3 M10,6 L10,10 L13,12"/>
                                     <TextBlock Text="История" Style="{StaticResource CardTitle}" Margin="12,0,0,0"/>
-                                    <TextBlock Text="(последние сканы)" Style="{StaticResource MutedText}" Margin="6,3,0,0"/>
+                                    <TextBlock Text="(дата и время до секунды)" Style="{StaticResource MutedText}" Margin="6,3,0,0"/>
                                 </StackPanel>
                                 <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Padding="12,6"
                                         MinWidth="154" Content="Открыть всю историю"/>
@@ -662,7 +689,7 @@
 
                             <Grid Margin="0,0,0,8">
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="168"/>
                                     <ColumnDefinition Width="150"/>
                                     <ColumnDefinition Width="110"/>
                                     <ColumnDefinition Width="*"/>
@@ -711,6 +738,11 @@
                             </Grid>
 
                             <Button Style="{StaticResource SecondaryButton}" Click="OnHidDiagnosticsClick" Content="Запустить диагностику" Margin="0,0,0,12"/>
+                            <UniformGrid Columns="2" Margin="0,0,0,12">
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnOpenLogsFolderClick" Content="Открыть логи" Margin="0,0,6,0"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnCopyDiagnosticsClick" Content="Скопировать диагностику" Margin="6,0,0,0"/>
+                            </UniformGrid>
+                            <Button Style="{StaticResource SecondaryButton}" Click="OnRefreshPrintersClick" Content="Обновить принтеры" Margin="0,0,0,12"/>
                             <Button Style="{StaticResource SecondaryButton}" Click="OnResetSettingsClick" Content="Сбросить настройки" Margin="0,0,0,12"/>
                             <TextBlock x:Name="ErrorText" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" FontSize="13"/>
                         </StackPanel>

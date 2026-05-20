@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using DoubleMark.Desktop.Services;
 using System.Windows.Media;
 using System.Windows.Shapes;
 
@@ -17,6 +18,7 @@ public partial class PrintView : UserControl
     public event EventHandler<string?>? PrinterChanged;
     public event EventHandler<string?>? TemplateChanged;
     public event EventHandler<int>? CopiesChanged;
+    public event RoutedEventHandler? RefreshPrintersRequested;
 
     public PrintView() => InitializeComponent();
 
@@ -161,7 +163,7 @@ public partial class PrintView : UserControl
         {
             RecentPrintsPanel.Children.Add(new TextBlock
             {
-                Text = "Печатей в текущей сессии пока нет",
+                Text = "Печатей в сохранённой истории пока нет",
                 Style = (Style)FindResource("MutedText")
             });
             return;
@@ -179,7 +181,7 @@ public partial class PrintView : UserControl
                     {
                         new TextBlock
                         {
-                            Text = item.Timestamp.ToString("dd.MM.yyyy HH:mm:ss") + " · " + item.Status,
+                            Text = ScanHistoryFormats.FormatTimestamp(item.Timestamp) + " · " + item.Status,
                             Foreground = (System.Windows.Media.Brush)FindResource("TextBrush"),
                             FontWeight = FontWeights.SemiBold
                         },
@@ -206,6 +208,9 @@ public partial class PrintView : UserControl
 
     private void OnTestPrintProxyClick(object sender, RoutedEventArgs e) =>
         TestPrintRequested?.Invoke(sender, e);
+
+    private void OnRefreshPrintersProxyClick(object sender, RoutedEventArgs e) =>
+        RefreshPrintersRequested?.Invoke(sender, e);
 
     private void OnAutoPrintToggleChanged(object sender, RoutedEventArgs e)
     {

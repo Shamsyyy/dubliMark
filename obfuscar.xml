@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Obfuscator>
+  <Var name="InPath" value="dist\DoubleMark" />
+  <Var name="OutPath" value="dist\DoubleMark.obfuscated" />
+  <Var name="KeepPublicApi" value="true" />
+  <Var name="HidePrivateApi" value="true" />
+  <Var name="RenameProperties" value="false" />
+  <Var name="RenameEvents" value="false" />
+  <Var name="RenameFields" value="false" />
+  <Var name="UseUnicodeNames" value="true" />
+  <Var name="HideStrings" value="false" />
+
+  <Module file="$(InPath)\DoubleMark.Core.dll">
+    <SkipNamespace name="DoubleMark.Core.Models" />
+    <SkipNamespace name="DoubleMark.Core.Print" />
+  </Module>
+</Obfuscator>

@@ -140,8 +140,10 @@ public partial class PrintSettingsWindow : Window
         var settings = new AppSettings
         {
             ComPort = _baseSettings.ComPort,
+            ComBaudRate = _baseSettings.ComBaudRate,
             ScannerDevicePath = _baseSettings.ScannerDevicePath,
             ScannerMode = _baseSettings.ScannerMode,
+            PrintMode = AutoPrintCheck.IsChecked == true ? PrintMode.Auto : PrintMode.Manual,
             AutoSaveExports = _baseSettings.AutoSaveExports,
             ExportDirectory = _baseSettings.ExportDirectory,
             ScannerGsMappingMode = _baseSettings.ScannerGsMappingMode,

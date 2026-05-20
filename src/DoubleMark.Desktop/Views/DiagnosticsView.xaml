@@ -53,8 +53,16 @@
                         <TextBlock x:Name="DiagnosticsGsCountText" Grid.Row="3" Grid.Column="1" Text="—" Style="{StaticResource MetricValue}" TextWrapping="Wrap"/>
                     </Grid>
 
-                    <UniformGrid Columns="2">
+                    <UniformGrid Columns="2" Margin="0,0,0,12">
                         <Button Style="{StaticResource PrimaryButton}" Content="Запустить HID диагностику" Click="OnHidDiagnosticsProxyClick" Margin="0,0,6,0"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Обновить COM-порты" Click="OnRefreshComPortsProxyClick" Margin="6,0,0,0"/>
+                    </UniformGrid>
+                    <UniformGrid Columns="2" Margin="0,0,0,12">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Открыть папку логов" Click="OnOpenLogsProxyClick" Margin="0,0,6,0"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Скопировать диагностику" Click="OnCopyDiagnosticsProxyClick" Margin="6,0,0,0"/>
+                    </UniformGrid>
+                    <UniformGrid Columns="2">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Обновить принтеры" Click="OnRefreshPrintersProxyClick" Margin="0,0,6,0"/>
                         <Button Style="{StaticResource SecondaryButton}" Content="Сбросить настройки" Click="OnResetProxyClick" Margin="6,0,0,0"/>
                     </UniformGrid>
                 </StackPanel>
@@ -62,21 +70,34 @@
 
             <Border Grid.Column="1" Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
-                    <TextBlock Text="GS / AI health" Style="{StaticResource CardTitle}"/>
-                    <UniformGrid Columns="2" Margin="0,16,0,16">
+                    <TextBlock Text="GS / AI / печать" Style="{StaticResource CardTitle}"/>
+                    <UniformGrid Columns="2" Margin="0,16,0,10">
+                        <Border Style="{StaticResource DataPill}" Margin="0,0,8,8">
+                            <StackPanel>
+                                <TextBlock Text="AI 01" Style="{StaticResource MutedText}"/>
+                                <TextBlock x:Name="DiagnosticsAi01Text" Text="—" Foreground="{StaticResource SuccessBrush}" FontSize="15" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource DataPill}" Margin="8,0,0,8">
+                            <StackPanel>
+                                <TextBlock Text="AI 21" Style="{StaticResource MutedText}"/>
+                                <TextBlock x:Name="DiagnosticsAi21Text" Text="—" Foreground="{StaticResource SuccessBrush}" FontSize="15" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
                         <Border Style="{StaticResource DataPill}" Margin="0,0,8,0">
                             <StackPanel>
                                 <TextBlock Text="AI 91" Style="{StaticResource MutedText}"/>
-                                <TextBlock x:Name="DiagnosticsAi91Text" Text="—" Foreground="{StaticResource SuccessBrush}" FontSize="17" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="DiagnosticsAi91Text" Text="—" Foreground="{StaticResource SuccessBrush}" FontSize="15" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>
                         <Border Style="{StaticResource DataPill}" Margin="8,0,0,0">
                             <StackPanel>
                                 <TextBlock Text="AI 92" Style="{StaticResource MutedText}"/>
-                                <TextBlock x:Name="DiagnosticsAi92Text" Text="—" Foreground="{StaticResource SuccessBrush}" FontSize="17" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="DiagnosticsAi92Text" Text="—" Foreground="{StaticResource SuccessBrush}" FontSize="15" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Border>
                     </UniformGrid>
+                    <TextBlock x:Name="DiagnosticsPrintStatusText" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
                     <Border Style="{StaticResource SoftSurface}" Margin="0,0,0,12">
                         <TextBlock x:Name="DiagnosticsWarningText" Text="—" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap"/>
                     </Border>
@@ -89,13 +110,27 @@
 
             <Border Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource Card}">
                 <StackPanel>
-                    <TextBlock Text="Raw Input keys" Style="{StaticResource CardTitle}"/>
-                    <TextBlock Text="Последняя HID-сессия из RawInputScannerService.LastScanDiagnostics." Style="{StaticResource MutedText}" Margin="0,5,0,14"/>
-                    <Border Style="{StaticResource SoftSurface}" MinHeight="150" MaxHeight="260">
+                    <TextBlock Text="Последний скан" Style="{StaticResource CardTitle}"/>
+                    <TextBlock x:Name="DiagnosticsComPortsText" Style="{StaticResource MutedText}" Margin="0,5,0,10" TextWrapping="Wrap"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource SoftSurface}" MinHeight="100" MaxHeight="180">
+                            <TextBox x:Name="DiagnosticsRawEscapedText" Text="—" Style="{StaticResource LogTextBox}" MinHeight="90"/>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource SoftSurface}" MinHeight="100" MaxHeight="180">
+                            <TextBox x:Name="DiagnosticsRawHexText" Text="—" Style="{StaticResource LogTextBox}" MinHeight="90"/>
+                        </Border>
+                    </Grid>
+                    <TextBlock Text="Raw Input keys" Style="{StaticResource CardTitle}" Margin="0,16,0,5"/>
+                    <Border Style="{StaticResource SoftSurface}" MinHeight="120" MaxHeight="220">
                         <TextBox x:Name="DiagnosticsRawKeyText"
                                  Text="Нет HID-сессии"
                                  Style="{StaticResource LogTextBox}"
-                                 MinHeight="120"/>
+                                 MinHeight="100"/>
                     </Border>
                 </StackPanel>
             </Border>

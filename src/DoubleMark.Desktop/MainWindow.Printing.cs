@@ -5,9 +5,9 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using DoubleMark.Core.Models;
-using DoubleMark.Core.Parsing;
 using DoubleMark.Core.Print;
 using DoubleMark.Desktop.Services;
+using DoubleMark.Desktop.Settings;
 
 namespace DoubleMark.Desktop;
 
@@ -41,19 +41,46 @@ public partial class MainWindow
 
         _lastSuccessfulScan = new LastSuccessfulScan(raw, result, source);
         var settings = _settings.ToPrintPipelineSettings();
+        var isAuto = !forcePrint && settings.AutoPrintEnabled;
+
         if (!forcePrint && !settings.AutoPrintEnabled)
         {
-            LastPrintStatusText.Text = "Автопечать выключена. Можно напечатать последний ЧЗ вручную.";
+            LastPrintStatusText.Text = "Ручная печать: нажмите «Печать последнего ЧЗ».";
             return null;
         }
 
         if (!await EnsureSubscriptionForFeatureAsync(forcePrint ? "Печать" : "Автопечать"))
         {
-            LastPrintStatusText.Text = "Печать заблокирована: нужна активная подписка DoubleMark.";
+            LastPrintStatusText.Text = "Для печати нужна активная подписка DoubleMark.";
+            return null;
+        }
+
+        if (!ScanDiagnosticsHelper.IsReadyForPrint(result, out var printReason))
+        {
+            var msg = "Печать невозможна: " + printReason;
+            LoggingService.Warn(isAuto ? "Print.Auto" : "Print.Manual", msg);
+            LastPrintStatusText.Text = msg;
+            if (isAuto)
+                ShowToast(msg, ToastKind.Warning);
             return null;
         }
 
         var template = ResolveActiveTemplate();
+        if (string.IsNullOrWhiteSpace(template.Name))
+        {
+            const string warn = "Автопечать не выполнена: не выбран шаблон.";
+            LoggingService.Warn("Print.Auto", warn);
+            LastPrintStatusText.Text = warn;
+            if (isAuto)
+                ShowToast(warn, ToastKind.Warning);
+            return null;
+        }
+
+        var printerLabel = string.IsNullOrWhiteSpace(_settings.PrinterName) ? "default" : _settings.PrinterName;
+        LoggingService.Info(isAuto ? "Print.Auto" : "Print.Manual",
+            $"Preparing template={template.Name} ({template.LabelWidthMm:0.#}x{template.LabelHeightMm:0.#}mm) " +
+            $"printer={printerLabel} mode={_settings.PrintMode}");
+
         LastPrintStatusText.Text = forcePrint ? "Печать..." : "Автопечать...";
         var print = await _printPipeline.ProcessAsync(new PrintPipelineRequest
         {
@@ -66,7 +93,17 @@ public partial class MainWindow
             AllowDuplicate = allowDuplicate
         });
 
-        UpdatePrintStatus(print);
+        if (print.BlockedDuplicate)
+            LoggingService.Info("Print.Auto", "Duplicate scan ignored");
+
+        if (print.Printed)
+            LoggingService.Info(isAuto ? "Print.Auto" : "Print.Manual",
+                $"Sent to printer: {printerLabel} template={template.Name}");
+
+        if (!print.Printed && !string.IsNullOrWhiteSpace(print.Error))
+            LoggingService.Error(isAuto ? "Print.Auto" : "Print.Manual", "Print failed: " + print.Error);
+
+        UpdatePrintStatus(print, isAuto);
         return print;
     }
 
@@ -115,7 +152,7 @@ public partial class MainWindow
             ShowToast("Шаблон печати выбран: " + template.Name, ToastKind.Success);
     }
 
-    private void UpdatePrintStatus(PrintPipelineResult? result)
+    private void UpdatePrintStatus(PrintPipelineResult? result, bool isAutoPrint = false)
     {
         if (result == null)
             return;
@@ -123,7 +160,7 @@ public partial class MainWindow
         if (result.BlockedDuplicate)
         {
             LastPrintStatusText.Text = result.Error ?? "";
-            ShowToast("Повторная печать заблокирована", ToastKind.Warning);
+            ShowToast("Повторный скан проигнорирован", ToastKind.Warning);
             SyncPrintPageState();
             return;
         }
@@ -134,14 +171,14 @@ public partial class MainWindow
             LastPrintStatusText.Text = string.IsNullOrWhiteSpace(folder)
                 ? "Напечатано"
                 : "Напечатано и сохранено: " + folder;
-            ShowToast("Напечатано", ToastKind.Success);
+            ShowToast(isAutoPrint ? "Этикетка отправлена на печать" : "Напечатано", ToastKind.Success);
             SyncPrintPageState();
             return;
         }
 
         LastPrintStatusText.Text = string.IsNullOrWhiteSpace(result.Error)
             ? "Печать не выполнялась"
-            : "Ошибка печати: " + result.Error;
+            : "Не удалось отправить на печать. Проверьте принтер.";
         if (!string.IsNullOrWhiteSpace(result.Error))
             ShowToast("Ошибка печати: " + result.Error, ToastKind.Error);
         SyncPrintPageState();
@@ -177,8 +214,16 @@ public partial class MainWindow
 
         var activeTemplate = EnsureActiveTemplateSelection();
 
-        AutoPrintQuickToggle.IsChecked = _settings.AutoPrintEnabled;
-        AutoPrintStatusText.Text = _settings.AutoPrintEnabled ? "Вкл." : "Выкл.";
+        _settings.NormalizePrintMode();
+        AutoPrintQuickToggle.IsChecked = _settings.PrintMode == PrintMode.Auto;
+        AutoPrintStatusText.Text = _settings.PrintMode == PrintMode.Auto ? "Авто" : "Ручная";
+        if (PrintModeCombo != null)
+        {
+            var wasLoading = _isLoadingSettings;
+            _isLoadingSettings = true;
+            PrintModeCombo.SelectedIndex = _settings.PrintMode == PrintMode.Auto ? 1 : 0;
+            _isLoadingSettings = wasLoading;
+        }
         PrintTemplateText.Text = activeTemplate.Name;
         PrintPrinterText.Text = string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName;
         PrintCopiesText.Text = Math.Max(1, _settings.PrintCopies).ToString();
@@ -335,8 +380,22 @@ public partial class MainWindow
         if (_isLoadingSettings)
             return;
 
-        _settings.AutoPrintEnabled = AutoPrintQuickToggle.IsChecked == true;
+        _settings.PrintMode = AutoPrintQuickToggle.IsChecked == true ? PrintMode.Auto : PrintMode.Manual;
         _settings.Save();
+        LoggingService.Info("Print", "Print mode: " + _settings.PrintMode);
+        RefreshPrintSettingsUi();
+        SyncConnectedViews();
+    }
+
+    private void OnPrintModeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoadingSettings || PrintModeCombo == null || PrintModeCombo.SelectedIndex < 0)
+            return;
+
+        _settings.PrintMode = PrintModeCombo.SelectedIndex == 1 ? PrintMode.Auto : PrintMode.Manual;
+        AutoPrintQuickToggle.IsChecked = _settings.PrintMode == PrintMode.Auto;
+        _settings.Save();
+        LoggingService.Info("Print", "Print mode: " + _settings.PrintMode);
         RefreshPrintSettingsUi();
         SyncConnectedViews();
     }
@@ -366,7 +425,7 @@ public partial class MainWindow
             _lastSuccessfulScan.Source,
             forcePrint: true,
             allowDuplicate: true);
-        UpdatePrintStatus(result);
+        UpdatePrintStatus(result, isAutoPrint: false);
     }
 
     private void OnPrintSettingsClick(object sender, RoutedEventArgs e)

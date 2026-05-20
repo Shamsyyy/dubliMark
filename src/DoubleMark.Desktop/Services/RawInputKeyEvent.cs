@@ -36,6 +36,9 @@ public sealed class RawInputScanDiagnostics
 {
     public DateTime CompletedUtc { get; init; }
     public string Barcode { get; init; } = "";
+    public string? DevicePath { get; init; }
+    public double AverageIntervalMs { get; init; }
+    public bool IsFastScan { get; init; }
     public int GsRestoredCount { get; init; }
     public IReadOnlyList<RawInputKeyEvent> Keys { get; init; } = Array.Empty<RawInputKeyEvent>();
 

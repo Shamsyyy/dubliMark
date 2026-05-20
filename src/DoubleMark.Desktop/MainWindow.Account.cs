@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Windows;
+using DoubleMark.Desktop.Services;
 using DoubleMark.Desktop.Services.Account;
 
 namespace DoubleMark.Desktop;
@@ -183,6 +184,12 @@ public partial class MainWindow
 
     private async Task<bool> EnsureSubscriptionForFeatureAsync(string featureName)
     {
+        if (!ProductionGuard.CanUseProtectedFeature())
+        {
+            ShowToast(ProductionGuard.ProtectedFeatureBlockedMessage, ToastKind.Error);
+            return false;
+        }
+
         if (_accountSnapshot.User == null)
         {
             ShowLogin("Сначала войдите в аккаунт DoubleMark.");

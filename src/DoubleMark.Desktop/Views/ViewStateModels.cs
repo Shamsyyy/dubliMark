@@ -39,6 +39,7 @@ public sealed record ScanViewState
 
 public sealed record PrintViewState
 {
+    public string PrintModeLabel { get; init; } = "Ручная";
     public bool AutoPrintEnabled { get; init; }
     public IReadOnlyList<string> Printers { get; init; } = Array.Empty<string>();
     public string? SelectedPrinter { get; init; }
@@ -94,8 +95,17 @@ public sealed record DiagnosticsViewState
     public UiStatusKind StatusKind { get; init; } = UiStatusKind.Neutral;
     public string LastCheck { get; init; } = "—";
     public string GsCount { get; init; } = "—";
+    public string Ai01 { get; init; } = "—";
+    public string Ai21 { get; init; } = "—";
     public string Ai91 { get; init; } = "—";
     public string Ai92 { get; init; } = "—";
+    public string PrintMode { get; init; } = "—";
+    public string Printer { get; init; } = "—";
+    public string Template { get; init; } = "—";
+    public string LastPrintStatus { get; init; } = "—";
+    public string AvailableComPorts { get; init; } = "—";
+    public string RawEscaped { get; init; } = "—";
+    public string RawHex { get; init; } = "—";
     public string RawKeySummary { get; init; } = "Нет HID-сессии";
     public string Warning { get; init; } = "";
 }

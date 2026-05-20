@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using DoubleMark.Desktop.Services;
+using DoubleMark.Desktop.Settings;
 using DoubleMark.Desktop.Views;
 
 namespace DoubleMark.Desktop;
@@ -95,7 +97,7 @@ public partial class MainWindow
         var query = GlobalSearchBox.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(query))
         {
-            AddSearchResult("История", "Последние сканы текущей сессии", () => NavigateTo(GetHistoryView(), NavHistoryButton, "История"));
+            AddSearchResult("История", "Сохранённые сканы с датой и временем", () => NavigateTo(GetHistoryView(), NavHistoryButton, "История"));
             AddSearchResult("Шаблоны", "Локальные шаблоны печати", () => NavigateTo(GetTemplatesView(), NavTemplatesButton, "Шаблоны"));
             AddSearchResult("Экспорт", _settings.EffectiveExportDirectory, () => NavigateTo(GetExportView(), NavExportButton, "Экспорт"));
             SearchEmptyText.Visibility = Visibility.Collapsed;
@@ -105,7 +107,7 @@ public partial class MainWindow
         foreach (var item in _uiHistory.Where(h => SearchableText(h).Contains(query, StringComparison.OrdinalIgnoreCase)).Take(5))
         {
             AddSearchResult(
-                item.Timestamp.ToString("dd.MM.yyyy HH:mm:ss") + " · " + item.Status,
+                ScanHistoryFormats.FormatTimestamp(item.Timestamp) + " · " + item.Status,
                 $"GTIN {item.Gtin} · SN {item.Serial} · GS {item.GsCount}",
                 () => NavigateTo(GetHistoryView(), NavHistoryButton, "История"));
         }
@@ -167,9 +169,9 @@ public partial class MainWindow
     }
 
     private static string SearchableText(ScanHistoryItem item) =>
-        string.Join(" ", item.Status, item.Gtin, item.Serial, item.Ai91, item.Ai92, item.Ai93,
-            item.GsCount, item.Source, item.CodeType, item.RawEscaped, item.RawHex, item.Template,
-            item.Printer, item.SavedFolder);
+        string.Join(" ", ScanHistoryFormats.FormatTimestamp(item.Timestamp), item.Status, item.Gtin, item.Serial,
+            item.Ai91, item.Ai92, item.Ai93, item.GsCount, item.Source, item.CodeType, item.RawEscaped, item.RawHex,
+            item.Template, item.Printer, item.SavedFolder);
 
     private void RecordNotification(string message, ToastKind kind)
     {
@@ -277,13 +279,18 @@ public partial class MainWindow
 
     private void OnDashboardScannerModeChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_isLoadingSettings || !IsLoaded || ToastPanel == null || ScannerModeCombo.SelectedIndex < 0)
+        if (_isLoadingSettings || !IsLoaded || ScannerModeCombo.SelectedIndex < 0)
             return;
 
-        if (ScannerModeCombo.SelectedIndex == 1)
-            ShowToast("HID подключается через «Настроить сканер»", ToastKind.Warning);
-        else
-            ShowToast("Выбран режим COM. Выберите порт и нажмите подключить.", ToastKind.Success);
+        _settings.ScannerMode = ScannerModeCombo.SelectedIndex switch
+        {
+            1 => ScannerMode.Com,
+            2 => ScannerMode.Hid,
+            _ => ScannerMode.Auto
+        };
+        _settings.Save();
+        var result = RestartScanner();
+        ShowToast(result.Message, result.Success ? ToastKind.Success : ToastKind.Warning);
     }
 
     private sealed record UiNotification(DateTime Timestamp, string Message, ToastKind Kind);

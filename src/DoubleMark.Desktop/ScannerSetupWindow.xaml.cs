@@ -1,6 +1,7 @@
 using System.Windows;
 using DoubleMark.Desktop.Services;
 using DoubleMark.Desktop.Settings;
+using MessageBox = System.Windows.MessageBox;
 
 namespace DoubleMark.Desktop;
 
@@ -22,11 +23,26 @@ public partial class ScannerSetupWindow : Window
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
-        var gs = ScannerGsSettings.FromAppSettings(_baseSettings);
-        _scanner = new RawInputScannerService();
-        _scanner.ScanCompleted += OnScanCompleted;
-        _scanner.Attach(this, scannerDevicePath: null, wizardMode: true, gs);
-        Focus();
+        try
+        {
+            LoggingService.Info("Scanner.Settings", "HID setup window opened");
+            var gs = ScannerGsSettings.FromAppSettings(_baseSettings);
+            _scanner = new RawInputScannerService();
+            _scanner.ScanCompleted += OnScanCompleted;
+            _scanner.AttachWhenReady(this, scannerDevicePath: null, wizardMode: true, gs);
+            Focus();
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Error("Scanner.Settings", "HID setup attach failed", ex);
+            StatusText.Text = "Не удалось запустить HID-диагностику. Проверьте подключение сканера.";
+            StatusText.Foreground = System.Windows.Media.Brushes.OrangeRed;
+            MessageBox.Show(
+                "Не удалось применить настройки сканера. Проверьте подключение и попробуйте снова.",
+                "Настройки сканера",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
     }
 
     private void OnScanCompleted(object? sender, RawInputScanEventArgs e)
@@ -53,13 +69,26 @@ public partial class ScannerSetupWindow : Window
         if (string.IsNullOrWhiteSpace(_detectedDevicePath))
             return;
 
-        ResultSettings = new AppSettings
+        ResultSettings = CloneFromBase();
+        ResultSettings.ScannerDevicePath = _detectedDevicePath;
+        ResultSettings.SelectedHidDeviceId = _detectedDevicePath;
+        ResultSettings.ScannerMode = ScannerMode.Hid;
+        DialogResult = true;
+        Close();
+    }
+
+    private AppSettings CloneFromBase() =>
+        new()
         {
-            ComPort = null,
-            ScannerDevicePath = _detectedDevicePath,
-            ScannerMode = ScannerMode.RawInput,
+            ComPort = _baseSettings.ComPort,
+            ComBaudRate = _baseSettings.ComBaudRate,
+            ScannerDevicePath = _baseSettings.ScannerDevicePath,
+            SelectedHidDeviceId = _baseSettings.SelectedHidDeviceId,
+            SelectedRawInputDeviceId = _baseSettings.SelectedRawInputDeviceId,
+            ScannerMode = _baseSettings.ScannerMode,
             AutoSaveExports = _baseSettings.AutoSaveExports,
             ExportDirectory = _baseSettings.ExportDirectory,
+            PrintMode = _baseSettings.PrintMode,
             AutoPrintEnabled = _baseSettings.AutoPrintEnabled,
             PrinterName = _baseSettings.PrinterName,
             PrintCopies = _baseSettings.PrintCopies,
@@ -77,9 +106,6 @@ public partial class ScannerSetupWindow : Window
             ScannerCustomGsRequiresShift = _baseSettings.ScannerCustomGsRequiresShift,
             ScannerCustomGsRequiresAlt = _baseSettings.ScannerCustomGsRequiresAlt
         };
-        DialogResult = true;
-        Close();
-    }
 
     private void OnCancelClick(object sender, RoutedEventArgs e)
     {
