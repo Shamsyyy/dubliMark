@@ -231,7 +231,10 @@ public partial class MainWindow : Window
 
         ScanDiagnosticsHelper.LogScanReceived(source, raw);
 
-        var result = AddScanContextWarnings(_parser.Parse(raw), raw, source);
+        var result = AddScanContextWarnings(
+            MarkingCodeIntegrity.Enrich(_parser.Parse(raw), raw),
+            raw,
+            source);
         ScanDiagnosticsHelper.LogParseResult(source, result, raw);
         UpdateScanDiagnostics(source, raw, result);
 
@@ -262,7 +265,8 @@ public partial class MainWindow : Window
             return result;
 
         var conflict = _uiHistory.FirstOrDefault(item =>
-            string.Equals(item.Gtin, result.Code.Gtin, StringComparison.Ordinal)
+            string.Equals(item.Source, "HID", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(item.Gtin, result.Code.Gtin, StringComparison.Ordinal)
             && string.Equals(item.Ai93, result.Code.AdditionalField93 ?? "—", StringComparison.Ordinal)
             && IsLikelySameCodeWithConflictingSerial(result.Code.Serial, item.Serial));
 

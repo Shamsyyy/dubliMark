@@ -31,6 +31,9 @@ public static class ScanDiagnosticsHelper
 
         if (code?.CodeType == MarkingCodeType.Full && !HasFullCrypto(code))
             LoggingService.Warn("Scanner", "Full code missing AI 91/92 — print blocked");
+
+        foreach (var message in result.InfoMessages)
+            LoggingService.Warn("Scanner", $"Integrity: {message}");
     }
 
     public static bool HasFullCrypto(MarkingCode code) =>
