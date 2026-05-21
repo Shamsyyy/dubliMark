@@ -1,7 +1,9 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using DoubleMark.Desktop.Services;
 using DoubleMark.Desktop.Services.Account;
+using DoubleMark.Desktop.Services.Update;
 
 namespace DoubleMark.Desktop.Views;
 
@@ -13,8 +15,16 @@ public partial class AccountView : UserControl
     public event RoutedEventHandler? OpenAccountSiteRequested;
     public event RoutedEventHandler? OpenPricingRequested;
     public event RoutedEventHandler? ResetPasswordRequested;
+    public event RoutedEventHandler? CheckUpdatesRequested;
+    public event RoutedEventHandler? DownloadUpdateRequested;
+    public event RoutedEventHandler? OpenDownloadsPageRequested;
+    public event EventHandler<bool>? AutoCheckUpdatesChanged;
 
-    public AccountView() => InitializeComponent();
+    public AccountView()
+    {
+        InitializeComponent();
+        UpdateAppReleaseInfo();
+    }
 
     public void UpdateState(AccountSnapshot snapshot)
     {
@@ -38,7 +48,50 @@ public partial class AccountView : UserControl
 
         RenderPayments(snapshot.Payments);
         RenderDevices(snapshot.Devices);
+        UpdateAppReleaseInfo();
     }
+
+    public void UpdateAppReleaseInfo()
+    {
+        var release = AppReleaseInfoProvider.Current;
+        var check = UpdateService.Instance.LastCheck;
+        AppVersionText.Text = release.VersionLabel;
+        AppBuildIdText.Text = string.IsNullOrWhiteSpace(release.BuildId) ? "—" : release.BuildId;
+        AppUpdatedAtText.Text = release.BuiltAtLabel;
+        AppLatestVersionText.Text = check?.Manifest?.Version ?? "—";
+        AppInstallPathText.Text = string.IsNullOrWhiteSpace(release.InstallPath) ? "—" : release.InstallPath;
+        if (!string.IsNullOrWhiteSpace(release.InstallWarning))
+        {
+            AppInstallWarningText.Text = release.InstallWarning;
+            AppInstallWarningText.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            AppInstallWarningText.Text = "";
+            AppInstallWarningText.Visibility = Visibility.Collapsed;
+        }
+
+        DownloadUpdateButton.IsEnabled = check?.Status == UpdateCheckStatus.UpdateAvailable;
+    }
+
+    public void SetUpdateStatus(string status) => AppUpdateStatusText.Text = status;
+
+    public void SetAutoCheckUpdates(bool enabled)
+    {
+        AutoCheckUpdatesCheckBox.IsChecked = enabled;
+    }
+
+    private void OnCheckUpdatesClick(object sender, RoutedEventArgs e) =>
+        CheckUpdatesRequested?.Invoke(sender, e);
+
+    private void OnDownloadUpdateClick(object sender, RoutedEventArgs e) =>
+        DownloadUpdateRequested?.Invoke(sender, e);
+
+    private void OnOpenDownloadsPageClick(object sender, RoutedEventArgs e) =>
+        OpenDownloadsPageRequested?.Invoke(sender, e);
+
+    private void OnAutoCheckUpdatesChanged(object sender, RoutedEventArgs e) =>
+        AutoCheckUpdatesChanged?.Invoke(sender, AutoCheckUpdatesCheckBox.IsChecked == true);
 
     private void RenderPayments(IReadOnlyList<AccountPayment> payments)
     {

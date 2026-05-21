@@ -6,6 +6,7 @@ using DoubleMark.Core.Models;
 using DoubleMark.Core.Parsing;
 using DoubleMark.Core.Print;
 using DoubleMark.Desktop.Services;
+using DoubleMark.Desktop.Services.Cloud;
 using DoubleMark.Desktop.Settings;
 using DoubleMark.Desktop.Views;
 
@@ -14,7 +15,7 @@ namespace DoubleMark.Desktop;
 public partial class MainWindow
 {
     private readonly List<ScanHistoryItem> _uiHistory = new();
-    private const int InMemoryHistoryLimit = ScanHistoryStore.MaxEntries;
+    private const int InMemoryHistoryLimit = CloudScanHistoryService.MaxScanHistory;
     private string _lastRawEscaped = "—";
     private string _lastNormalizedEscaped = "—";
     private string _lastRawHex = "—";
@@ -51,8 +52,12 @@ public partial class MainWindow
     private void SyncTemplatesPageState() =>
         _templatesView?.UpdateState(BuildTemplateViewState());
 
-    private void SyncHistoryPageState() =>
+    private void SyncHistoryPageState()
+    {
+        _historyView?.SetSignedIn(_accountSnapshot.User != null);
         _historyView?.UpdateItems(_uiHistory);
+        UpdateHistoryUsageUi();
+    }
 
     private void SyncExportPageState() =>
         _exportView?.UpdateState(BuildExportViewState());
@@ -140,12 +145,21 @@ public partial class MainWindow
     private TemplateViewState BuildTemplateViewState()
     {
         if (_printTemplates.Count == 0)
-            _printTemplates = _printTemplateService.LoadOrCreateDefaults();
+            _printTemplates = _accountSnapshot.User == null
+                ? _printTemplateService.LoadOrCreateDefaults()
+                : Array.Empty<PrintTemplate>();
 
         var activeName = ResolveActiveTemplate().Name;
+        var signedIn = _accountSnapshot.User != null;
+        var syncText = signedIn
+            ? _userTemplateService.StatusMessage ?? "Шаблоны синхронизированы"
+            : "Войдите в аккаунт для синхронизации шаблонов";
+
         return new TemplateViewState
         {
             ActiveTemplateName = activeName,
+            IsSignedIn = signedIn,
+            SyncStatusText = syncText,
             Templates = _printTemplates
                 .Select(t => new TemplateViewItem(
                     t.Name,
@@ -156,7 +170,10 @@ public partial class MainWindow
                     t.DataMatrixXmm,
                     t.DataMatrixYmm,
                     t.TextBlocks.Count,
-                    string.Equals(t.Name, activeName, StringComparison.OrdinalIgnoreCase)))
+                    string.Equals(t.Name, activeName, StringComparison.OrdinalIgnoreCase),
+                    string.Equals(t.Name, _settings.DefaultPrintTemplateName, StringComparison.OrdinalIgnoreCase),
+                    null,
+                    null))
                 .ToList()
         };
     }
@@ -236,7 +253,7 @@ public partial class MainWindow
         _lastParseError = parseError;
     }
 
-    private void AppendUiScanHistory(
+    private async Task PersistScanToHistoryAsync(
         ParseResult r,
         string raw,
         string source,
@@ -245,14 +262,21 @@ public partial class MainWindow
         int? imageGsCount,
         string parseError)
     {
-        var code = r.Code;
+        if (_accountSnapshot.User == null)
+            return;
+
+        if (!CloudScanHistoryService.IsValidForCloudHistory(r))
+        {
+            LoggingService.Info("ScanHistory", "Skip: invalid or incomplete Chestny ZNAK code");
+            return;
+        }
+
+        var code = r.Code!;
         var normalized = exportResult?.NormalizedPayload
-                         ?? code?.RawData
+                         ?? code.RawData
                          ?? Gs1BarcodeEncoding.NormalizeForParse(raw).Payload;
 
-        var status = r.IsValid
-            ? r.InfoMessages.Count > 0 ? "Предупреждение" : "Успешно"
-            : "Ошибка";
+        var status = r.InfoMessages.Count > 0 ? "Предупреждение" : "Успешно";
         var savedFolder = ResolveSavedFolder(exportResult, printResult) ?? "—";
         var printStatus = printResult == null
             ? "—"
@@ -262,51 +286,44 @@ public partial class MainWindow
                     ? "Напечатано"
                     : string.IsNullOrWhiteSpace(printResult.Error) ? "Не печаталось" : printResult.Error;
 
-        _uiHistory.Insert(0, new ScanHistoryItem
-        {
-            Timestamp = DateTime.Now,
-            Status = status,
-            StatusKind = StatusKindFromText(status),
-            Gtin = code?.Gtin ?? "—",
-            Serial = code?.Serial ?? "—",
-            Ai91 = code?.VerificationKey ?? "—",
-            Ai92 = code?.VerificationCode ?? "—",
-            Ai93 = code?.AdditionalField93 ?? "—",
-            GsCount = (imageGsCount ?? Gs1BarcodeEncoding.CountGs(normalized)).ToString(),
-            Source = source,
-            CodeType = code == null ? "—" : CodeTypeShort(code.CodeType),
-            RawEscaped = _lastRawEscaped,
-            RawPayload = raw,
-            NormalizedEscaped = _lastNormalizedEscaped,
-            RawHex = _lastRawHex,
-            Error = parseError,
-            SavedFolder = savedFolder,
-            Template = printResult?.Render?.Template.Name ?? (r.IsValid ? ResolveActiveTemplate().Name : "—"),
-            Printer = string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName,
-            PrintStatus = printStatus,
-            PreviewImage = LastScanPreviewImage.Source
-        });
+        var masked = ScanHistoryMasking.BuildMaskedPreview(raw);
+        var (item, duplicateIgnored) = await _cloudScanHistoryService.AddScanAsync(
+            r,
+            raw,
+            source,
+            exportResult,
+            printResult,
+            imageGsCount,
+            parseError,
+            masked,
+            _lastRawEscaped,
+            _lastNormalizedEscaped,
+            _lastRawHex,
+            printResult?.Render?.Template.Name ?? ResolveActiveTemplate().Name,
+            string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName,
+            printStatus,
+            savedFolder);
 
+        if (duplicateIgnored)
+            return;
+
+        if (item == null)
+        {
+            ShowToast("Не удалось сохранить историю на сервере. Проверьте интернет.", ToastKind.Warning);
+            return;
+        }
+
+        _uiHistory.Insert(0, item);
         while (_uiHistory.Count > InMemoryHistoryLimit)
             _uiHistory.RemoveAt(_uiHistory.Count - 1);
 
-        PersistScanHistory();
+        AddDashboardHistoryRow(item);
+        var usage = await _cloudScanHistoryService.GetHistoryUsageAsync();
+        _historyUsageCount = usage.Count;
+        _historyUsageLimit = usage.Limit;
+        UpdateHistoryUsageUi();
+        SyncConnectedViews();
     }
-
-    private void LoadPersistedScanHistory()
-    {
-        var fromFile = ScanHistoryStore.Load();
-        var fromExports = ScanHistoryImporter.FromExports(
-            _settings.EffectiveExportDirectory,
-            ScanHistoryStore.MaxEntries);
-        _uiHistory.Clear();
-        _uiHistory.AddRange(ScanHistoryImporter.Merge(fromFile, fromExports, ScanHistoryStore.MaxEntries));
-        RebuildDashboardHistoryRows();
-        LoggingService.Info("ScanHistory",
-            $"Loaded {_uiHistory.Count} items (file={fromFile.Count}, exports={fromExports.Count})");
-    }
-
-    private void PersistScanHistory() => ScanHistoryStore.Save(_uiHistory);
 
     private void RebuildDashboardHistoryRows()
     {
@@ -396,31 +413,19 @@ public partial class MainWindow
         SyncConnectedViews();
     }
 
-    private void OnHistoryOpenFolderRequested(object? sender, ScanHistoryItem item)
-    {
-        if (!string.IsNullOrWhiteSpace(item.SavedFolder) && item.SavedFolder != "—")
-            OpenFolder(item.SavedFolder);
-    }
-
     private async void OnHistoryCopyRequested(object? sender, ScanHistoryItem item)
     {
         if (!await EnsureSubscriptionForFeatureAsync("История сканов"))
             return;
 
-        Clipboard.SetText(string.Join(Environment.NewLine, new[]
+        if (string.IsNullOrEmpty(item.RawPayload))
         {
-            $"status={item.Status}",
-            $"gtin={item.Gtin}",
-            $"serial={item.Serial}",
-            $"ai91={item.Ai91}",
-            $"ai92={item.Ai92}",
-            $"ai93={item.Ai93}",
-            $"gsCount={item.GsCount}",
-            $"rawEscaped={item.RawEscaped}",
-            $"normalizedEscaped={item.NormalizedEscaped}",
-            $"rawHex={item.RawHex}"
-        }));
-        ShowToast("Данные скана скопированы", ToastKind.Success);
+            ShowToast("Код недоступен для копирования", ToastKind.Warning);
+            return;
+        }
+
+        Clipboard.SetText(item.RawPayload);
+        ShowToast("Код ЧЗ скопирован", ToastKind.Success);
     }
 
     private async void OnHistoryReprintRequested(object? sender, ScanHistoryItem item)
@@ -449,6 +454,57 @@ public partial class MainWindow
             allowDuplicate: true);
         UpdatePrintStatus(print);
         SyncConnectedViews();
+    }
+
+    private async void OnHistoryDeleteRequested(object? sender, ScanHistoryItem item)
+    {
+        if (_accountSnapshot.User == null || string.IsNullOrWhiteSpace(item.CloudId))
+            return;
+
+        if (!await _cloudScanHistoryService.DeleteHistoryItemAsync(item.CloudId))
+        {
+            ShowToast("Не удалось удалить запись истории", ToastKind.Warning);
+            return;
+        }
+
+        _uiHistory.RemoveAll(i => string.Equals(i.CloudId, item.CloudId, StringComparison.OrdinalIgnoreCase));
+        var usage = await _cloudScanHistoryService.GetHistoryUsageAsync();
+        _historyUsageCount = usage.Count;
+        _historyUsageLimit = usage.Limit;
+        UpdateHistoryUsageUi();
+        SyncConnectedViews();
+    }
+
+    private async void OnHistoryClearRequested(object? sender, EventArgs e)
+    {
+        if (_accountSnapshot.User == null)
+        {
+            ShowToast("Войдите в аккаунт для работы с историей", ToastKind.Warning);
+            return;
+        }
+
+        var confirm = MessageBox.Show(
+            this,
+            "Удалить всю историю сканирования? Это действие нельзя отменить.",
+            "Очистить историю",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (confirm != MessageBoxResult.Yes)
+            return;
+
+        if (!await _cloudScanHistoryService.ClearHistoryAsync())
+        {
+            ShowToast("Не удалось очистить историю на сервере", ToastKind.Warning);
+            return;
+        }
+
+        _uiHistory.Clear();
+        _historyUsageCount = 0;
+        UpdateHistoryUsageUi();
+        RebuildDashboardHistoryRows();
+        SyncConnectedViews();
+        ShowToast("История очищена", ToastKind.Success);
     }
 
     private static UiStatusKind StatusKindFromText(string? text)

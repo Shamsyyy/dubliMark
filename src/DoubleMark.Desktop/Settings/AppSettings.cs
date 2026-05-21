@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using DoubleMark.Core.Print;
 using DoubleMark.Desktop.Services;
+using DoubleMark.Desktop.Services.Cloud;
 
 namespace DoubleMark.Desktop.Settings;
 
@@ -32,6 +33,9 @@ public sealed class AppSettings
     public ScannerMode ScannerMode { get; set; } = ScannerMode.Auto;
     /// <summary>After a fast HID wedge scan, save the Raw Input device path automatically.</summary>
     public bool ScannerAutoBindHid { get; set; } = true;
+    public bool AutoCheckUpdates { get; set; } = true;
+    public bool LocalTemplatesMigratedToCloud { get; set; }
+    public ScanHistoryDuplicateMode ScanHistoryDuplicateMode { get; set; } = ScanHistoryDuplicateMode.IgnoreRecentDuplicates;
     public bool AutoSaveExports { get; set; } = true;
     public string? ExportDirectory { get; set; }
     public PrintMode PrintMode { get; set; } = PrintMode.Manual;
@@ -160,6 +164,7 @@ public sealed class AppSettings
         SelectedRawInputDeviceId = null;
         ScannerMode = ScannerMode.Unset;
         ScannerAutoBindHid = true;
+        AutoCheckUpdates = true;
         AutoSaveExports = true;
         ExportDirectory = null;
         PrintMode = PrintMode.Manual;

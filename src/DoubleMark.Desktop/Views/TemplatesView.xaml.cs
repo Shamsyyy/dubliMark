@@ -14,6 +14,7 @@ public partial class TemplatesView : UserControl
 
     public void UpdateState(TemplateViewState state)
     {
+        TemplatesSyncStatusText.Text = state.SyncStatusText;
         TemplatesListPanel.Children.Clear();
 
         var active = state.Templates.FirstOrDefault(t => t.IsActive) ?? state.Templates.FirstOrDefault();
@@ -80,9 +81,14 @@ public partial class TemplatesView : UserControl
             FontWeight = FontWeights.SemiBold,
             TextTrimming = TextTrimming.CharacterEllipsis
         });
+        var meta = $"{template.LabelWidthMm:0.#} × {template.LabelHeightMm:0.#} мм · DM {template.DataMatrixWidthMm:0.#} мм";
+        if (template.IsDefault)
+            meta += " · По умолчанию";
+        if (!string.IsNullOrWhiteSpace(template.UpdatedAtText))
+            meta += " · " + template.UpdatedAtText;
         text.Children.Add(new TextBlock
         {
-            Text = $"{template.LabelWidthMm:0.#} × {template.LabelHeightMm:0.#} мм · DM {template.DataMatrixWidthMm:0.#} мм",
+            Text = meta,
             Style = (Style)FindResource("MutedText")
         });
         Grid.SetColumn(text, 1);

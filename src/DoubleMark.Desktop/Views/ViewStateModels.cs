@@ -64,6 +64,8 @@ public sealed record TemplateViewState
 {
     public IReadOnlyList<TemplateViewItem> Templates { get; init; } = Array.Empty<TemplateViewItem>();
     public string ActiveTemplateName { get; init; } = "";
+    public string SyncStatusText { get; init; } = "";
+    public bool IsSignedIn { get; init; }
 }
 
 public sealed record TemplateViewItem(
@@ -75,7 +77,10 @@ public sealed record TemplateViewItem(
     double DataMatrixXmm,
     double DataMatrixYmm,
     int TextBlockCount,
-    bool IsActive);
+    bool IsActive,
+    bool IsDefault = false,
+    string? Description = null,
+    string? UpdatedAtText = null);
 
 public sealed record ExportViewState
 {
@@ -112,6 +117,7 @@ public sealed record DiagnosticsViewState
 
 public sealed record ScanHistoryItem
 {
+    public string? CloudId { get; init; }
     public DateTime Timestamp { get; init; }
     public string Status { get; init; } = "Ожидание";
     public UiStatusKind StatusKind { get; init; } = UiStatusKind.Neutral;
@@ -120,11 +126,16 @@ public sealed record ScanHistoryItem
     public string Ai91 { get; init; } = "—";
     public string Ai92 { get; init; } = "—";
     public string Ai93 { get; init; } = "—";
+    public bool HasAi01 { get; init; }
+    public bool HasAi21 { get; init; }
+    public bool HasAi91Flag { get; init; }
+    public bool HasAi92Flag { get; init; }
     public string GsCount { get; init; } = "—";
     public string Source { get; init; } = "—";
     public string CodeType { get; init; } = "—";
     public string RawEscaped { get; init; } = "—";
     public string RawPayload { get; init; } = "";
+    public string MaskedPreview { get; init; } = "—";
     public string NormalizedEscaped { get; init; } = "—";
     public string RawHex { get; init; } = "—";
     public string Error { get; init; } = "";
@@ -133,4 +144,7 @@ public sealed record ScanHistoryItem
     public string Printer { get; init; } = "—";
     public string PrintStatus { get; init; } = "—";
     public ImageSource? PreviewImage { get; init; }
+
+    public string AiFlagsSummary =>
+        $"01 {(HasAi01 ? "✓" : "—")}  21 {(HasAi21 ? "✓" : "—")}  91 {(HasAi91Flag ? "✓" : "—")}  92 {(HasAi92Flag ? "✓" : "—")}";
 }

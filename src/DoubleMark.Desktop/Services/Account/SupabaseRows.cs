@@ -102,3 +102,86 @@ public sealed class DeviceRow : BaseModel
     [Column("last_seen_at")]
     public DateTime? LastSeenAt { get; set; }
 }
+
+[Table("user_print_templates")]
+public sealed class UserPrintTemplateRow : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public string Id { get; set; } = "";
+
+    [Column("user_id")]
+    public string UserId { get; set; } = "";
+
+    [Column("name")]
+    public string Name { get; set; } = "";
+
+    [Column("description")]
+    public string? Description { get; set; }
+
+    [Column("width_mm")]
+    public decimal WidthMm { get; set; }
+
+    [Column("height_mm")]
+    public decimal HeightMm { get; set; }
+
+    [Column("printer_name")]
+    public string? PrinterName { get; set; }
+
+    [Column("template_data")]
+    public object TemplateData { get; set; } = "{}";
+
+    [Column("is_default")]
+    public bool IsDefault { get; set; }
+
+    [Column("created_at")]
+    public DateTime? CreatedAt { get; set; }
+
+    [Column("updated_at")]
+    public DateTime? UpdatedAt { get; set; }
+}
+
+[Table("user_scan_history")]
+public sealed class UserScanHistoryRow : BaseModel
+{
+    [PrimaryKey("id", false)]
+    public string Id { get; set; } = "";
+
+    [Column("user_id")]
+    public string UserId { get; set; } = "";
+
+    [Column("raw_code")]
+    public string RawCode { get; set; } = "";
+
+    [Column("code_hash")]
+    public string CodeHash { get; set; } = "";
+
+    [Column("source")]
+    public string? Source { get; set; }
+
+    [Column("gs_count")]
+    public int? GsCount { get; set; }
+
+    [Column("has_ai01")]
+    public bool HasAi01 { get; set; }
+
+    [Column("has_ai21")]
+    public bool HasAi21 { get; set; }
+
+    [Column("has_ai91")]
+    public bool HasAi91 { get; set; }
+
+    [Column("has_ai92")]
+    public bool HasAi92 { get; set; }
+
+    [Column("gtin")]
+    public string? Gtin { get; set; }
+
+    [Column("serial")]
+    public string? Serial { get; set; }
+
+    [Column("scanned_at")]
+    public DateTime? ScannedAt { get; set; }
+
+    [Column("created_at")]
+    public DateTime? CreatedAt { get; set; }
+}

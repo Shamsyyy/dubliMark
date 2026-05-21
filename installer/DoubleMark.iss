@@ -1,5 +1,9 @@
+#ifndef MyAppBuildId
+#define MyAppBuildId ""
+#endif
+
 #define MyAppName "DoubleMark"
-#define MyAppVersion "2.1.0"
+#define MyAppVersion "2.1.3"
 #define MyAppPublisher "DoubleMark"
 #define MyAppExeName "DoubleMark.exe"
 #define SourceDir "..\dist\DoubleMark"
@@ -9,19 +13,23 @@ AppId={{B6FD1581-5272-489E-B177-51765F27C534}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppMutex=DoubleMarkAppRunning
+CloseApplications=force
+CloseApplicationsFilter=DoubleMark.exe,DoubleMark.Desktop.exe
+RestartApplications=no
 DefaultDirName={autopf}\DoubleMark
 DefaultGroupName=DoubleMark
 DisableProgramGroupPage=yes
-OutputDir=Output
-OutputBaseFilename=DoubleMarkSetup-{#MyAppVersion}
+OutputDir=..\dist\installer
+OutputBaseFilename=DoubleMarkSetup-{#MyAppVersion}{#MyAppBuildId}
 SetupIconFile=..\src\DoubleMark.Desktop\Assets\Branding\doublemark-logo.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 
 [Languages]
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"

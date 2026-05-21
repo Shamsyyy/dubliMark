@@ -4,92 +4,58 @@
              FontFamily="Segoe UI">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="24,0,24,24">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="340"/>
-            </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <Border Grid.ColumnSpan="2" Style="{StaticResource HeroCard}" Margin="0,0,0,16">
+            <Border Grid.Row="0" Style="{StaticResource HeroCard}" Margin="0,0,0,16">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="320"/>
                         <ColumnDefinition Width="14"/>
                         <ColumnDefinition Width="190"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="История" Style="{StaticResource SectionTitle}"/>
-                        <TextBlock Text="Сохранённые сканы (до 100 000 записей, включая папку экспорта), дата и время с точностью до секунды."
-                                   Style="{StaticResource MutedText}" Margin="0,5,0,0"/>
+                        <TextBlock Text="История сканирования" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock x:Name="HistoryUsageText" Text="История: 0 / 100" Style="{StaticResource MutedText}" Margin="0,5,0,0"/>
+                        <TextBlock x:Name="HistoryLimitWarningText" Text="" Style="{StaticResource MutedText}" Margin="0,4,0,0"
+                                   Foreground="{StaticResource WarningBrush}" Visibility="Collapsed"/>
+                        <TextBlock x:Name="HistorySignedOutText" Text="Войдите в аккаунт, чтобы сохранять историю сканирования."
+                                   Style="{StaticResource MutedText}" Margin="0,6,0,0" Visibility="Collapsed"/>
                     </StackPanel>
                     <TextBox x:Name="HistorySearchBox" Grid.Column="1" Style="{StaticResource InputBox}"
                              TextChanged="OnFilterChanged"/>
                     <ComboBox x:Name="HistoryStatusFilter" Grid.Column="3" Style="{StaticResource DashboardComboBox}"
                               SelectionChanged="OnFilterChanged"/>
+                    <Button Grid.Column="5" Style="{StaticResource SecondaryButton}" Content="Очистить историю"
+                            Click="OnClearHistoryClick" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
 
-            <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,16,0">
+            <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,16">
                 <StackPanel>
                     <Grid Margin="0,0,0,10">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="168"/>
-                            <ColumnDefinition Width="116"/>
-                            <ColumnDefinition Width="98"/>
+                            <ColumnDefinition Width="148"/>
+                            <ColumnDefinition Width="88"/>
+                            <ColumnDefinition Width="110"/>
                             <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="132"/>
-                            <ColumnDefinition Width="128"/>
+                            <ColumnDefinition Width="220"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="Время" Style="{StaticResource MetricLabel}"/>
-                        <TextBlock Grid.Column="1" Text="Статус" Style="{StaticResource MetricLabel}"/>
-                        <TextBlock Grid.Column="2" Text="AI 91" Style="{StaticResource MetricLabel}"/>
-                        <TextBlock Grid.Column="3" Text="AI 92 / 93" Style="{StaticResource MetricLabel}"/>
-                        <TextBlock Grid.Column="4" Text="Шаблон" Style="{StaticResource MetricLabel}"/>
-                        <TextBlock Grid.Column="5" Text="Действия" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock Grid.Column="1" Text="Источник" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock Grid.Column="2" Text="GTIN / SN" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock Grid.Column="3" Text="AI / Preview" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock Grid.Column="4" Text="Действия" Style="{StaticResource MetricLabel}"/>
                     </Grid>
                     <StackPanel x:Name="HistoryRowsPanel"/>
-                    <TextBlock x:Name="HistoryEmptyText" Text="История сканов пока пуста" Style="{StaticResource MutedText}"
-                               Visibility="Collapsed" Margin="0,12,0,0"/>
-                </StackPanel>
-            </Border>
-
-            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource Card}">
-                <StackPanel>
-                    <Grid Margin="0,0,0,16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="12"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="Preview" Style="{StaticResource CardTitle}"/>
-                        <Border x:Name="HistoryPreviewBadge" Grid.Column="2" Style="{StaticResource PillBadge}" MinWidth="86">
-                            <TextBlock x:Name="HistoryPreviewStatusText" Text="—" FontWeight="SemiBold"
-                                       TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
-                        </Border>
-                    </Grid>
-                    <Border Background="#F7FAFC" CornerRadius="18" Width="230" Height="230" Padding="16" HorizontalAlignment="Center" Margin="0,0,0,16">
-                        <Grid>
-                            <Image x:Name="HistoryPreviewImage" Stretch="Uniform"/>
-                            <TextBlock x:Name="HistoryPreviewPlaceholder" Text="Выберите скан" Foreground="#293241"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Grid>
-                    </Border>
-                    <TextBlock x:Name="HistoryPreviewTitleText" Text="—" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                    <TextBlock x:Name="HistoryPreviewMetaText" Text="—" Style="{StaticResource MutedText}" Margin="0,6,0,12" TextWrapping="Wrap"/>
-                    <Border Style="{StaticResource SoftSurface}" Margin="0,0,0,12" MaxHeight="118">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <TextBlock x:Name="HistoryPreviewPayloadText" Text="—" Foreground="{StaticResource TextBrush}" TextWrapping="Wrap"/>
-                        </ScrollViewer>
-                    </Border>
-                    <UniformGrid Columns="3">
-                        <Button Style="{StaticResource SecondaryButton}" Content="Папка" Click="OnOpenSelectedFolderClick" Margin="0,0,6,0"/>
-                        <Button Style="{StaticResource SecondaryButton}" Content="Копировать" Click="OnCopySelectedClick" Margin="3,0,6,0"/>
-                        <Button Style="{StaticResource SecondaryButton}" Content="Печать" Click="OnReprintSelectedClick" Margin="3,0,0,0"/>
-                    </UniformGrid>
+                    <TextBlock x:Name="HistoryEmptyText" Text="История пока пустая. Отсканируйте код ЧЗ."
+                               Style="{StaticResource MutedText}" Visibility="Collapsed" Margin="0,12,0,0"/>
                 </StackPanel>
             </Border>
         </Grid>

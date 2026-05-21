@@ -19,7 +19,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Text="Шаблоны печати" Style="{StaticResource SectionTitle}"/>
-                            <TextBlock Text="Локальные шаблоны templates.json. Редактирование открывается в существующем окне управления."
+                            <TextBlock x:Name="TemplatesSyncStatusText" Text="Шаблоны синхронизированы"
                                        Style="{StaticResource MutedText}" Margin="0,5,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
                         <Button Grid.Column="2" Style="{StaticResource PrimaryButton}" Content="Управление" Click="OnManageTemplatesProxyClick"

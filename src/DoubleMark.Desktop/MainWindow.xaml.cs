@@ -32,13 +32,16 @@ public partial class MainWindow : Window
         InitializeComponent();
         InitializePrintServices();
         InitializeAccountServices();
+        InitializeCloudDataServices();
         InitializeNavigation();
         Loaded += OnLoaded;
         Closed += OnClosed;
         PreviewKeyDown += OnPreviewKeyDown;
     }
 
-    private void OnClosed(object? sender, EventArgs e) => PersistScanHistory();
+    private void OnClosed(object? sender, EventArgs e)
+    {
+    }
 
     private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
@@ -67,9 +70,9 @@ public partial class MainWindow : Window
     {
         _isLoadingSettings = true;
         AppDataMigrationService.MigrateLegacyData();
+        SidebarVersionText.Text = AppReleaseInfoProvider.Current.VersionLabel;
         ScannerSourceFactory.ResetHidBindingSession();
         _settings = AppSettings.Load();
-        LoadPersistedScanHistory();
         _printTemplates = _printTemplateService.LoadOrCreateDefaults();
         RefreshExportSettingsUi();
         RefreshPrintSettingsUi();
@@ -80,6 +83,7 @@ public partial class MainWindow : Window
         RestartScanner();
         SyncConnectedViews();
         await RestoreAccountOnStartupAsync();
+        _ = CheckForUpdatesOnStartupAsync();
         Focus();
     }
 
@@ -466,8 +470,7 @@ public partial class MainWindow : Window
 
         UpdateLastScanDashboard(r, raw, source, exportResult, printResult, imageGsCount, parseError);
         UpdateScanUiSnapshot(r, raw, source, exportResult, printResult, imageGsCount, parseError);
-        AppendUiScanHistory(r, raw, source, exportResult, printResult, imageGsCount, parseError);
-        AddDashboardHistoryRow(_uiHistory[0]);
+        _ = PersistScanToHistoryAsync(r, raw, source, exportResult, printResult, imageGsCount, parseError);
         ShowScanToast(r, exportResult, printResult);
         SyncConnectedViews();
 

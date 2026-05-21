@@ -49,6 +49,10 @@ public partial class MainWindow
         UpdateAccountShell("Загружаем аккаунт...");
         _accountSnapshot = await _accountService.RestoreAccount();
         ApplyAccountSnapshot();
+        if (_accountSnapshot.User != null)
+            await LoadUserCloudDataAsync();
+        else
+            ClearUserCloudData();
 
         if (_accountSnapshot.User == null)
             ShowLogin(_accountSnapshot.Error);
@@ -77,6 +81,8 @@ public partial class MainWindow
             _loginView?.SetStatus("Проверяем аккаунт и подписку...", isLoading: true);
             _accountSnapshot = await _accountService.SignIn(credentials.Email, credentials.Password);
             ApplyAccountSnapshot();
+            if (_accountSnapshot.User != null)
+                await LoadUserCloudDataAsync();
 
             if (_accountSnapshot.User == null || !_accountSnapshot.Subscription.IsActive)
                 NavigateTo(GetAccountView(), NavAccountButton, "Личный кабинет DoubleMark");
@@ -136,7 +142,9 @@ public partial class MainWindow
     {
         await _accountService.SignOut();
         _accountSnapshot = new AccountSnapshot(null, null, SubscriptionStatus.Missing, Array.Empty<AccountPayment>(), Array.Empty<AccountDevice>());
+        ClearUserCloudData();
         ApplyAccountSnapshot();
+        SyncConnectedViews();
         ShowLogin("Вы вышли из аккаунта DoubleMark.");
     }
 
@@ -184,6 +192,9 @@ public partial class MainWindow
 
     private async Task<bool> EnsureSubscriptionForFeatureAsync(string featureName)
     {
+        if (!EnsureAppVersionAllowed(featureName))
+            return false;
+
         if (!ProductionGuard.CanUseProtectedFeature())
         {
             ShowToast(ProductionGuard.ProtectedFeatureBlockedMessage, ToastKind.Error);

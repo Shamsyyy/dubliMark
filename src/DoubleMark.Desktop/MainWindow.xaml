@@ -137,7 +137,7 @@
                                    SnapsToDevicePixels="True"/>
                         </Border>
                         <StackPanel Margin="12,0,0,0">
-                            <TextBlock Text="DoubleMark v2.1.0" Style="{StaticResource MutedText}" FontSize="12"/>
+                            <TextBlock x:Name="SidebarVersionText" Text="DoubleMark" Style="{StaticResource MutedText}" FontSize="12"/>
                             <TextBlock Text="© 2026" Style="{StaticResource MutedText}" FontSize="12"/>
                         </StackPanel>
                     </StackPanel>

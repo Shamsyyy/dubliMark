@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using DoubleMark.Desktop.Services;
@@ -6,11 +7,34 @@ namespace DoubleMark.Desktop;
 
 public partial class App : Application
 {
+    private const string AppMutexName = "DoubleMarkAppRunning";
+    private static Mutex? _singleInstanceMutex;
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        var createdNew = false;
+        _singleInstanceMutex = new Mutex(true, AppMutexName, out createdNew);
+        if (!createdNew)
+        {
+            MessageBox.Show(
+                "DoubleMark уже запущен. Закройте предыдущее окно перед обновлением или повторным запуском.",
+                "DoubleMark",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
+
         LoggingService.LogStartup();
         RegisterExceptionHandlers();
         base.OnStartup(e);
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _singleInstanceMutex?.ReleaseMutex();
+        _singleInstanceMutex?.Dispose();
+        base.OnExit(e);
     }
 
     private static void RegisterExceptionHandlers()

@@ -456,7 +456,15 @@ public partial class MainWindow
         if (window.ShowDialog() == true)
         {
             _printTemplates = window.Templates;
-            _printTemplateService.SaveTemplates(_printTemplates);
+            if (_accountSnapshot.User != null)
+            {
+                await _userTemplateService.SaveAllTemplatesAsync(_printTemplates, window.SelectedTemplateName);
+            }
+            else
+            {
+                _printTemplateService.SaveTemplates(_printTemplates);
+            }
+
             if (!string.IsNullOrWhiteSpace(window.SelectedTemplateName)
                 && _printTemplates.Any(t => string.Equals(t.Name, window.SelectedTemplateName, StringComparison.OrdinalIgnoreCase)))
             {

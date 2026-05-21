@@ -1,106 +1,89 @@
 # DoubleMark Release Build
 
-## Build Release EXE
+## Стек
 
-Run from the repository root:
+- **Framework:** .NET 8 (`net8.0-windows`)
+- **UI:** WPF
+- **Solution:** `DoubleMark.sln`
+- **Desktop project:** `src\DoubleMark.Desktop\DoubleMark.Desktop.csproj`
+- **Version:** 2.1.0
+
+## Собрать EXE
+
+Из корня репозитория:
 
 ```powershell
-.\scripts\build-release.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1
 ```
 
-Result:
+Результат:
 
 ```text
-dist\DoubleMark\DoubleMark.exe
+C:\Projects\DubliMark\dist\DoubleMark\DoubleMark.exe
 ```
 
-The release build is `win-x64`, self-contained, without debug symbols, and suitable for installer packaging. It does not require the .NET Runtime on the user's machine. ReadyToRun is enabled for non-obfuscated builds and disabled for obfuscated builds because Obfuscar cannot rewrite ReadyToRun mixed-mode assemblies.
+Сборка: `win-x64`, self-contained, single-file, без `.pdb`.
 
-During the build, `scripts/build-release.ps1` generates `dist\DoubleMark\appsettings.json` from environment variables, `.env.local`, `.env`, or `appsettings.local.json`. This file contains only the Supabase URL and anon/public key required by the installed app.
+Скрипт копирует иконки из `ico\` в `src\DoubleMark.Desktop\Assets\Branding\` и генерирует `dist\DoubleMark\appsettings.json` из `.env.local` / `.env` / `appsettings.local.json` (только Supabase URL и anon key).
 
-For a single-file EXE build, run:
+Для folder-publish (например, с Obfuscar):
 
 ```powershell
-.\scripts\build-release.ps1 -SingleFile -SkipObfuscation
+powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1 -FolderPublish
 ```
 
-Use the default folder build for obfuscation and installer packaging, because Obfuscar works on published `.dll` files before they are bundled into a single-file executable.
+Публикация обновлений для пользователей: см. [UPDATE.md](UPDATE.md).
 
-## Build Installer
+## Собрать установщик
 
-Install Inno Setup 6, then run:
+Нужен [Inno Setup 6](https://jrsoftware.org/isinfo.php).
 
 ```powershell
-.\scripts\build-installer.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\build-installer.ps1
 ```
 
-Result:
+Результат:
 
 ```text
-installer\Output\DoubleMarkSetup-2.1.0.exe
+C:\Projects\DubliMark\dist\installer\DoubleMarkSetup-2.1.0-YYYYMMDD-HHMMSS.exe
 ```
 
-## Obfuscation
+Имя установщика содержит метку сборки (`buildId`), чтобы отличать свежий installer от старого.
 
-`obfuscar.xml` is configured conservatively:
+В ЛК (раздел «Приложение») отображаются версия и дата обновления из `buildinfo.json` рядом с `DoubleMark.exe`.
 
-- public API is preserved;
-- only `DoubleMark.Core.dll` is obfuscated;
-- WPF/XAML desktop assembly is not obfuscated because it relies on generated BAML and runtime binding names;
-- private implementation details can be renamed where safe.
+## Иконки
 
-Install Obfuscar before release builds if obfuscation is required:
+Исходники: `C:\Projects\DubliMark\ico`
 
-```powershell
-dotnet tool install --global Obfuscar.GlobalTool
-```
+- `doublemark-logo.ico` — EXE, окно, taskbar, Alt+Tab, установщик, ярлык
+- `doublemark-tray.ico` — трей (если используется)
+- `doublemark-logo.png` — UI внутри приложения
 
-If Obfuscar is unavailable, the script warns and still produces a Release EXE.
+## Что нельзя коммитить
 
-## Code Signing
+- `.env`, `.env.local`
+- `appsettings.local.json`, `appsettings.json`
+- `secrets.json`
+- `*.pfx`, `*.snk`
+- `dist/`
+- токены и сессии пользователей
 
-Keep certificates outside the repository. Set:
+Никогда не вшивать `service_role` key.
+
+## Проверка перед отправкой пользователю
+
+1. Запустить `dist\DoubleMark\DoubleMark.exe` — вход в ЛК без ошибки конфигурации Supabase.
+2. Собрать установщик и установить на чистой Windows / VM.
+3. Проверить иконку в окне, taskbar, Alt+Tab, ярлыке.
+4. Проверить подписку, COM, HID/RawInput, печать, автопечать, шаблоны.
+5. Убедиться, что в `dist\DoubleMark` нет `.pdb`, `.env`, `secrets.json`.
+
+## Code signing (опционально)
 
 ```powershell
 $env:SIGN_CERT_PATH="C:\secure\codesign.pfx"
 $env:SIGN_CERT_PASSWORD="certificate-password"
 ```
 
-The scripts will use `signtool.exe` when available. Never commit `.pfx`, `.snk`, passwords, or signing logs.
-
-## Do Not Commit
-
-- `.env`
-- `.env.local`
-- `appsettings.local.json`
-- `appsettings.json`
-- `secrets.json`
-- `*.pfx`
-- `*.snk`
-- `dist/`
-- `installer/Output/`
-- `.pdb`
-- user tokens or Supabase sessions
-
-## Production Checklist
-
-Before shipping:
-
-1. Build with `.\scripts\build-release.ps1`.
-2. Build installer with `.\scripts\build-installer.ps1`.
-3. Verify `dist\DoubleMark` does not contain `.pdb`, `.env`, `appsettings.local.json`, or `secrets.json`.
-4. Install on a clean Windows VM.
-5. Confirm DoubleMark icon in installer, shortcut, taskbar, Alt+Tab, and window.
-6. Confirm Supabase login, profile, subscription, and device registration.
-7. Confirm inactive subscriptions cannot use scanner, print, export, history, or templates.
-8. Confirm active/trialing subscriptions can use expected workflows.
-9. Confirm Raw Input, HID, COM, GS1/FNC1, AI 01/21/91/92, DataMatrix, print, export, and templates still work.
-
-## Security Notes
-
-- Desktop uses only Supabase anon/public key.
-- Never embed or ship `service_role`.
-- RLS must protect `profiles`, `subscriptions`, `payments`, and `user_devices`.
-- Prefer server-side RPC for final production access decisions:
-  - `check_app_access()`
-  - `register_device_and_check_limit()`
+Сертификат хранить вне репозитория.

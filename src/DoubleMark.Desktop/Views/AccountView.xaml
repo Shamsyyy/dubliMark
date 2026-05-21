@@ -102,6 +102,37 @@
                     </Border>
                 </UniformGrid>
 
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="Приложение и обновления" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
+                        <UniformGrid Columns="2">
+                            <StackPanel Margin="0,0,12,0">
+                                <TextBlock Text="Текущая версия" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="AppVersionText" Text="—" Style="{StaticResource MetricValue}" FontWeight="SemiBold" Margin="0,4,0,12"/>
+                                <TextBlock Text="Последняя версия" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="AppLatestVersionText" Text="—" Style="{StaticResource MetricValue}" FontWeight="SemiBold" Margin="0,4,0,12"/>
+                                <TextBlock Text="Сборка" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="AppBuildIdText" Text="—" Style="{StaticResource MetricValue}" FontWeight="SemiBold" Margin="0,4,0,0"/>
+                            </StackPanel>
+                            <StackPanel Margin="12,0,0,0">
+                                <TextBlock Text="Обновлено" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="AppUpdatedAtText" Text="—" Style="{StaticResource MetricValue}" FontWeight="SemiBold" Margin="0,4,0,12"/>
+                                <TextBlock Text="Статус" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="AppUpdateStatusText" Text="—" Style="{StaticResource MetricValue}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                                <TextBlock x:Name="AppInstallWarningText" Text="" Style="{StaticResource MutedText}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" Margin="0,0,0,8" Visibility="Collapsed"/>
+                                <TextBlock Text="Папка установки" Style="{StaticResource MetricLabel}"/>
+                                <TextBlock x:Name="AppInstallPathText" Text="—" Style="{StaticResource MetricValue}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                <CheckBox x:Name="AutoCheckUpdatesCheckBox" Content="Проверять обновления при запуске" Margin="0,4,0,0" Checked="OnAutoCheckUpdatesChanged" Unchecked="OnAutoCheckUpdatesChanged"/>
+                            </StackPanel>
+                        </UniformGrid>
+                        <UniformGrid Columns="3" Margin="0,16,0,0">
+                            <Button Style="{StaticResource SecondaryButton}" Content="Проверить обновления" Click="OnCheckUpdatesClick" Margin="0,0,6,0"/>
+                            <Button x:Name="DownloadUpdateButton" Style="{StaticResource PrimaryButton}" Content="Скачать и установить" Click="OnDownloadUpdateClick" Margin="6,0"/>
+                            <Button Style="{StaticResource SecondaryButton}" Content="Страница загрузки" Click="OnOpenDownloadsPageClick" Margin="6,0,0,0"/>
+                        </UniformGrid>
+                    </StackPanel>
+                </Border>
+
                 <UniformGrid Columns="3">
                     <Button Style="{StaticResource SecondaryButton}" Content="Открыть ЛК на сайте" Click="OnOpenAccountSiteClick" Margin="0,0,6,0"/>
                     <Button Style="{StaticResource SecondaryButton}" Content="Сменить пароль" Click="OnResetPasswordClick" Margin="6,0"/>

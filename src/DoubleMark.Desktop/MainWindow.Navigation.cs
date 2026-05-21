@@ -102,10 +102,11 @@ public partial class MainWindow
         if (_historyView != null)
             return _historyView;
 
-        _historyView = new HistoryView { TemplateService = _printTemplateService };
-        _historyView.OpenFolderRequested += OnHistoryOpenFolderRequested;
+        _historyView = new HistoryView();
         _historyView.CopyRequested += OnHistoryCopyRequested;
         _historyView.ReprintRequested += OnHistoryReprintRequested;
+        _historyView.DeleteRequested += OnHistoryDeleteRequested;
+        _historyView.ClearHistoryRequested += OnHistoryClearRequested;
         SyncHistoryPageState();
         return _historyView;
     }
@@ -151,7 +152,13 @@ public partial class MainWindow
         _accountView.OpenAccountSiteRequested += (_, _) => OpenAccountSite();
         _accountView.OpenPricingRequested += (_, _) => OpenPricing();
         _accountView.ResetPasswordRequested += (_, _) => OpenAccountSite();
+        _accountView.CheckUpdatesRequested += OnAccountCheckUpdatesRequested;
+        _accountView.DownloadUpdateRequested += OnAccountDownloadUpdateRequested;
+        _accountView.OpenDownloadsPageRequested += OnAccountOpenDownloadsPageRequested;
+        _accountView.AutoCheckUpdatesChanged += OnAccountAutoCheckUpdatesChanged;
+        _accountView.SetAutoCheckUpdates(_settings.AutoCheckUpdates);
         _accountView.UpdateState(_accountSnapshot);
+        RefreshAccountUpdateUi();
         return _accountView;
     }
 
@@ -199,6 +206,9 @@ public partial class MainWindow
 
     private void NavigateToProtected(Func<object> contentFactory, Button activeButton, string pageTitle)
     {
+        if (!EnsureAppVersionAllowed(pageTitle))
+            return;
+
         if (_accountSnapshot.User == null)
         {
             ShowLogin("Сначала войдите в аккаунт DoubleMark.");
