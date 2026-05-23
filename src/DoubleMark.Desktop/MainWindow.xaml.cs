@@ -23,8 +23,8 @@ public partial class MainWindow : Window
     private string? _lastBarcode;
     private DateTime _lastBarcodeUtc = DateTime.MinValue;
     private static readonly TimeSpan BarcodeDedupeWindow = TimeSpan.FromMilliseconds(800);
-    private bool _isScannerSetupInProgress;
-    private bool _isLoadingSettings;
+    private volatile bool _isScannerSetupInProgress;
+    private volatile bool _isLoadingSettings;
     private ScannerSetupWindow? _setupWindow;
 
     public MainWindow()
@@ -42,6 +42,7 @@ public partial class MainWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        try { _scanner?.Stop(); } catch { /* best-effort */ }
     }
 
     private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -67,7 +68,9 @@ public partial class MainWindow : Window
             e.Handled = true;
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private void OnLoaded(object sender, RoutedEventArgs e) => _ = InitializeOnLoadedAsync();
+
+    private async Task InitializeOnLoadedAsync()
     {
         try
         {
