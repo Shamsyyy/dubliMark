@@ -14,6 +14,12 @@ public class Gs1Parser
 
     private const int MaxPayloadLength = 4096;
 
+    /// <summary>
+    /// Минимальная длина значения AI 92 для признания его валидной крипто-подписью.
+    /// Реальные AI 92 в ЧЗ — как правило 44 символа (base64).
+    /// </summary>
+    private const int MinAi92Length = 20;
+
     public ParseResult Parse(string raw)
     {
         if (string.IsNullOrEmpty(raw))
@@ -29,6 +35,9 @@ public class Gs1Parser
         {
             if (TryParseShortWithoutGs(raw, out var shortNoGs))
                 return shortNoGs;
+
+            if (TryParseFullWithoutGs(raw, out var fullNoGs))
+                return fullNoGs;
 
             if (LooksLikeTruncatedFullMarkingCode(raw))
             {
@@ -181,6 +190,69 @@ public class Gs1Parser
 
         result = Success(s, gtin, serial, null, null, field93, MarkingCodeType.Short);
         return true;
+    }
+
+    /// <summary>
+    /// Полные коды с AI 91/92 иногда приходят без GS, когда HID-сканер не передаёт FNC1/GS.
+    /// Алгоритм: ищем AI 92 с конца (нужно >= <see cref="MinAi92Length"/> символов значения),
+    /// затем AI 91 непосредственно перед ним. Всё, что предшествует AI 91 — серийный номер.
+    /// </summary>
+    private static bool TryParseFullWithoutGs(string raw, out ParseResult result)
+    {
+        result = null!;
+        var s = StripAimIdentifier(raw);
+
+        // Минимум: 01[14]+21[1]+91[1]+92[MinAi92Length] = 44 символа
+        if (!s.StartsWith("01") || s.Length < 44 || s.Contains(GS))
+            return false;
+
+        // Если в строке есть пробелы или табуляции — это, скорее всего, замена GS на пробел
+        // (неправильная конфигурация сканера), а не легитимный HID-режим без GS.
+        // В последнем случае данные приходят слитно, без пробелов-суррогатов.
+        if (s.Contains(' ') || s.Contains('\t'))
+            return false;
+
+        if (s.Length < 18 || s.Substring(16, 2) != "21")
+            return false;
+
+        var gtin = s.Substring(2, 14);
+        if (!gtin.All(char.IsDigit))
+            return false;
+
+        // tail = всё после "21"
+        var tail = s.Substring(18);
+
+        // Ищем AI 92 с конца: ищем последнее вхождение "92" с достаточным хвостом.
+        // Начинаем с позиции, оставляющей >= MinAi92Length символов после "92".
+        for (var i92 = tail.Length - MinAi92Length - 2; i92 >= 4; i92--)
+        {
+            if (tail[i92] != '9' || tail[i92 + 1] != '2')
+                continue;
+
+            var candidateAi92 = tail.Substring(i92 + 2);
+            if (candidateAi92.Length < MinAi92Length)
+                continue;
+
+            // Перед "92" ищем "91" с конца (ближайшее к "92").
+            var beforeAi92 = tail.Substring(0, i92);
+            for (var i91 = beforeAi92.Length - 2; i91 >= 1; i91--)
+            {
+                if (beforeAi92[i91] != '9' || beforeAi92[i91 + 1] != '1')
+                    continue;
+
+                var candidateSerial = beforeAi92.Substring(0, i91);
+                var candidateAi91 = beforeAi92.Substring(i91 + 2);
+
+                if (candidateSerial.Length == 0 || candidateAi91.Length == 0)
+                    continue;
+
+                result = Success(s, gtin, candidateSerial, candidateAi91, candidateAi92, null,
+                    MarkingCodeType.Full);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool LooksLikeTruncatedFullMarkingCode(string raw)

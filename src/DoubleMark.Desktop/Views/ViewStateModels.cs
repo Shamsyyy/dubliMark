@@ -66,7 +66,27 @@ public sealed record TemplateViewState
     public string ActiveTemplateName { get; init; } = "";
     public string SyncStatusText { get; init; } = "";
     public bool IsSignedIn { get; init; }
+    public ImageSource? PreviewImage { get; init; }
+    public bool LabelShowDate { get; init; } = true;
+    public bool LabelShowShipment { get; init; }
+    public bool LabelShowOrder { get; init; }
+    public string? LabelShipmentNumber { get; init; }
+    public string? LabelOrderNumber { get; init; }
+    public double LabelWidthMm { get; init; }
+    public double LabelHeightMm { get; init; }
+    public double DataMatrixWidthMm { get; init; }
+    public double DataMatrixHeightMm { get; init; }
+    public double DataMatrixXmm { get; init; }
+    public double DataMatrixYmm { get; init; }
+    public IReadOnlyList<TemplateTextBlockViewItem> TextBlocks { get; init; } = Array.Empty<TemplateTextBlockViewItem>();
 }
+
+public sealed record TemplateTextBlockViewItem(
+    string Text,
+    double Xmm,
+    double Ymm,
+    double FontSizePt,
+    bool Bold = false);
 
 public sealed record TemplateViewItem(
     string Name,

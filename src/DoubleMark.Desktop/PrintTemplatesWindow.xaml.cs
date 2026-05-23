@@ -76,10 +76,13 @@ public partial class PrintTemplatesWindow : Window
 
     private void OnCreateClick(object sender, RoutedEventArgs e)
     {
-        _templates.Add(PrintTemplateService.CreateDefaultTemplates()[0] with { Name = "Новый шаблон" });
+        var name = PrintTemplateService.CreateUniqueName(_templates, "Новый шаблон");
+        var template = TemplateLayoutHelper.CreateFromDmPreset(name, 14, 14);
+        _templates.Add(template);
         RefreshList();
         TemplateList.SelectedIndex = _templates.Count - 1;
-        SelectedTemplateName = _templates[^1].Name;
+        SelectedTemplateName = template.Name;
+        StatusText.Text = $"Создан шаблон «{name}».";
     }
 
     private void OnCopyClick(object sender, RoutedEventArgs e)
@@ -87,11 +90,14 @@ public partial class PrintTemplatesWindow : Window
         if (TemplateList.SelectedIndex < 0)
             return;
 
-        var copy = BuildTemplateFromFields() with { Name = NameText.Text + " копия" };
+        var source = BuildTemplateFromFields();
+        var name = PrintTemplateService.CreateUniqueName(_templates, source.Name + " копия");
+        var copy = source with { Name = name };
         _templates.Add(copy);
         RefreshList();
         TemplateList.SelectedIndex = _templates.Count - 1;
         SelectedTemplateName = copy.Name;
+        StatusText.Text = $"Создана копия «{name}».";
     }
 
     private void OnDeleteClick(object sender, RoutedEventArgs e)
@@ -206,13 +212,62 @@ public partial class PrintTemplatesWindow : Window
         }
     }
 
+    private void OnDmPresetClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string tag })
+            return;
+
+        var parts = tag.Split(':');
+        if (parts.Length != 2)
+            return;
+
+        if (!double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var w))
+            return;
+        if (!double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var h))
+            return;
+
+        var labelW = D(LabelWidthText.Text, 30);
+        var labelH = D(LabelHeightText.Text, 20);
+        var updated = TemplateLayoutHelper.ApplyDmSize(new PrintTemplate
+        {
+            Name = NameText.Text,
+            LabelWidthMm = labelW,
+            LabelHeightMm = labelH,
+            DataMatrixWidthMm = D(DmWidthText.Text, w),
+            DataMatrixHeightMm = D(DmHeightText.Text, h),
+            DataMatrixXmm = D(DmXText.Text, 2),
+            DataMatrixYmm = D(DmYText.Text, 3)
+        }, w, h);
+
+        DmWidthText.Text = F(updated.DataMatrixWidthMm);
+        DmHeightText.Text = F(updated.DataMatrixHeightMm);
+        DmXText.Text = F(updated.DataMatrixXmm);
+        DmYText.Text = F(updated.DataMatrixYmm);
+        DrawPreview(BuildTemplateFromFields());
+        StatusText.Text = $"Пресет {w:0.#}×{h:0.#} мм применён.";
+    }
+
     private void OnSaveClick(object sender, RoutedEventArgs e)
     {
         if (TemplateList.SelectedIndex >= 0)
         {
-            _templates[TemplateList.SelectedIndex] = BuildTemplateFromFields();
-            SelectedTemplateName = _templates[TemplateList.SelectedIndex].Name;
+            var template = BuildTemplateFromFields();
+            if (!PrintTemplateService.IsUsable(template))
+            {
+                StatusText.Text = "Шаблон некорректен: проверьте название и размеры.";
+                return;
+            }
+
+            _templates[TemplateList.SelectedIndex] = template;
+            SelectedTemplateName = template.Name;
         }
+
+        if (_templates.Any(t => !PrintTemplateService.IsUsable(t)))
+        {
+            StatusText.Text = "В списке есть некорректные шаблоны.";
+            return;
+        }
+
         DialogResult = true;
         Close();
     }

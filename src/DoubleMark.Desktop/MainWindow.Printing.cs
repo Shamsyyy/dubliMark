@@ -3,7 +3,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Shapes;
 using DoubleMark.Core.Models;
 using DoubleMark.Core.Print;
 using DoubleMark.Desktop.Services;
@@ -227,153 +226,12 @@ public partial class MainWindow
         PrintTemplateText.Text = activeTemplate.Name;
         PrintPrinterText.Text = string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName;
         PrintCopiesText.Text = Math.Max(1, _settings.PrintCopies).ToString();
-        RenderDashboardTemplateList(activeTemplate);
         SyncPrintPageState();
         SyncTemplatesPageState();
     }
 
-    private void RenderDashboardTemplateList(PrintTemplate activeTemplate)
-    {
-        DashboardTemplatesPanel.Children.Clear();
-        TemplatesSummaryText.Text = $"{_printTemplates.Count} шабл. · {activeTemplate.Name}";
-
-        foreach (var template in _printTemplates)
-            DashboardTemplatesPanel.Children.Add(BuildDashboardTemplateCard(template, activeTemplate));
-    }
-
-    private Border BuildDashboardTemplateCard(PrintTemplate template, PrintTemplate activeTemplate)
-    {
-        var isActive = string.Equals(template.Name, activeTemplate.Name, StringComparison.OrdinalIgnoreCase);
-        var card = new Border
-        {
-            Style = (Style)FindResource("DataPill"),
-            BorderBrush = isActive ? BrushFromResource("AccentBrush") : BrushFromResource("BorderBrushSoft"),
-            Background = isActive
-                ? (Brush)new BrushConverter().ConvertFrom("#12243B")!
-                : BrushFromResource("PanelAltBrush"),
-            Padding = new Thickness(12),
-            Margin = new Thickness(0, 0, 0, 10),
-            Cursor = System.Windows.Input.Cursors.Hand,
-            ToolTip = isActive ? "Активный шаблон" : "Сделать активным шаблоном",
-            Tag = template.Name
-        };
-        card.MouseLeftButtonUp += (_, _) => SetActivePrintTemplate(template.Name);
-
-        var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(82) });
-
-        grid.Children.Add(new Ellipse
-        {
-            Width = 12,
-            Height = 12,
-            VerticalAlignment = VerticalAlignment.Center,
-            Fill = isActive ? BrushFromResource("AccentBrush") : Brushes.Transparent,
-            Stroke = isActive ? BrushFromResource("AccentBrush") : BrushFromResource("BorderBrushSoft"),
-            StrokeThickness = 2
-        });
-
-        var text = new StackPanel { Margin = new Thickness(10, 0, 0, 0) };
-        text.Children.Add(new TextBlock
-        {
-            Text = template.Name,
-            Foreground = BrushFromResource("TextBrush"),
-            FontWeight = FontWeights.SemiBold,
-            TextTrimming = TextTrimming.CharacterEllipsis,
-            FontSize = 12
-        });
-        text.Children.Add(new TextBlock
-        {
-            Text = $"{template.LabelWidthMm:0.#} × {template.LabelHeightMm:0.#} мм · DM {template.DataMatrixWidthMm:0.#} мм",
-            Style = (Style)FindResource("MutedText"),
-            FontSize = 12
-        });
-        Grid.SetColumn(text, 1);
-        grid.Children.Add(text);
-
-        var preview = new Border
-        {
-            Background = (Brush)new BrushConverter().ConvertFrom("#E8EEF5")!,
-            CornerRadius = new CornerRadius(8),
-            Height = 48,
-            Width = 76,
-            Child = BuildMiniLabelPreview(76, 48)
-        };
-        Grid.SetColumn(preview, 2);
-        grid.Children.Add(preview);
-
-        card.Child = grid;
-        return card;
-    }
-
-    private static Grid BuildMiniLabelPreview(double width, double height)
-    {
-        var root = new Grid { Width = width, Height = height, Margin = new Thickness(5) };
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(30) });
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-        var matrix = BuildMatrixCanvas(28, 14);
-        matrix.VerticalAlignment = VerticalAlignment.Center;
-        Grid.SetColumn(matrix, 0);
-        root.Children.Add(matrix);
-
-        var text = new StackPanel { Margin = new Thickness(5, 6, 0, 0) };
-        text.Children.Add(new TextBlock
-        {
-            Text = "GTIN",
-            Foreground = (Brush)new BrushConverter().ConvertFrom("#101820")!,
-            FontSize = 7,
-            FontWeight = FontWeights.Bold
-        });
-        text.Children.Add(new TextBlock
-        {
-            Text = "SN",
-            Foreground = (Brush)new BrushConverter().ConvertFrom("#101820")!,
-            FontSize = 7,
-            FontWeight = FontWeights.Bold,
-            Margin = new Thickness(0, 2, 0, 0)
-        });
-        Grid.SetColumn(text, 1);
-        root.Children.Add(text);
-
-        return root;
-    }
-
-    private static Canvas BuildMatrixCanvas(double size, int cells)
-    {
-        var canvas = new Canvas
-        {
-            Width = size,
-            Height = size,
-            Background = Brushes.White
-        };
-
-        var dark = (Brush)new BrushConverter().ConvertFrom("#101820")!;
-        var cell = size / cells;
-        for (var y = 0; y < cells; y++)
-        {
-            for (var x = 0; x < cells; x++)
-            {
-                var finder = x == 0 || y == 0 || (x == cells - 1 && y % 2 == 0) || (y == cells - 1 && x % 2 == 0);
-                var data = ((x * 11 + y * 7 + x * y) % 5) < 2;
-                if (!finder && !data)
-                    continue;
-
-                var rect = new Rectangle
-                {
-                    Width = Math.Ceiling(cell),
-                    Height = Math.Ceiling(cell),
-                    Fill = dark
-                };
-                Canvas.SetLeft(rect, x * cell);
-                Canvas.SetTop(rect, y * cell);
-                canvas.Children.Add(rect);
-            }
-        }
-
-        return canvas;
-    }
+    private async void ApplyDmSizeToActiveTemplate(double dmWidth, double dmHeight) =>
+        await ApplyDmSizeToActiveTemplateAsync(dmWidth, dmHeight);
 
     private void OnAutoPrintQuickToggleChanged(object sender, RoutedEventArgs e)
     {

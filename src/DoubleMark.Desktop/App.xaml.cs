@@ -32,7 +32,8 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
-        _singleInstanceMutex?.ReleaseMutex();
+        try { _singleInstanceMutex?.ReleaseMutex(); }
+        catch (ApplicationException) { /* mutex may not be owned by this thread on some shutdown paths */ }
         _singleInstanceMutex?.Dispose();
         base.OnExit(e);
     }

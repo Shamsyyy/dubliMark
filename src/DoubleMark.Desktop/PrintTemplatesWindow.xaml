@@ -105,6 +105,16 @@
                                     <TextBlock Text="Название" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>
                                     <TextBox x:Name="NameText" Margin="0,0,0,14"/>
 
+                                    <TextBlock Text="Пресеты DataMatrix" Style="{StaticResource MutedText}" Margin="0,0,0,8"/>
+                                    <WrapPanel Margin="0,0,0,14">
+                                        <Button Content="8×8" Tag="8:8" Click="OnDmPresetClick" Style="{StaticResource SecondaryButton}" Padding="8,5" Margin="0,0,6,6"/>
+                                        <Button Content="10×10" Tag="10:10" Click="OnDmPresetClick" Style="{StaticResource SecondaryButton}" Padding="8,5" Margin="0,0,6,6"/>
+                                        <Button Content="13×13" Tag="13:13" Click="OnDmPresetClick" Style="{StaticResource SecondaryButton}" Padding="8,5" Margin="0,0,6,6"/>
+                                        <Button Content="15×15" Tag="15:15" Click="OnDmPresetClick" Style="{StaticResource SecondaryButton}" Padding="8,5" Margin="0,0,6,6"/>
+                                        <Button Content="20×30" Tag="20:30" Click="OnDmPresetClick" Style="{StaticResource SecondaryButton}" Padding="8,5" Margin="0,0,6,6"/>
+                                        <Button Content="25×25" Tag="25:25" Click="OnDmPresetClick" Style="{StaticResource SecondaryButton}" Padding="8,5" Margin="0,0,0,6"/>
+                                    </WrapPanel>
+
                                     <UniformGrid Columns="2" Margin="0,0,0,4">
                                         <StackPanel Margin="0,0,10,12">
                                             <TextBlock Text="Ширина этикетки, мм" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>

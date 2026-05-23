@@ -41,7 +41,10 @@ public sealed class PrintTemplateService
 
             var json = File.ReadAllText(_templatesPath);
             var set = JsonSerializer.Deserialize<PrintTemplateSet>(json, JsonOptions);
-            return set?.Templates?.Where(IsUsable).ToList() ?? new List<PrintTemplate>();
+            return set?.Templates?
+                .Where(IsUsable)
+                .Select(TemplateLayoutHelper.ClampDataMatrixInLabel)
+                .ToList() ?? new List<PrintTemplate>();
         }
         catch
         {
@@ -124,4 +127,7 @@ public sealed class PrintTemplateService
         && template.DataMatrixHeightMm > 0
         && template.DefaultCopies > 0
         && template.RotationDegrees is 0 or 90 or 180 or 270;
+
+    public static string CreateUniqueName(IEnumerable<PrintTemplate> templates, string baseName) =>
+        TemplateLayoutHelper.CreateUniqueName(templates, baseName);
 }

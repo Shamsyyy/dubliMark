@@ -217,12 +217,19 @@ public partial class MainWindow
         {
             ComConnectionPanel.Visibility = Visibility.Visible;
             PortsCombo.Focusable = true;
+            // Скрываем устаревшее предупреждение «COM-порты не найдены»:
+            // при успешном подключении в Auto-режиме хинт неактуален.
+            PortsHintText.Visibility = Visibility.Collapsed;
         }
         else
         {
             PortsCombo.Focusable = true;
             if (_settings.ScannerMode is ScannerMode.Hid or ScannerMode.RawInput)
+            {
                 ComConnectionPanel.Visibility = Visibility.Visible;
+                // В HID/RawInput-режиме COM не используется — сообщение о COM-портах не нужно.
+                PortsHintText.Visibility = Visibility.Collapsed;
+            }
         }
 
         UpdateStatusFromSettings();

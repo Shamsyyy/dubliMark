@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -79,6 +80,8 @@ public partial class MainWindow : Window
             SidebarVersionText.Text = AppReleaseInfoProvider.Current.VersionLabel;
             ScannerSourceFactory.ResetHidBindingSession();
             _settings = AppSettings.Load();
+            _settings.ApplyStartupScannerMode();
+            _settings.Save();
             _printTemplates = _printTemplateService.LoadOrCreateDefaults();
             RefreshExportSettingsUi();
             RefreshPrintSettingsUi();
@@ -576,7 +579,12 @@ public partial class MainWindow : Window
                 RawPayload = raw,
                 ParseResult = r,
                 Source = source,
-                Template = ResolveActiveTemplate()
+                Template = ResolveActiveTemplate(),
+                ShowDate = _settings.LabelShowDate,
+                ShowShipment = _settings.LabelShowShipment,
+                ShowOrder = _settings.LabelShowOrder,
+                ShipmentNumber = _settings.LabelShipmentNumber,
+                OrderNumber = _settings.LabelOrderNumber
             });
 
             using var ms = new MemoryStream(render.PngBytes);
@@ -857,5 +865,4 @@ public partial class MainWindow : Window
 
     private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e) =>
         StopScanner();
-
 }

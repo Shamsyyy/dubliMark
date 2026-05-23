@@ -54,7 +54,8 @@ public partial class MainWindow
 
     private void SyncHistoryPageState()
     {
-        _historyView?.SetSignedIn(_accountSnapshot.User != null);
+        _historyView?.SetSignedIn(_accountSnapshot.User != null || _settings.HistoryViewMode == HistoryViewMode.Local);
+        SyncHistorySettingsUi();
         _historyView?.UpdateItems(_uiHistory);
         UpdateHistoryUsageUi();
     }
@@ -138,9 +139,21 @@ public partial class MainWindow
             DataMatrixHeightMm = template.DataMatrixHeightMm,
             DataMatrixXmm = template.DataMatrixXmm,
             DataMatrixYmm = template.DataMatrixYmm,
-            PreviewImage = LastScanPreviewImage.Source
+            PreviewImage = RenderActiveTemplatePreview(template)
         };
     }
+
+    private System.Windows.Media.ImageSource? RenderActiveTemplatePreview(PrintTemplate template) =>
+        TemplatePreviewRenderer.TryRender(
+            template,
+            _settings.LabelShowDate,
+            _settings.LabelShowShipment,
+            _settings.LabelShowOrder,
+            _settings.LabelShipmentNumber,
+            _settings.LabelOrderNumber,
+            _lastSuccessfulScan?.ParseResult,
+            _lastSuccessfulScan?.Raw,
+            _lastSuccessfulScan?.Source ?? "Preview");
 
     private TemplateViewState BuildTemplateViewState()
     {
@@ -149,7 +162,8 @@ public partial class MainWindow
                 ? _printTemplateService.LoadOrCreateDefaults()
                 : Array.Empty<PrintTemplate>();
 
-        var activeName = ResolveActiveTemplate().Name;
+        var active = ResolveActiveTemplate();
+        var activeName = active.Name;
         var signedIn = _accountSnapshot.User != null;
         var syncText = signedIn
             ? _userTemplateService.StatusMessage ?? "Шаблоны синхронизированы"
@@ -160,6 +174,21 @@ public partial class MainWindow
             ActiveTemplateName = activeName,
             IsSignedIn = signedIn,
             SyncStatusText = syncText,
+            PreviewImage = RenderActiveTemplatePreview(active),
+            LabelShowDate = _settings.LabelShowDate,
+            LabelShowShipment = _settings.LabelShowShipment,
+            LabelShowOrder = _settings.LabelShowOrder,
+            LabelShipmentNumber = _settings.LabelShipmentNumber,
+            LabelOrderNumber = _settings.LabelOrderNumber,
+            LabelWidthMm = active.LabelWidthMm,
+            LabelHeightMm = active.LabelHeightMm,
+            DataMatrixWidthMm = active.DataMatrixWidthMm,
+            DataMatrixHeightMm = active.DataMatrixHeightMm,
+            DataMatrixXmm = active.DataMatrixXmm,
+            DataMatrixYmm = active.DataMatrixYmm,
+            TextBlocks = active.TextBlocks
+                .Select(b => new TemplateTextBlockViewItem(b.Text, b.Xmm, b.Ymm, b.FontSizePt, b.Bold))
+                .ToList(),
             Templates = _printTemplates
                 .Select(t => new TemplateViewItem(
                     t.Name,
@@ -262,21 +291,15 @@ public partial class MainWindow
         int? imageGsCount,
         string parseError)
     {
-        if (_accountSnapshot.User == null)
-            return;
-
-        if (!CloudScanHistoryService.IsValidForCloudHistory(r))
+        if (!r.IsValid || r.Code == null)
         {
-            LoggingService.Info("ScanHistory", "Skip: invalid or incomplete Chestny ZNAK code");
+            LoggingService.Info("ScanHistory", "Skip: invalid parse");
             return;
         }
 
-        var code = r.Code!;
-        var normalized = exportResult?.NormalizedPayload
-                         ?? code.RawData
-                         ?? Gs1BarcodeEncoding.NormalizeForParse(raw).Payload;
+        if (!_settings.LocalHistoryEnabled && !_settings.CloudHistoryEnabled)
+            return;
 
-        var status = r.InfoMessages.Count > 0 ? "Предупреждение" : "Успешно";
         var savedFolder = ResolveSavedFolder(exportResult, printResult) ?? "—";
         var printStatus = printResult == null
             ? "—"
@@ -286,8 +309,7 @@ public partial class MainWindow
                     ? "Напечатано"
                     : string.IsNullOrWhiteSpace(printResult.Error) ? "Не печаталось" : printResult.Error;
 
-        var masked = ScanHistoryMasking.BuildMaskedPreview(raw);
-        var (item, duplicateIgnored) = await _cloudScanHistoryService.AddScanAsync(
+        var built = ScanHistoryItemBuilder.FromScan(
             r,
             raw,
             source,
@@ -295,34 +317,49 @@ public partial class MainWindow
             printResult,
             imageGsCount,
             parseError,
-            masked,
             _lastRawEscaped,
             _lastNormalizedEscaped,
             _lastRawHex,
             printResult?.Render?.Template.Name ?? ResolveActiveTemplate().Name,
-            string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName,
-            printStatus,
-            savedFolder);
+            string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName);
 
-        if (duplicateIgnored)
-            return;
+        var cloudFailed = false;
 
-        if (item == null)
+        if (_settings.LocalHistoryEnabled)
+            _localScanHistoryService.Add(_settings, built, r);
+
+        if (_settings.CloudHistoryEnabled && _accountSnapshot.User != null
+            && CloudScanHistoryService.IsValidForCloudHistory(r))
         {
-            ShowToast("Не удалось сохранить историю на сервере. Проверьте интернет.", ToastKind.Warning);
-            return;
+            var masked = ScanHistoryMasking.BuildMaskedPreview(raw);
+            var (item, duplicateIgnored) = await _cloudScanHistoryService.AddScanAsync(
+                r,
+                raw,
+                source,
+                exportResult,
+                printResult,
+                imageGsCount,
+                parseError,
+                masked,
+                _lastRawEscaped,
+                _lastNormalizedEscaped,
+                _lastRawHex,
+                printResult?.Render?.Template.Name ?? ResolveActiveTemplate().Name,
+                string.IsNullOrWhiteSpace(_settings.PrinterName) ? "По умолчанию" : _settings.PrinterName,
+                printStatus,
+                savedFolder);
+
+            if (duplicateIgnored)
+                return;
+
+            if (item == null)
+                cloudFailed = true;
         }
 
-        _uiHistory.Insert(0, item);
-        while (_uiHistory.Count > InMemoryHistoryLimit)
-            _uiHistory.RemoveAt(_uiHistory.Count - 1);
+        await ReloadScanHistoryAsync();
 
-        AddDashboardHistoryRow(item);
-        var usage = await _cloudScanHistoryService.GetHistoryUsageAsync();
-        _historyUsageCount = usage.Count;
-        _historyUsageLimit = usage.Limit;
-        UpdateHistoryUsageUi();
-        SyncConnectedViews();
+        if (cloudFailed && _settings.CloudHistoryEnabled)
+            ShowToast("Не удалось сохранить историю в Supabase. Локальная копия сохранена.", ToastKind.Warning);
     }
 
     private void RebuildDashboardHistoryRows()
@@ -458,34 +495,35 @@ public partial class MainWindow
 
     private async void OnHistoryDeleteRequested(object? sender, ScanHistoryItem item)
     {
-        if (_accountSnapshot.User == null || string.IsNullOrWhiteSpace(item.CloudId))
-            return;
-
-        if (!await _cloudScanHistoryService.DeleteHistoryItemAsync(item.CloudId))
+        if (_settings.HistoryViewMode == HistoryViewMode.Cloud)
         {
-            ShowToast("Не удалось удалить запись истории", ToastKind.Warning);
-            return;
+            if (_accountSnapshot.User == null || string.IsNullOrWhiteSpace(item.CloudId))
+                return;
+
+            if (!await _cloudScanHistoryService.DeleteHistoryItemAsync(item.CloudId))
+            {
+                ShowToast("Не удалось удалить запись в облаке", ToastKind.Warning);
+                return;
+            }
+        }
+        else if (_settings.LocalHistoryEnabled)
+        {
+            if (!_localScanHistoryService.Delete(_settings, item))
+            {
+                ShowToast("Не удалось удалить локальную запись", ToastKind.Warning);
+                return;
+            }
         }
 
-        _uiHistory.RemoveAll(i => string.Equals(i.CloudId, item.CloudId, StringComparison.OrdinalIgnoreCase));
-        var usage = await _cloudScanHistoryService.GetHistoryUsageAsync();
-        _historyUsageCount = usage.Count;
-        _historyUsageLimit = usage.Limit;
-        UpdateHistoryUsageUi();
-        SyncConnectedViews();
+        await ReloadScanHistoryAsync();
     }
 
     private async void OnHistoryClearRequested(object? sender, EventArgs e)
     {
-        if (_accountSnapshot.User == null)
-        {
-            ShowToast("Войдите в аккаунт для работы с историей", ToastKind.Warning);
-            return;
-        }
-
+        var scope = _settings.HistoryViewMode == HistoryViewMode.Cloud ? "облачную" : "локальную";
         var confirm = MessageBox.Show(
             this,
-            "Удалить всю историю сканирования? Это действие нельзя отменить.",
+            $"Удалить всю {scope} историю сканирования? Это действие нельзя отменить.",
             "Очистить историю",
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning);
@@ -493,17 +531,26 @@ public partial class MainWindow
         if (confirm != MessageBoxResult.Yes)
             return;
 
-        if (!await _cloudScanHistoryService.ClearHistoryAsync())
+        if (_settings.HistoryViewMode == HistoryViewMode.Cloud)
         {
-            ShowToast("Не удалось очистить историю на сервере", ToastKind.Warning);
-            return;
+            if (_accountSnapshot.User == null)
+            {
+                ShowToast("Войдите в аккаунт для очистки облачной истории", ToastKind.Warning);
+                return;
+            }
+
+            if (!await _cloudScanHistoryService.ClearHistoryAsync())
+            {
+                ShowToast("Не удалось очистить историю на сервере", ToastKind.Warning);
+                return;
+            }
+        }
+        else
+        {
+            _localScanHistoryService.ClearStore();
         }
 
-        _uiHistory.Clear();
-        _historyUsageCount = 0;
-        UpdateHistoryUsageUi();
-        RebuildDashboardHistoryRows();
-        SyncConnectedViews();
+        await ReloadScanHistoryAsync();
         ShowToast("История очищена", ToastKind.Success);
     }
 

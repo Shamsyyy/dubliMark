@@ -102,12 +102,17 @@
                                 <TextBlock x:Name="PrintTemplateSizeText" Text="—" Style="{StaticResource MutedText}"/>
                             </Border>
                         </Grid>
-                        <Border Background="#F7FAFC" CornerRadius="18" Width="320" Height="220" Padding="16" HorizontalAlignment="Center">
+                        <Border Background="#F7FAFC" CornerRadius="18" Width="320" Height="220" Padding="16"
+                                HorizontalAlignment="Center" ClipToBounds="True">
                             <Grid>
+                                <TextBlock x:Name="PrintPreviewPlaceholder"
+                                           Text="Предпросмотр появится после выбора шаблона"
+                                           Style="{StaticResource MutedText}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"/>
                                 <Image x:Name="PrintPreviewImage" Stretch="Uniform"/>
-                                <Grid x:Name="PrintPreviewMock">
-                                    <Canvas x:Name="PrintPreviewMockCanvas"/>
-                                </Grid>
                             </Grid>
                         </Border>
                         <TextBlock x:Name="PrintDmSizeText" Text="DataMatrix: —" Style="{StaticResource MutedText}" Margin="0,14,0,0"/>

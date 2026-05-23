@@ -10,6 +10,11 @@ public sealed record MarkRenderRequest
     public string Source { get; init; } = "Manual";
     public DateTimeOffset? Timestamp { get; init; }
     public int Dpi { get; init; } = 300;
+    public bool ShowDate { get; init; } = true;
+    public bool ShowShipment { get; init; }
+    public bool ShowOrder { get; init; }
+    public string? ShipmentNumber { get; init; }
+    public string? OrderNumber { get; init; }
 }
 
 public sealed record MarkRenderResult

@@ -129,6 +129,7 @@ public sealed class UserTemplateService
                 HeightMm = (decimal)template.LabelHeightMm,
                 TemplateData = JsonSerializer.Serialize(template, JsonOptions),
                 IsDefault = isDefault ?? false,
+                CreatedAt = now,
                 UpdatedAt = now
             };
 

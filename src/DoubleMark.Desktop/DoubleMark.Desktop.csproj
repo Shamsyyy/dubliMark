@@ -29,6 +29,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="appsettings.json" CopyToOutputDirectory="Always" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Resource Include="Assets\Branding\doublemark-logo.png" />
     <Resource Include="Assets\Branding\doublemark-logo.ico" />
     <Resource Include="Assets\Branding\doublemark-logo.svg" />
