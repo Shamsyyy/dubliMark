@@ -44,7 +44,7 @@ public static class ScanHistoryStore
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        WriteIndented = true,
+        WriteIndented = false,
         Converters = { new JsonStringEnumConverter() }
     };
 

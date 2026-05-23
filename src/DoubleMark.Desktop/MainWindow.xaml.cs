@@ -296,50 +296,9 @@ public partial class MainWindow : Window
         return result with { InfoMessages = messages };
     }
 
-    private static bool IsLikelySameCodeWithConflictingSerial(string current, string previous)
-    {
-        if (current.Length != previous.Length)
-            return false;
-
-        var differences = 0;
-        for (var i = 0; i < current.Length; i++)
-        {
-            if (current[i] == previous[i])
-                continue;
-
-            differences++;
-            if (differences > 1)
-                return false;
-
-            if (!LooksLikeKeyboardVariant(current[i], previous[i]))
-                return false;
-        }
-
-        return differences == 1;
-    }
-
-    private static bool LooksLikeKeyboardVariant(char current, char previous)
-    {
-        if (ShiftedDigitToDigit(current) == previous || ShiftedDigitToDigit(previous) == current)
-            return true;
-
-        return char.ToUpperInvariant(current) == char.ToUpperInvariant(previous);
-    }
-
-    private static char? ShiftedDigitToDigit(char ch) => ch switch
-    {
-        ')' => '0',
-        '!' => '1',
-        '@' => '2',
-        '#' => '3',
-        '$' => '4',
-        '%' => '5',
-        '^' => '6',
-        '&' => '7',
-        '*' => '8',
-        '(' => '9',
-        _ => null
-    };
+    // Moved to DoubleMark.Core.Parsing.HidConflictDetector
+    private static bool IsLikelySameCodeWithConflictingSerial(string current, string previous) =>
+        HidConflictDetector.IsLikelySameCodeWithConflictingSerial(current, previous);
 
     private void OnLoadImageClick(object sender, RoutedEventArgs e)
     {
@@ -516,8 +475,8 @@ public partial class MainWindow : Window
             ? r.InfoMessages.Count > 0 ? BrushFromResource("WarningBrush") : BrushFromResource("SuccessBrush")
             : BrushFromResource("DangerBrush");
         LastScanStatusBadgeBorder.Background = r.IsValid
-            ? r.InfoMessages.Count > 0 ? new SolidColorBrush(Color.FromRgb(54, 42, 18)) : new SolidColorBrush(Color.FromRgb(22, 61, 43))
-            : new SolidColorBrush(Color.FromRgb(62, 23, 29));
+            ? r.InfoMessages.Count > 0 ? BrushFromResource("WarningBadgeBackgroundBrush") : BrushFromResource("SuccessBadgeBackgroundBrush")
+            : BrushFromResource("DangerBadgeBackgroundBrush");
         LastScanStatusBadgeBorder.BorderBrush = r.IsValid
             ? r.InfoMessages.Count > 0 ? BrushFromResource("WarningBrush") : BrushFromResource("SuccessBrush")
             : BrushFromResource("DangerBrush");
@@ -754,8 +713,8 @@ public partial class MainWindow : Window
             {
                 Content = "Открыть папку",
                 Tag = exportResult.ExportDirectory,
-                Background = (Brush)new BrushConverter().ConvertFrom("#3e3e42")!,
-                Foreground = Brushes.White,
+                Background = BrushFromResource("PanelAltBrush"),
+                Foreground = BrushFromResource("TextBrush"),
                 BorderThickness = new Thickness(0),
                 Padding = new Thickness(8, 4, 8, 4),
                 Margin = new Thickness(0, 6, 0, 0),
