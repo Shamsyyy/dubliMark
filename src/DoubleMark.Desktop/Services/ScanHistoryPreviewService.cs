@@ -1,17 +1,23 @@
 using System.IO;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using DoubleMark.Core.Models;
 using DoubleMark.Core.Parsing;
 using DoubleMark.Core.Print;
 using DoubleMark.Desktop.Views;
+using ZXing;
+using ZXing.Common;
+using ZXing.Datamatrix;
 
 namespace DoubleMark.Desktop.Services;
 
 public static class ScanHistoryPreviewService
 {
+    private const int DataMatrixPreviewPx = 96;
     private static readonly Gs1Parser Parser = new();
     private static readonly MarkRenderService RenderService = new();
 
+    /// <summary>DataMatrix ЧЗ для миниатюры в истории (локально и облако).</summary>
     public static ImageSource? TryCreatePreview(ScanHistoryItem item, PrintTemplateService templateService)
     {
         if (string.IsNullOrEmpty(item.RawPayload))
@@ -20,6 +26,17 @@ public static class ScanHistoryPreviewService
         var parse = Parser.Parse(item.RawPayload);
         if (!parse.IsValid || parse.Code == null)
             return TryLoadPngFromExportFolder(item);
+
+        try
+        {
+            var matrixPreview = TryCreateDataMatrixImage(parse, item.RawPayload);
+            if (matrixPreview != null)
+                return matrixPreview;
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Warn("ScanHistory", "DataMatrix preview failed: " + ex.Message);
+        }
 
         try
         {
@@ -40,9 +57,66 @@ public static class ScanHistoryPreviewService
         }
         catch (Exception ex)
         {
-            LoggingService.Warn("ScanHistory", "Preview render failed: " + ex.Message);
+            LoggingService.Warn("ScanHistory", "Label preview render failed: " + ex.Message);
             return TryLoadPngFromExportFolder(item);
         }
+    }
+
+    private static ImageSource? TryCreateDataMatrixImage(ParseResult parse, string rawPayload)
+    {
+        var normalized = parse.Code!.RawData
+                         ?? Gs1BarcodeEncoding.NormalizeForParse(rawPayload).Payload;
+        if (string.IsNullOrEmpty(normalized))
+            return null;
+
+        var writer = new DataMatrixWriter();
+        var hints = new Dictionary<EncodeHintType, object>
+        {
+            [EncodeHintType.CHARACTER_SET] = "ISO-8859-1",
+            [EncodeHintType.GS1_FORMAT] = true,
+            [EncodeHintType.MARGIN] = 1
+        };
+        var matrix = writer.encode(
+            normalized,
+            BarcodeFormat.DATA_MATRIX,
+            DataMatrixPreviewPx,
+            DataMatrixPreviewPx,
+            hints);
+
+        return CreateFrozenBitmapFromMatrix(matrix);
+    }
+
+    private static ImageSource CreateFrozenBitmapFromMatrix(BitMatrix matrix)
+    {
+        var width = matrix.Width;
+        var height = matrix.Height;
+        var stride = width * 4;
+        var pixels = new byte[stride * height];
+
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var offset = y * stride + x * 4;
+                var value = matrix[x, y] ? (byte)0 : (byte)255;
+                pixels[offset] = value;
+                pixels[offset + 1] = value;
+                pixels[offset + 2] = value;
+                pixels[offset + 3] = 255;
+            }
+        }
+
+        var bitmap = BitmapSource.Create(
+            width,
+            height,
+            96,
+            96,
+            PixelFormats.Bgra32,
+            null,
+            pixels,
+            stride);
+        bitmap.Freeze();
+        return bitmap;
     }
 
     private static ImageSource? TryLoadPngFromExportFolder(ScanHistoryItem item)

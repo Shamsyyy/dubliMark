@@ -177,17 +177,11 @@ public partial class MainWindow
         var plan = _accountSnapshot.Subscription.Subscription?.PlanId ?? "—";
 
         AccountInitialsText.Text = BuildInitials(title, email);
-        DashboardAccountInitialsText.Text = AccountInitialsText.Text;
         AccountNameText.Text = title;
         AccountOrgText.Text = status;
         AccountPopupNameText.Text = title;
         AccountPopupEmailText.Text = email;
         AccountPlanButton.Content = "Подписка DoubleMark: " + plan;
-        DashboardAccountNameText.Text = title;
-        DashboardAccountEmailText.Text = email;
-        DashboardAccountOrganizationText.Text = profile?.Organization ?? "—";
-        DashboardAccountPlanText.Text = plan;
-        DashboardAccountStatusText.Text = _accountSnapshot.Subscription.DisplayStatus;
     }
 
     private async Task<bool> EnsureSubscriptionForFeatureAsync(string featureName)

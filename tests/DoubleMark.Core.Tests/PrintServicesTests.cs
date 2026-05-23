@@ -171,6 +171,130 @@ public sealed class PrintServicesTests
         text.Should().Contain("HID");
     }
 
+    [Fact]
+    public void SubstituteText_ShipmentAndOrderPlaceholders()
+    {
+        var code = new MarkingCode
+        {
+            Gtin = "04600000000002",
+            Serial = "SERIAL01",
+            CodeType = MarkingCodeType.Full,
+            RawData = "",
+            RawDataHex = ""
+        };
+
+        var text = MarkRenderService.SubstituteText(
+            "OTGR {shipment} ORD {order_no}",
+            code,
+            new DateTimeOffset(2026, 5, 16, 15, 0, 0, TimeSpan.Zero),
+            "HID",
+            shipmentNumber: "SH-100",
+            orderNumber: "ORD-42");
+
+        text.Should().Be("OTGR SH-100 ORD ORD-42");
+    }
+
+    [Fact]
+    public void TemplateLayoutHelper_CreateUniqueName_AvoidsDuplicates()
+    {
+        var templates = new List<PrintTemplate>
+        {
+            new() { Name = "Новый шаблон", LabelWidthMm = 30, LabelHeightMm = 20, DataMatrixWidthMm = 14, DataMatrixHeightMm = 14, DefaultCopies = 1 },
+            new() { Name = "Новый шаблон 2", LabelWidthMm = 30, LabelHeightMm = 20, DataMatrixWidthMm = 14, DataMatrixHeightMm = 14, DefaultCopies = 1 }
+        };
+
+        TemplateLayoutHelper.CreateUniqueName(templates, "Новый шаблон").Should().Be("Новый шаблон 3");
+    }
+
+    [Fact]
+    public void TemplateLayoutHelper_ApplyDmSize_CentersMatrix()
+    {
+        var template = new PrintTemplate
+        {
+            Name = "Test",
+            LabelWidthMm = 30,
+            LabelHeightMm = 20,
+            DataMatrixWidthMm = 10,
+            DataMatrixHeightMm = 10,
+            DataMatrixXmm = 1,
+            DataMatrixYmm = 1,
+            DefaultCopies = 1
+        };
+
+        var updated = TemplateLayoutHelper.ApplyDmSize(template, 14, 14);
+
+        updated.DataMatrixWidthMm.Should().Be(14);
+        updated.DataMatrixHeightMm.Should().Be(14);
+        updated.DataMatrixXmm.Should().Be(8);
+        updated.DataMatrixYmm.Should().Be(3);
+    }
+
+    [Fact]
+    public void ClampDataMatrixInLabel_KeepsMatrixInsideLabel()
+    {
+        var template = new PrintTemplate
+        {
+            Name = "Чз 10x10",
+            LabelWidthMm = 10,
+            LabelHeightMm = 10,
+            DataMatrixWidthMm = 10,
+            DataMatrixHeightMm = 10,
+            DataMatrixXmm = 5,
+            DataMatrixYmm = 5,
+            DefaultCopies = 1
+        };
+
+        var clamped = TemplateLayoutHelper.ClampDataMatrixInLabel(template);
+
+        clamped.DataMatrixXmm.Should().Be(0);
+        clamped.DataMatrixYmm.Should().Be(0);
+    }
+
+    [Fact]
+    public void ClampDataMatrixInLabel_DoesNotThrowOnTinyLabel()
+    {
+        var template = new PrintTemplate
+        {
+            Name = "Tiny",
+            LabelWidthMm = 0.05,
+            LabelHeightMm = 0.05,
+            DataMatrixWidthMm = 10,
+            DataMatrixHeightMm = 10,
+            DataMatrixXmm = 99,
+            DataMatrixYmm = 99,
+            DefaultCopies = 1
+        };
+
+        var act = () => TemplateLayoutHelper.ClampDataMatrixInLabel(template);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void TemplateLayoutHelper_RelayoutTextBlocks_AvoidsDataMatrixOverlap()
+    {
+        var template = new PrintTemplate
+        {
+            Name = "Small",
+            LabelWidthMm = 13,
+            LabelHeightMm = 13,
+            DataMatrixWidthMm = 13,
+            DataMatrixHeightMm = 13,
+            DataMatrixXmm = 0,
+            DataMatrixYmm = 0,
+            DefaultCopies = 1,
+            TextBlocks =
+            {
+                new PrintTextBlock { Text = "{date} {time}", Xmm = 2, Ymm = 9.5, FontSizePt = 4 }
+            }
+        };
+
+        var updated = TemplateLayoutHelper.RelayoutTextBlocks(template);
+
+        foreach (var block in updated.TextBlocks)
+            TemplateLayoutHelper.IntersectsDataMatrix(updated, block).Should().BeFalse();
+    }
+
     private MarkRenderResult Render(string raw, string source)
     {
         var result = _parser.Parse(raw);

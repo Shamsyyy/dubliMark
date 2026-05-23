@@ -5,8 +5,8 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="24,0,24,24">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="0.95*"/>
-                <ColumnDefinition Width="1.05*"/>
+                <ColumnDefinition Width="0.9*"/>
+                <ColumnDefinition Width="1.1*"/>
             </Grid.ColumnDefinitions>
 
             <Border Style="{StaticResource HeroCard}" Margin="0,0,16,0">
@@ -22,67 +22,195 @@
                             <TextBlock x:Name="TemplatesSyncStatusText" Text="Шаблоны синхронизированы"
                                        Style="{StaticResource MutedText}" Margin="0,5,0,0" TextWrapping="Wrap"/>
                         </StackPanel>
-                        <Button Grid.Column="2" Style="{StaticResource PrimaryButton}" Content="Управление" Click="OnManageTemplatesProxyClick"
-                                Padding="12,9" VerticalAlignment="Top"/>
+                        <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Content="Редактор шаблонов"
+                                Click="OnManageClick" Padding="12,9" VerticalAlignment="Top"/>
                     </Grid>
+
                     <StackPanel x:Name="TemplatesListPanel"/>
+
+                    <WrapPanel Margin="0,8,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Создать" Click="OnCreateClick"
+                                Margin="0,0,8,8" MinWidth="96"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Копировать" Click="OnCopyClick"
+                                Margin="0,0,8,8" MinWidth="96"/>
+                        <Button Style="{StaticResource DangerButton}" Content="Удалить" Click="OnDeleteClick"
+                                Margin="0,0,0,8" MinWidth="96"/>
+                    </WrapPanel>
                 </StackPanel>
             </Border>
 
-            <Border Grid.Column="1" Style="{StaticResource Card}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="1*"/>
-                        <ColumnDefinition Width="22"/>
-                        <ColumnDefinition Width="330"/>
-                    </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="1">
+                <Border Style="{StaticResource Card}" Margin="0,0,0,14">
                     <StackPanel>
-                        <TextBlock x:Name="TemplateNameText" Text="—" Style="{StaticResource SectionTitle}"/>
-                        <TextBlock Text="Параметры выбранного шаблона" Style="{StaticResource MutedText}" Margin="0,4,0,18"/>
+                        <TextBlock Text="Размер DataMatrix" Style="{StaticResource CardTitle}" Margin="0,0,0,10"/>
+                        <WrapPanel Margin="0,0,0,16">
+                            <Button Style="{StaticResource SecondaryButton}" Tag="8:8" Click="OnPresetClick" Padding="10,6" Margin="0,0,6,6">8×8</Button>
+                            <Button Style="{StaticResource SecondaryButton}" Tag="10:10" Click="OnPresetClick" Padding="10,6" Margin="0,0,6,6">10×10</Button>
+                            <Button Style="{StaticResource SecondaryButton}" Tag="13:13" Click="OnPresetClick" Padding="10,6" Margin="0,0,6,6">13×13</Button>
+                            <Button Style="{StaticResource SecondaryButton}" Tag="15:15" Click="OnPresetClick" Padding="10,6" Margin="0,0,6,6">15×15</Button>
+                            <Button Style="{StaticResource SecondaryButton}" Tag="20:30" Click="OnPresetClick" Padding="10,6" Margin="0,0,6,6">20×30</Button>
+                            <Button Style="{StaticResource SecondaryButton}" Tag="25:25" Click="OnPresetClick" Padding="10,6" Margin="0,0,0,6">25×25</Button>
+                        </WrapPanel>
 
-                        <UniformGrid Columns="2">
-                            <Border Style="{StaticResource DataPill}" Margin="0,0,8,8">
-                                <StackPanel>
-                                    <TextBlock Text="Этикетка" Style="{StaticResource MutedText}"/>
-                                    <TextBlock x:Name="TemplateLabelSizeText" Text="—" Style="{StaticResource MetricValue}" FontSize="17"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource DataPill}" Margin="8,0,0,8">
-                                <StackPanel>
-                                    <TextBlock Text="DataMatrix" Style="{StaticResource MutedText}"/>
-                                    <TextBlock x:Name="TemplateDmSizeText" Text="—" Style="{StaticResource MetricValue}" FontSize="17"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource DataPill}" Margin="0,8,8,0">
-                                <StackPanel>
-                                    <TextBlock Text="Позиция X/Y" Style="{StaticResource MutedText}"/>
-                                    <TextBlock x:Name="TemplatePositionText" Text="—" Style="{StaticResource MetricValue}" FontSize="17"/>
-                                </StackPanel>
-                            </Border>
-                            <Border Style="{StaticResource DataPill}" Margin="8,8,0,0">
-                                <StackPanel>
-                                    <TextBlock Text="Текстовые блоки" Style="{StaticResource MutedText}"/>
-                                    <TextBlock x:Name="TemplateBlocksText" Text="—" Style="{StaticResource MetricValue}" FontSize="17"/>
-                                </StackPanel>
-                            </Border>
-                        </UniformGrid>
+                        <TextBlock Text="Этикетка и DataMatrix (0.1 – 50 мм)" Style="{StaticResource MutedText}" Margin="0,0,0,10" TextWrapping="Wrap"/>
 
-                        <UniformGrid Columns="2" Margin="0,20,0,0">
-                            <Button Style="{StaticResource SecondaryButton}" Content="Создать" Margin="0,0,6,6" Click="OnManageTemplatesProxyClick"/>
-                            <Button Style="{StaticResource SecondaryButton}" Content="Копировать" Margin="6,0,0,6" Click="OnManageTemplatesProxyClick"/>
-                            <Button Style="{StaticResource SecondaryButton}" Content="Сохранить" Margin="0,6,6,0" Click="OnManageTemplatesProxyClick"/>
-                            <Button Style="{StaticResource DangerButton}" Content="Удалить" Margin="6,6,0,0" Click="OnManageTemplatesProxyClick"/>
-                        </UniformGrid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="58"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Ширина этик." Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="1" CornerRadius="6" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="6,4">
+                                <TextBox x:Name="LabelWidthBox" Text="30.0" Background="Transparent" BorderThickness="0" Padding="0"
+                                         FontSize="13" VerticalAlignment="Center" TextChanged="OnDimensionBoxChanged"/>
+                            </Border>
+                            <Slider Grid.Column="3" x:Name="LabelWidthSlider" Minimum="0.1" Maximum="50" Value="30"
+                                    SmallChange="0.1" LargeChange="1"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="58"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Высота этик." Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="1" CornerRadius="6" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="6,4">
+                                <TextBox x:Name="LabelHeightBox" Text="20.0" Background="Transparent" BorderThickness="0" Padding="0"
+                                         FontSize="13" VerticalAlignment="Center" TextChanged="OnDimensionBoxChanged"/>
+                            </Border>
+                            <Slider Grid.Column="3" x:Name="LabelHeightSlider" Minimum="0.1" Maximum="50" Value="20"
+                                    SmallChange="0.1" LargeChange="1"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="58"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="DM ширина" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="1" CornerRadius="6" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="6,4">
+                                <TextBox x:Name="DmWidthBox" Text="14.0" Background="Transparent" BorderThickness="0" Padding="0"
+                                         FontSize="13" VerticalAlignment="Center" TextChanged="OnDimensionBoxChanged"/>
+                            </Border>
+                            <Slider Grid.Column="3" x:Name="DmWidthSlider" Minimum="0.1" Maximum="50" Value="14"
+                                    SmallChange="0.1" LargeChange="1"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="58"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="DM высота" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="1" CornerRadius="6" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="6,4">
+                                <TextBox x:Name="DmHeightBox" Text="14.0" Background="Transparent" BorderThickness="0" Padding="0"
+                                         FontSize="13" VerticalAlignment="Center" TextChanged="OnDimensionBoxChanged"/>
+                            </Border>
+                            <Slider Grid.Column="3" x:Name="DmHeightSlider" Minimum="0.1" Maximum="50" Value="14"
+                                    SmallChange="0.1" LargeChange="1"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="58"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="DM X" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="1" CornerRadius="6" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="6,4">
+                                <TextBox x:Name="DmXBox" Text="2.0" Background="Transparent" BorderThickness="0" Padding="0"
+                                         FontSize="13" VerticalAlignment="Center" TextChanged="OnDimensionBoxChanged"/>
+                            </Border>
+                            <Slider Grid.Column="3" x:Name="DmXSlider" Minimum="0" Maximum="50" Value="2"
+                                    SmallChange="0.1" LargeChange="1"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="110"/>
+                                <ColumnDefinition Width="58"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="DM Y" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                            <Border Grid.Column="1" CornerRadius="6" Background="{StaticResource CardBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1" Padding="6,4">
+                                <TextBox x:Name="DmYBox" Text="3.0" Background="Transparent" BorderThickness="0" Padding="0"
+                                         FontSize="13" VerticalAlignment="Center" TextChanged="OnDimensionBoxChanged"/>
+                            </Border>
+                            <Slider Grid.Column="3" x:Name="DmYSlider" Minimum="0" Maximum="50" Value="3"
+                                    SmallChange="0.1" LargeChange="1"/>
+                        </Grid>
+
+                        <Button Style="{StaticResource TealButton}" Content="Применить размеры" Click="OnApplyLayoutClick" HorizontalAlignment="Left"/>
                     </StackPanel>
+                </Border>
 
-                    <StackPanel Grid.Column="2">
-                        <TextBlock Text="Preview" Style="{StaticResource CardTitle}" Margin="0,0,0,14"/>
-                        <Border Background="#F7FAFC" CornerRadius="18" Width="320" Height="230" Padding="18">
-                            <Canvas x:Name="TemplatePreviewCanvas"/>
+                <Border Style="{StaticResource Card}" Margin="0,0,0,14">
+                    <StackPanel>
+                        <TextBlock Text="Текст на этикетке" Style="{StaticResource CardTitle}" Margin="0,0,0,10"/>
+                        <TextBlock Text="Плейсхолдеры: {date}, {time}, {shipment}, {order}, {gtin}, {serial}"
+                                   Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                        <TextBlock Text="Строки шаблона — X/Y в мм от левого верхнего угла этикетки"
+                                   Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+                        <StackPanel x:Name="TextBlocksEditorPanel" Margin="0,0,0,10"/>
+
+                        <Button Style="{StaticResource SecondaryButton}" Content="Применить позиции текста"
+                                Click="OnApplyTextBlocksClick" HorizontalAlignment="Left" Margin="0,0,0,14"/>
+
+                        <CheckBox x:Name="LabelShowDateCheck" Content="Показывать дату и время" Margin="0,0,0,8"/>
+                        <CheckBox x:Name="LabelShowShipmentCheck" Content="Показывать номер отгрузки" Margin="0,0,0,8"/>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="№ отгрузки" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" x:Name="ShipmentNumberBox" Margin="8,0,0,0"/>
+                        </Grid>
+                        <CheckBox x:Name="LabelShowOrderCheck" Content="Показывать номер заказа" Margin="0,0,0,8"/>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="№ заказа" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
+                            <TextBox Grid.Column="1" x:Name="OrderNumberBox" Margin="8,0,0,0"/>
+                        </Grid>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Сохранить настройки текста"
+                                Click="OnApplyLabelExtrasClick" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Предпросмотр печати" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
+                        <Border Grid.Row="1" Background="#F7FAFC" CornerRadius="18" MinHeight="240" Padding="18" ClipToBounds="True">
+                            <Grid>
+                                <TextBlock x:Name="TemplatePreviewPlaceholder"
+                                           Text="Предпросмотр появится после выбора шаблона"
+                                           Style="{StaticResource MutedText}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"/>
+                                <Image x:Name="TemplatePreviewImage" Stretch="Uniform" MaxHeight="280"/>
+                            </Grid>
                         </Border>
-                    </StackPanel>
-                </Grid>
-            </Border>
+                        <Button Grid.Row="2" Style="{StaticResource PrimaryButton}" Content="Открыть предпросмотр"
+                                Click="OnPrintPreviewClick" HorizontalAlignment="Left" Margin="0,14,0,0"/>
+                    </Grid>
+                </Border>
+            </StackPanel>
         </Grid>
     </ScrollViewer>
 </UserControl>

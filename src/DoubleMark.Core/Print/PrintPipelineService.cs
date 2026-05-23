@@ -28,6 +28,9 @@ public sealed class PrintPipelineService
             return new PrintPipelineResult { Error = request.ParseResult.ErrorMessage ?? "Невалидный код" };
 
         var timestamp = request.Timestamp ?? _now();
+        if (request.Settings.LabelPrintDate is { } customDate)
+            timestamp = new DateTimeOffset(customDate.Date.Add(timestamp.TimeOfDay));
+
         var render = _renderService.Render(new MarkRenderRequest
         {
             RawPayload = request.RawPayload,
@@ -35,7 +38,12 @@ public sealed class PrintPipelineService
             Template = request.Template,
             Source = request.Source,
             Timestamp = timestamp,
-            Dpi = request.Settings.Dpi
+            Dpi = request.Settings.Dpi,
+            ShowDate = request.Settings.LabelShowDate,
+            ShowShipment = request.Settings.LabelShowShipment,
+            ShowOrder = request.Settings.LabelShowOrder,
+            ShipmentNumber = request.Settings.LabelShipmentNumber,
+            OrderNumber = request.Settings.LabelOrderNumber
         });
 
         var shouldPrint = request.ForcePrint || request.Settings.AutoPrintEnabled;

@@ -12,6 +12,12 @@ public sealed record PrintPipelineSettings
     public string? PrintRoot { get; init; }
     public string? DefaultTemplateName { get; init; }
     public int Dpi { get; init; } = 300;
+    public bool LabelShowDate { get; init; } = true;
+    public bool LabelShowShipment { get; init; }
+    public bool LabelShowOrder { get; init; }
+    public string? LabelShipmentNumber { get; init; }
+    public string? LabelOrderNumber { get; init; }
+    public DateTime? LabelPrintDate { get; init; }
 }
 
 public sealed record PrintJobRequest

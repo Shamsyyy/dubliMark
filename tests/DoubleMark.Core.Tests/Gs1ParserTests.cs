@@ -246,9 +246,56 @@ public class Gs1ParserTests
         result.ErrorCode.Should().Be(ParseErrorCode.Empty);
     }
 
+    // ───── Full codes without GS (HID scanner drops FNC1) ─────
+
+    [Fact]
+    public void Parse_FullCodeWithoutGs_RealHidScanExample_ShouldSucceed()
+    {
+        // Exact payload observed in logs: source=HID, length=76, gsCount=0
+        // Same code arrives correctly via COM with GS (length=78, gsCount=2)
+        const string raw = "0104620219556721215O;sgY91EE1292dBhY6elpqDvRB9NNabOpDDVAqdqW9F3qnd+omyDBiAY=";
+        var result = _parser.Parse(raw);
+
+        result.IsValid.Should().BeTrue();
+        result.Code!.CodeType.Should().Be(MarkingCodeType.Full);
+        result.Code.Gtin.Should().Be("04620219556721");
+        result.Code.Serial.Should().Be("5O;sgY");
+        result.Code.VerificationKey.Should().Be("EE12");
+        result.Code.VerificationCode.Should().Be("dBhY6elpqDvRB9NNabOpDDVAqdqW9F3qnd+omyDBiAY=");
+        result.Code.VerificationCode.Should().HaveLength(44);
+    }
+
+    [Fact]
+    public void Parse_FullCodeWithoutGs_Standard13CharSerial_ShouldSucceed()
+    {
+        // Full code, 13-char serial, no GS — standard ЧЗ full code from HID
+        var ai92 = "dGVzdGNyeXB0b2hhc2hleGFtcGxlMTIzNDU2Nzg5MA=="; // 44 chars
+        var raw = $"01{OfficialGtin}21{OfficialSerial13}91{OfficialKey91}92{ai92}";
+        var result = _parser.Parse(raw);
+
+        result.IsValid.Should().BeTrue();
+        result.Code!.CodeType.Should().Be(MarkingCodeType.Full);
+        result.Code.Gtin.Should().Be(OfficialGtin);
+        result.Code.Serial.Should().Be(OfficialSerial13);
+        result.Code.VerificationKey.Should().Be(OfficialKey91);
+        result.Code.VerificationCode.Should().Be(ai92);
+    }
+
+    [Fact]
+    public void Parse_FullCodeWithoutGs_ShortAi92_ShouldStillFailWithNoGsSeparator()
+    {
+        // AI 92 value is only 6 chars (too short for a real crypto signature) — must remain an error
+        var raw = "010460000000000221ABC12391KEY92CRYPTO";
+        var result = _parser.Parse(raw);
+        result.IsValid.Should().BeFalse();
+        result.ErrorCode.Should().Be(ParseErrorCode.NoGsSeparator);
+        result.ErrorMessage.Should().Contain("сканер");
+    }
+
     [Fact]
     public void Parse_NoGsSeparator_FullCodeWithoutGs_ShouldReportScannerIssue()
     {
+        // Keep original name so existing callers don't break — same data, same expectation
         var raw = "010460000000000221ABC12391KEY92CRYPTO";
         var result = _parser.Parse(raw);
         result.IsValid.Should().BeFalse();

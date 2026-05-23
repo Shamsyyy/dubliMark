@@ -1,0 +1,54 @@
+<Window x:Class="DoubleMark.Desktop.ConfirmDialogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:ui="clr-namespace:DoubleMark.Desktop"
+        Title="DoubleMark"
+        Height="248"
+        Width="540"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI"
+        WindowStartupLocation="CenterOwner">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="0" GlassFrameThickness="0" CornerRadius="0"/>
+    </shell:WindowChrome.WindowChrome>
+    <Border Style="{StaticResource DialogWindowFrame}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="42"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Border Grid.Row="0" Style="{StaticResource DialogTitleBar}" ui:DialogWindowChrome.IsDragArea="True">
+                <Grid>
+                    <TextBlock x:Name="TitleText" Text="Подтверждение" Style="{StaticResource DialogTitleText}"/>
+                    <Button Style="{StaticResource TitleBarCloseButton}" Content="×" HorizontalAlignment="Right"
+                            Click="OnCancelClick" ui:DialogWindowChrome.WindowCommand="Close"/>
+                </Grid>
+            </Border>
+            <Grid Grid.Row="1" Margin="22,18,22,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Width="52" Height="52" CornerRadius="26" Margin="0,0,16,0" VerticalAlignment="Top"
+                        Background="{StaticResource AccentSoftBrush}" BorderBrush="{StaticResource AccentBrush}" BorderThickness="1">
+                    <TextBlock Text="?" FontSize="24" FontWeight="SemiBold"
+                               Foreground="{StaticResource AccentBrush}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock x:Name="MessageText" Grid.Column="1" Style="{StaticResource CardTitle}"
+                           TextWrapping="Wrap" FontSize="16" LineHeight="24" VerticalAlignment="Center"/>
+            </Grid>
+            <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="22,0,22,22">
+                <Button x:Name="CancelButton" Style="{StaticResource SecondaryButton}" Content="Нет"
+                        MinWidth="110" Margin="0,0,8,0" Click="OnCancelClick"/>
+                <Button x:Name="ConfirmButton" Style="{StaticResource PrimaryButton}" Content="Да"
+                        MinWidth="130" Click="OnConfirmClick"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

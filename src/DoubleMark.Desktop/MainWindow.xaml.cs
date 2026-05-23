@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -23,13 +24,14 @@ public partial class MainWindow : Window
     private string? _lastBarcode;
     private DateTime _lastBarcodeUtc = DateTime.MinValue;
     private static readonly TimeSpan BarcodeDedupeWindow = TimeSpan.FromMilliseconds(800);
-    private bool _isScannerSetupInProgress;
-    private bool _isLoadingSettings;
+    private volatile bool _isScannerSetupInProgress;
+    private volatile bool _isLoadingSettings;
     private ScannerSetupWindow? _setupWindow;
 
     public MainWindow()
     {
         InitializeComponent();
+        WindowWorkAreaHelper.EnableWorkAreaMaximize(this);
         InitializePrintServices();
         InitializeAccountServices();
         InitializeCloudDataServices();
@@ -41,6 +43,7 @@ public partial class MainWindow : Window
 
     private void OnClosed(object? sender, EventArgs e)
     {
+        try { _scanner?.Stop(); } catch { /* best-effort */ }
     }
 
     private void OnPreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
@@ -66,25 +69,37 @@ public partial class MainWindow : Window
             e.Handled = true;
     }
 
-    private async void OnLoaded(object sender, RoutedEventArgs e)
+    private void OnLoaded(object sender, RoutedEventArgs e) => _ = InitializeOnLoadedAsync();
+
+    private async Task InitializeOnLoadedAsync()
     {
-        _isLoadingSettings = true;
-        AppDataMigrationService.MigrateLegacyData();
-        SidebarVersionText.Text = AppReleaseInfoProvider.Current.VersionLabel;
-        ScannerSourceFactory.ResetHidBindingSession();
-        _settings = AppSettings.Load();
-        _printTemplates = _printTemplateService.LoadOrCreateDefaults();
-        RefreshExportSettingsUi();
-        RefreshPrintSettingsUi();
-        _isLoadingSettings = false;
-        InitializeScannerUi();
-        RefreshPorts();
-        SelectSavedPort();
-        RestartScanner();
-        SyncConnectedViews();
-        await RestoreAccountOnStartupAsync();
-        _ = CheckForUpdatesOnStartupAsync();
-        Focus();
+        try
+        {
+            _isLoadingSettings = true;
+            AppDataMigrationService.MigrateLegacyData();
+            SidebarVersionText.Text = AppReleaseInfoProvider.Current.VersionLabel;
+            ScannerSourceFactory.ResetHidBindingSession();
+            _settings = AppSettings.Load();
+            _settings.ApplyStartupScannerMode();
+            _settings.Save();
+            _printTemplates = _printTemplateService.LoadOrCreateDefaults();
+            RefreshExportSettingsUi();
+            RefreshPrintSettingsUi();
+            _isLoadingSettings = false;
+            InitializeScannerUi();
+            RefreshPorts();
+            SelectSavedPort();
+            RestartScanner();
+            SyncConnectedViews();
+            await ReloadScanHistoryAsync();
+            await RestoreAccountOnStartupAsync();
+            _ = CheckForUpdatesOnStartupAsync();
+            Focus();
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Error("Startup", "Init failed", ex);
+        }
     }
 
     private void SelectSavedPort()
@@ -284,50 +299,9 @@ public partial class MainWindow : Window
         return result with { InfoMessages = messages };
     }
 
-    private static bool IsLikelySameCodeWithConflictingSerial(string current, string previous)
-    {
-        if (current.Length != previous.Length)
-            return false;
-
-        var differences = 0;
-        for (var i = 0; i < current.Length; i++)
-        {
-            if (current[i] == previous[i])
-                continue;
-
-            differences++;
-            if (differences > 1)
-                return false;
-
-            if (!LooksLikeKeyboardVariant(current[i], previous[i]))
-                return false;
-        }
-
-        return differences == 1;
-    }
-
-    private static bool LooksLikeKeyboardVariant(char current, char previous)
-    {
-        if (ShiftedDigitToDigit(current) == previous || ShiftedDigitToDigit(previous) == current)
-            return true;
-
-        return char.ToUpperInvariant(current) == char.ToUpperInvariant(previous);
-    }
-
-    private static char? ShiftedDigitToDigit(char ch) => ch switch
-    {
-        ')' => '0',
-        '!' => '1',
-        '@' => '2',
-        '#' => '3',
-        '$' => '4',
-        '%' => '5',
-        '^' => '6',
-        '&' => '7',
-        '*' => '8',
-        '(' => '9',
-        _ => null
-    };
+    // Moved to DoubleMark.Core.Parsing.HidConflictDetector
+    private static bool IsLikelySameCodeWithConflictingSerial(string current, string previous) =>
+        HidConflictDetector.IsLikelySameCodeWithConflictingSerial(current, previous);
 
     private void OnLoadImageClick(object sender, RoutedEventArgs e)
     {
@@ -504,8 +478,8 @@ public partial class MainWindow : Window
             ? r.InfoMessages.Count > 0 ? BrushFromResource("WarningBrush") : BrushFromResource("SuccessBrush")
             : BrushFromResource("DangerBrush");
         LastScanStatusBadgeBorder.Background = r.IsValid
-            ? r.InfoMessages.Count > 0 ? new SolidColorBrush(Color.FromRgb(54, 42, 18)) : new SolidColorBrush(Color.FromRgb(22, 61, 43))
-            : new SolidColorBrush(Color.FromRgb(62, 23, 29));
+            ? r.InfoMessages.Count > 0 ? BrushFromResource("WarningBadgeBackgroundBrush") : BrushFromResource("SuccessBadgeBackgroundBrush")
+            : BrushFromResource("DangerBadgeBackgroundBrush");
         LastScanStatusBadgeBorder.BorderBrush = r.IsValid
             ? r.InfoMessages.Count > 0 ? BrushFromResource("WarningBrush") : BrushFromResource("SuccessBrush")
             : BrushFromResource("DangerBrush");
@@ -605,7 +579,12 @@ public partial class MainWindow : Window
                 RawPayload = raw,
                 ParseResult = r,
                 Source = source,
-                Template = ResolveActiveTemplate()
+                Template = ResolveActiveTemplate(),
+                ShowDate = _settings.LabelShowDate,
+                ShowShipment = _settings.LabelShowShipment,
+                ShowOrder = _settings.LabelShowOrder,
+                ShipmentNumber = _settings.LabelShipmentNumber,
+                OrderNumber = _settings.LabelOrderNumber
             });
 
             using var ms = new MemoryStream(render.PngBytes);
@@ -742,8 +721,8 @@ public partial class MainWindow : Window
             {
                 Content = "Открыть папку",
                 Tag = exportResult.ExportDirectory,
-                Background = (Brush)new BrushConverter().ConvertFrom("#3e3e42")!,
-                Foreground = Brushes.White,
+                Background = BrushFromResource("PanelAltBrush"),
+                Foreground = BrushFromResource("TextBrush"),
                 BorderThickness = new Thickness(0),
                 Padding = new Thickness(8, 4, 8, 4),
                 Margin = new Thickness(0, 6, 0, 0),
@@ -886,5 +865,4 @@ public partial class MainWindow : Window
 
     private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e) =>
         StopScanner();
-
 }

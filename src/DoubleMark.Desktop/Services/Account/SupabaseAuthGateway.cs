@@ -69,9 +69,14 @@ public sealed class SupabaseAuthGateway : IAuthGateway
         {
             await auth.RetrieveSessionAsync();
         }
-        catch
+        catch (Exception ex) when (IsSessionInvalidError(ex))
         {
             _clientFactory.SessionStorage.DestroySession();
+            return null;
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Warn("Auth", "Session restore failed (network?): " + ex.Message);
             return null;
         }
 
@@ -86,6 +91,14 @@ public sealed class SupabaseAuthGateway : IAuthGateway
         await _clientFactory.GetClient().Auth.RefreshSession();
         return GetCurrentUser();
     }
+
+    private static bool IsSessionInvalidError(Exception ex) =>
+        ex.Message.Contains("Invalid JWT", StringComparison.OrdinalIgnoreCase)
+        || ex.Message.Contains("token is expired", StringComparison.OrdinalIgnoreCase)
+        || ex.Message.Contains("invalid_grant", StringComparison.OrdinalIgnoreCase)
+        || ex.Message.Contains("InvalidRefreshToken", StringComparison.OrdinalIgnoreCase)
+        || ex.Message.Contains("ExpiredRefreshToken", StringComparison.OrdinalIgnoreCase)
+        || ex.Message.Contains("refresh_token_not_found", StringComparison.OrdinalIgnoreCase);
 
     private static AccountUser? ToAccountUser(User? user, Session? session)
     {

@@ -31,8 +31,11 @@ public class MarkingCodeIntegrityLiveTests
             bool ExpectBrokenIntegrity, IntegrityIssueCode? Issue)[]
         {
             ("full_official", BrokenCodeMutation.None, true, null, false, null),
-            ("full_official", BrokenCodeMutation.RemoveAllGs, false, ParseErrorCode.NoGsSeparator, true,
+            // HID scanner strips GS → parser now recovers the full code positionally;
+            // integrity still flags MissingGsInRaw as an Error → ShouldTreatAsBroken stays true.
+            ("full_official", BrokenCodeMutation.RemoveAllGs, true, null, true,
                 IntegrityIssueCode.MissingGsInRaw),
+            // GS replaced with visible space → NOT the same as stripped GS; parser rejects it.
             ("full_official", BrokenCodeMutation.GsToSpace, false, ParseErrorCode.NoGsSeparator, true, null),
             ("full_official", BrokenCodeMutation.TruncatedAi92, true, null, true,
                 IntegrityIssueCode.TruncatedCryptoTail),

@@ -86,6 +86,7 @@ public class RawInputScannerService : IScannerSource
     private static readonly IntPtr _enLayout =
         RawInputInterop.LoadKeyboardLayout("00000409", 0);
 
+    private readonly object _dedupeLock = new();
     private (ushort vKey, ushort makeCode, long ticks) _lastRawDedupe;
 
     public void ConfigureGsMapping(ScannerGsSettings settings) => _gsSettings = settings;
@@ -249,10 +250,11 @@ public class RawInputScannerService : IScannerSource
     private bool WasRecentlyHandledByRaw(ushort vKey, ushort makeCode)
     {
         var now = Environment.TickCount64;
-        if (_lastRawDedupe.vKey == vKey && _lastRawDedupe.makeCode == makeCode &&
-            now - _lastRawDedupe.ticks < 15)
-            return true;
-        return false;
+        lock (_dedupeLock)
+        {
+            return _lastRawDedupe.vKey == vKey && _lastRawDedupe.makeCode == makeCode &&
+                   now - _lastRawDedupe.ticks < 15;
+        }
     }
 
     private bool HandleKey(RawInputInterop.RAWKEYBOARD kb, string? devicePath, string source)
@@ -262,7 +264,7 @@ public class RawInputScannerService : IScannerSource
 
         if (!isBreak)
         {
-            _lastRawDedupe = (kb.VKey, kb.MakeCode, Environment.TickCount64);
+            lock (_dedupeLock) { _lastRawDedupe = (kb.VKey, kb.MakeCode, Environment.TickCount64); }
             if (!_captureSession)
                 _captureSession = true;
         }

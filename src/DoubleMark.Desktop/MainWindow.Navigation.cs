@@ -91,8 +91,7 @@ public partial class MainWindow
             return _templatesView;
 
         _templatesView = new TemplatesView();
-        _templatesView.ManageTemplatesRequested += OnPrintTemplatesClick;
-        _templatesView.TemplateSelected += OnTemplatesViewTemplateSelected;
+        WireTemplatesViewEvents(_templatesView);
         SyncTemplatesPageState();
         return _templatesView;
     }
@@ -103,10 +102,16 @@ public partial class MainWindow
             return _historyView;
 
         _historyView = new HistoryView();
+        _historyView.ConfigurePreview(_printTemplateService);
         _historyView.CopyRequested += OnHistoryCopyRequested;
         _historyView.ReprintRequested += OnHistoryReprintRequested;
         _historyView.DeleteRequested += OnHistoryDeleteRequested;
         _historyView.ClearHistoryRequested += OnHistoryClearRequested;
+        _historyView.SettingsChanged += OnHistorySettingsChanged;
+        _historyView.BrowseFolderRequested += OnHistoryBrowseFolderRequested;
+        _historyView.ReloadRequested += OnHistoryReloadRequested;
+        _historyView.ExportSelectedRequested += OnHistoryExportSelectedRequested;
+        SyncHistorySettingsUi();
         SyncHistoryPageState();
         return _historyView;
     }

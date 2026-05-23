@@ -1,8 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
 using DoubleMark.Desktop.Services;
-using System.Windows.Media;
-using System.Windows.Shapes;
 
 namespace DoubleMark.Desktop.Views;
 
@@ -52,9 +50,9 @@ public partial class PrintView : UserControl
             PrintTemplateSummaryText.Text = state.SelectedTemplate ?? "—";
 
             PrintPreviewImage.Source = state.PreviewImage;
-            PrintPreviewMock.Visibility = state.PreviewImage == null ? Visibility.Visible : Visibility.Collapsed;
-            if (state.PreviewImage == null)
-                DrawMockPreview(state);
+            PrintPreviewPlaceholder.Visibility = state.PreviewImage == null
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
             RenderRecentPrints(recentPrints);
         }
@@ -62,93 +60,6 @@ public partial class PrintView : UserControl
         {
             _updating = false;
         }
-    }
-
-    private void DrawMockPreview(PrintViewState state)
-    {
-        PrintPreviewMockCanvas.Children.Clear();
-        if (state.LabelWidthMm <= 0 || state.LabelHeightMm <= 0)
-            return;
-
-        const double maxWidth = 288;
-        const double maxHeight = 188;
-        var scale = Math.Min(maxWidth / state.LabelWidthMm, maxHeight / state.LabelHeightMm);
-        if (double.IsInfinity(scale) || scale <= 0)
-            scale = 1;
-
-        var labelWidth = state.LabelWidthMm * scale;
-        var labelHeight = state.LabelHeightMm * scale;
-        var offsetX = (maxWidth - labelWidth) / 2;
-        var offsetY = (maxHeight - labelHeight) / 2;
-
-        var label = new Rectangle
-        {
-            Width = labelWidth,
-            Height = labelHeight,
-            RadiusX = 8,
-            RadiusY = 8,
-            Fill = Brushes.White,
-            Stroke = (Brush)new BrushConverter().ConvertFrom("#D6DEE8")!,
-            StrokeThickness = 1
-        };
-        Canvas.SetLeft(label, offsetX);
-        Canvas.SetTop(label, offsetY);
-        PrintPreviewMockCanvas.Children.Add(label);
-
-        var dmSize = Math.Min(state.DataMatrixWidthMm * scale, state.DataMatrixHeightMm * scale);
-        var dm = BuildMatrixCanvas(dmSize);
-        Canvas.SetLeft(dm, offsetX + state.DataMatrixXmm * scale);
-        Canvas.SetTop(dm, offsetY + state.DataMatrixYmm * scale);
-        PrintPreviewMockCanvas.Children.Add(dm);
-
-        var templateName = new TextBlock
-        {
-            Text = state.SelectedTemplate ?? "ЧЗ",
-            Foreground = (Brush)new BrushConverter().ConvertFrom("#111820")!,
-            FontWeight = FontWeights.Bold,
-            FontSize = 11,
-            Width = Math.Max(86, labelWidth - state.DataMatrixXmm * scale - dmSize - 10),
-            TextTrimming = TextTrimming.CharacterEllipsis
-        };
-        Canvas.SetLeft(templateName, Math.Min(offsetX + labelWidth - templateName.Width - 6, offsetX + state.DataMatrixXmm * scale + dmSize + 8));
-        Canvas.SetTop(templateName, offsetY + Math.Max(4, state.DataMatrixYmm * scale));
-        PrintPreviewMockCanvas.Children.Add(templateName);
-    }
-
-    private static Canvas BuildMatrixCanvas(double size)
-    {
-        var canvas = new Canvas
-        {
-            Width = size,
-            Height = size,
-            Background = Brushes.White
-        };
-
-        var dark = (Brush)new BrushConverter().ConvertFrom("#111820")!;
-        const int cells = 10;
-        var cell = size / cells;
-        for (var y = 0; y < cells; y++)
-        {
-            for (var x = 0; x < cells; x++)
-            {
-                var finder = x == 0 || y == cells - 1 || (x % 2 == 0 && y == 0) || (x == cells - 1 && y % 2 == 0);
-                var data = ((x * 5 + y * 7 + x * y) % 4) == 0;
-                if (!finder && !data)
-                    continue;
-
-                var rect = new Rectangle
-                {
-                    Width = Math.Ceiling(cell),
-                    Height = Math.Ceiling(cell),
-                    Fill = dark
-                };
-                Canvas.SetLeft(rect, x * cell);
-                Canvas.SetTop(rect, y * cell);
-                canvas.Children.Add(rect);
-            }
-        }
-
-        return canvas;
     }
 
     private void RenderRecentPrints(IReadOnlyList<ScanHistoryItem> recentPrints)

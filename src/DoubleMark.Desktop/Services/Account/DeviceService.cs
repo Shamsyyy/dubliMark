@@ -13,17 +13,24 @@ public sealed class DeviceService
         _clientFactory = clientFactory;
     }
 
+    private static readonly object _deviceIdLock = new();
+
     public string GetDeviceId()
     {
-        var path = GetDeviceIdPath();
-        if (File.Exists(path))
-            return File.ReadAllText(path).Trim();
+        lock (_deviceIdLock)
+        {
+            var path = GetDeviceIdPath();
+            if (File.Exists(path))
+                return File.ReadAllText(path).Trim();
 
-        var raw = string.Join("|", Environment.MachineName, Environment.UserName, Environment.OSVersion.VersionString);
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant();
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, hash);
-        return hash;
+            var raw = string.Join("|", Environment.MachineName, Environment.UserName, Environment.OSVersion.VersionString);
+            var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var tmp = path + ".tmp";
+            File.WriteAllText(tmp, hash);
+            File.Move(tmp, path, overwrite: false);
+            return hash;
+        }
     }
 
     public string GetDeviceName() => Environment.MachineName;
@@ -55,6 +62,18 @@ public sealed class DeviceService
         };
 
         await _clientFactory.GetClient().From<DeviceRow>().Upsert(row);
+
+        // Re-read after upsert to guard against TOCTOU: two machines may have passed the limit
+        // check simultaneously. If we now exceed the limit we have not yet been registered.
+        var devicesAfter = await GetUserDevices(userId);
+        if (!DeviceRules.IsWithinDeviceLimit(devicesAfter, deviceId, devicesLimit))
+        {
+            return new DeviceRegistrationResult(
+                false,
+                "Превышен лимит устройств по текущему тарифу.",
+                null);
+        }
+
         return new DeviceRegistrationResult(true, null, AccountRowMapping.ToDevice(row));
     }
 

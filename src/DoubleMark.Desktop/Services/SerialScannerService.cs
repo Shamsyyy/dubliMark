@@ -146,7 +146,7 @@ public class SerialScannerService : IScannerSource, IDisposable
 
             lock (_bufferLock)
             {
-                if ((now - _lastByteTime).TotalMilliseconds > 500)
+                if ((now - _lastByteTime).TotalMilliseconds > 2000)
                     _buffer.Clear();
                 _lastByteTime = now;
                 _buffer.Append(chunk);

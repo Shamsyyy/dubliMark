@@ -17,7 +17,7 @@ public enum ScanHistoryDuplicateMode
 
 public sealed class CloudScanHistoryService
 {
-    public const int MaxScanHistory = 100;
+    public const int MaxScanHistory = 1000;
     private static readonly TimeSpan RecentDuplicateWindow = TimeSpan.FromSeconds(2);
 
     private readonly SupabaseClientFactory _clientFactory;
@@ -113,7 +113,8 @@ public sealed class CloudScanHistoryService
                 HasAi92 = code.VerificationCode != null,
                 Gtin = code.Gtin,
                 Serial = code.Serial,
-                ScannedAt = DateTime.UtcNow
+                ScannedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow
             };
 
             var insert = await _clientFactory.GetClient()

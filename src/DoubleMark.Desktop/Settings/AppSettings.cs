@@ -36,6 +36,16 @@ public sealed class AppSettings
     public bool AutoCheckUpdates { get; set; } = true;
     public bool LocalTemplatesMigratedToCloud { get; set; }
     public ScanHistoryDuplicateMode ScanHistoryDuplicateMode { get; set; } = ScanHistoryDuplicateMode.IgnoreRecentDuplicates;
+    /// <summary>Сохранять и загружать историю в Supabase (требуется вход).</summary>
+    public bool CloudHistoryEnabled { get; set; } = true;
+    /// <summary>Сохранять историю локально на этом ПК.</summary>
+    public bool LocalHistoryEnabled { get; set; } = true;
+    /// <summary>Какой источник показывать на странице «История».</summary>
+    public HistoryViewMode HistoryViewMode { get; set; } = HistoryViewMode.Local;
+    /// <summary>Папка для чтения export JSON (локальный режим). Пусто — %AppData%\\DoubleMark\\exports.</summary>
+    public string? LocalHistoryDirectory { get; set; }
+    /// <summary>Папка для сохранения выделенных кодов из истории.</summary>
+    public string? CuratedHistoryDirectory { get; set; }
     public bool AutoSaveExports { get; set; } = true;
     public string? ExportDirectory { get; set; }
     public PrintMode PrintMode { get; set; } = PrintMode.Manual;
@@ -48,6 +58,12 @@ public sealed class AppSettings
     public bool SavePrintFileBeforePrint { get; set; } = true;
     public string? PrintDirectory { get; set; }
     public string? DefaultPrintTemplateName { get; set; } = "ЧЗ 30x20 мм";
+    public bool LabelShowDate { get; set; } = true;
+    public bool LabelShowShipment { get; set; }
+    public bool LabelShowOrder { get; set; }
+    public string? LabelShipmentNumber { get; set; }
+    public string? LabelOrderNumber { get; set; }
+    public DateTime? LabelPrintDate { get; set; }
 
     public ScannerGsMappingMode ScannerGsMappingMode { get; set; } = ScannerGsMappingMode.Auto;
     public string ScannerVisibleGsChar { get; set; } = "|";
@@ -150,6 +166,13 @@ public sealed class AppSettings
         }
     }
 
+    /// <summary>Each app launch starts in Auto (COM + HID), regardless of last saved mode.</summary>
+    public void ApplyStartupScannerMode()
+    {
+        ScannerMode = ScannerMode.Auto;
+        NormalizeScannerFields();
+    }
+
     public string? EffectiveHidDevicePath =>
         !string.IsNullOrWhiteSpace(SelectedHidDeviceId)
             ? SelectedHidDeviceId
@@ -162,7 +185,7 @@ public sealed class AppSettings
         ScannerDevicePath = null;
         SelectedHidDeviceId = null;
         SelectedRawInputDeviceId = null;
-        ScannerMode = ScannerMode.Unset;
+        ScannerMode = ScannerMode.Auto;
         ScannerAutoBindHid = true;
         AutoCheckUpdates = true;
         AutoSaveExports = true;
@@ -183,6 +206,14 @@ public sealed class AppSettings
     public string EffectiveExportDirectory =>
         string.IsNullOrWhiteSpace(ExportDirectory) ? DefaultExportDirectory : ExportDirectory;
 
+    public string EffectiveLocalHistoryBrowseDirectory =>
+        string.IsNullOrWhiteSpace(LocalHistoryDirectory) ? EffectiveExportDirectory : LocalHistoryDirectory;
+
+    public string EffectiveCuratedHistoryDirectory =>
+        string.IsNullOrWhiteSpace(CuratedHistoryDirectory)
+            ? Path.Combine(SettingsDirectory, "curated")
+            : CuratedHistoryDirectory;
+
     public string EffectivePrintDirectory =>
         string.IsNullOrWhiteSpace(PrintDirectory) ? DefaultPrintDirectory : PrintDirectory;
 
@@ -198,6 +229,12 @@ public sealed class AppSettings
             SaveFileBeforePrint = SavePrintFileBeforePrint,
             PrintRoot = EffectivePrintDirectory,
             DefaultTemplateName = DefaultPrintTemplateName,
-            Dpi = 300
+            Dpi = 300,
+            LabelShowDate = LabelShowDate,
+            LabelShowShipment = LabelShowShipment,
+            LabelShowOrder = LabelShowOrder,
+            LabelShipmentNumber = LabelShipmentNumber,
+            LabelOrderNumber = LabelOrderNumber,
+            LabelPrintDate = LabelPrintDate
         };
 }

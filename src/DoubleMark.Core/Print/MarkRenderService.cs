@@ -18,17 +18,26 @@ public sealed class MarkRenderService
         var timestamp = request.Timestamp ?? DateTimeOffset.Now;
         var code = request.ParseResult.Code;
         var normalized = NormalizePayload(request.RawPayload, request.ParseResult);
-        var matrix = CreateDataMatrix(normalized, MmToPx(request.Template.DataMatrixWidthMm, request.Dpi),
-            MmToPx(request.Template.DataMatrixHeightMm, request.Dpi));
-        var textBlocks = RenderTextBlocks(request.Template, code, timestamp, request.Source);
-        var png = RenderPng(request.Template, matrix, textBlocks, request.Dpi);
-        var pdf = LabelPdfWriter.Encode(request.Template, matrix, textBlocks);
+        var baseTemplate = TemplateLayoutHelper.NormalizeForRender(request.Template);
+        var effectiveTemplate = baseTemplate with
+        {
+            TextBlocks = TemplateLayoutHelper.BuildEffectiveTextBlocks(
+                baseTemplate,
+                request.ShowDate,
+                request.ShowShipment,
+                request.ShowOrder).ToList()
+        };
+        var matrix = CreateDataMatrix(normalized, MmToPx(effectiveTemplate.DataMatrixWidthMm, request.Dpi),
+            MmToPx(effectiveTemplate.DataMatrixHeightMm, request.Dpi));
+        var textBlocks = RenderTextBlocks(effectiveTemplate, code, timestamp, request.Source, request);
+        var png = RenderPng(effectiveTemplate, matrix, textBlocks, request.Dpi);
+        var pdf = LabelPdfWriter.Encode(effectiveTemplate, matrix, textBlocks);
 
         return new MarkRenderResult
         {
             Timestamp = timestamp,
             Source = request.Source,
-            Template = request.Template,
+            Template = effectiveTemplate,
             RawPayload = request.RawPayload,
             NormalizedPayload = normalized,
             RawPayloadEscaped = MarkExportService.EscapePayload(request.RawPayload),
@@ -48,10 +57,10 @@ public sealed class MarkRenderService
             Ai93 = code.AdditionalField93,
             PngBytes = png,
             PdfBytes = pdf,
-            PngWidthPx = MmToPx(request.Template.LabelWidthMm, request.Dpi),
-            PngHeightPx = MmToPx(request.Template.LabelHeightMm, request.Dpi),
-            PdfWidthPt = MmToPt(request.Template.LabelWidthMm),
-            PdfHeightPt = MmToPt(request.Template.LabelHeightMm),
+            PngWidthPx = MmToPx(effectiveTemplate.LabelWidthMm, request.Dpi),
+            PngHeightPx = MmToPx(effectiveTemplate.LabelHeightMm, request.Dpi),
+            PdfWidthPt = MmToPt(effectiveTemplate.LabelWidthMm),
+            PdfHeightPt = MmToPt(effectiveTemplate.LabelHeightMm),
             Dpi = request.Dpi
         };
     }
@@ -69,10 +78,14 @@ public sealed class MarkRenderService
         string text,
         MarkingCode code,
         DateTimeOffset timestamp,
-        string source)
+        string source,
+        string? shipmentNumber = null,
+        string? orderNumber = null)
     {
         var ai92 = code.VerificationCode ?? "";
         var ai92Short = ai92.Length <= 12 ? ai92 : ai92[..9] + "...";
+        var shipment = string.IsNullOrWhiteSpace(shipmentNumber) ? "—" : shipmentNumber.Trim();
+        var order = string.IsNullOrWhiteSpace(orderNumber) ? "—" : orderNumber.Trim();
         return text
             .Replace("{gtin}", code.Gtin, StringComparison.Ordinal)
             .Replace("{serial}", code.Serial, StringComparison.Ordinal)
@@ -81,17 +94,30 @@ public sealed class MarkRenderService
             .Replace("{codeType}", code.CodeType.ToString(), StringComparison.Ordinal)
             .Replace("{date}", timestamp.ToLocalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), StringComparison.Ordinal)
             .Replace("{time}", timestamp.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture), StringComparison.Ordinal)
-            .Replace("{source}", source, StringComparison.Ordinal);
+            .Replace("{source}", source, StringComparison.Ordinal)
+            .Replace("{shipment}", shipment, StringComparison.Ordinal)
+            .Replace("{shipment_no}", shipment, StringComparison.Ordinal)
+            .Replace("{order}", order, StringComparison.Ordinal)
+            .Replace("{order_no}", order, StringComparison.Ordinal);
     }
 
     private static IReadOnlyList<RenderedTextBlock> RenderTextBlocks(
         PrintTemplate template,
         MarkingCode code,
         DateTimeOffset timestamp,
-        string source) =>
+        string source,
+        MarkRenderRequest request) =>
         template.TextBlocks
+            .Where(b => TemplateLayoutHelper.IsInsideLabel(template, b))
+            .Where(b => !TemplateLayoutHelper.IntersectsDataMatrix(template, b))
             .Select(t => new RenderedTextBlock(
-                SubstituteText(t.Text, code, timestamp, source),
+                SubstituteText(
+                    t.Text,
+                    code,
+                    timestamp,
+                    source,
+                    request.ShipmentNumber,
+                    request.OrderNumber),
                 t.Xmm,
                 t.Ymm,
                 t.FontSizePt,
@@ -120,24 +146,50 @@ public sealed class MarkRenderService
         var height = MmToPx(template.LabelHeightMm, dpi);
         var rgb = Enumerable.Repeat((byte)255, width * height * 3).ToArray();
 
-        DrawMatrix(rgb, width, height, matrix, MmToPx(template.DataMatrixXmm, dpi), MmToPx(template.DataMatrixYmm, dpi));
+        DrawMatrix(
+            rgb,
+            width,
+            height,
+            matrix,
+            MmToPx(template.DataMatrixXmm, dpi),
+            MmToPx(template.DataMatrixYmm, dpi),
+            MmToPx(template.DataMatrixWidthMm, dpi),
+            MmToPx(template.DataMatrixHeightMm, dpi));
         foreach (var block in textBlocks)
             DrawTinyText(rgb, width, height, block, dpi);
 
         return LabelPngWriter.EncodeRgb(width, height, rgb, dpi);
     }
 
-    private static void DrawMatrix(byte[] rgb, int canvasWidth, int canvasHeight, BitMatrix matrix, int left, int top)
+    private static void DrawMatrix(
+        byte[] rgb,
+        int canvasWidth,
+        int canvasHeight,
+        BitMatrix matrix,
+        int left,
+        int top,
+        int targetWidthPx,
+        int targetHeightPx)
     {
-        for (var y = 0; y < matrix.Height; y++)
+        if (matrix.Width <= 0 || matrix.Height <= 0 || targetWidthPx <= 0 || targetHeightPx <= 0)
+            return;
+
+        for (var y = 0; y < targetHeightPx; y++)
         {
             var py = top + y;
             if (py < 0 || py >= canvasHeight)
                 continue;
 
-            for (var x = 0; x < matrix.Width; x++)
+            var my = y * matrix.Height / targetHeightPx;
+            if (my < 0 || my >= matrix.Height)
+                continue;
+
+            for (var x = 0; x < targetWidthPx; x++)
             {
-                if (!matrix[x, y])
+                var mx = x * matrix.Width / targetWidthPx;
+                if (mx < 0 || mx >= matrix.Width)
+                    continue;
+                if (!matrix[mx, my])
                     continue;
 
                 var px = left + x;
