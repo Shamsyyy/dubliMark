@@ -12,10 +12,15 @@ public class Gs1Parser
     /// <summary>Ожидаемая длина серийного номера (AI 21) по спецификации ЧЗ.</summary>
     public const int ExpectedSerialLength = 13;
 
+    private const int MaxPayloadLength = 4096;
+
     public ParseResult Parse(string raw)
     {
         if (string.IsNullOrEmpty(raw))
             return Fail(ParseErrorCode.Empty, "Пустая строка");
+
+        if (raw.Length > MaxPayloadLength)
+            return Fail(ParseErrorCode.TruncatedPayload, $"Payload слишком длинный ({raw.Length} байт, максимум {MaxPayloadLength}).");
 
         var normalized = Gs1BarcodeEncoding.NormalizeForParse(raw);
         raw = normalized.FoundAi01 ? normalized.Payload : StripAimIdentifier(raw);

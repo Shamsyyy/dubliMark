@@ -62,6 +62,18 @@ public sealed class DeviceService
         };
 
         await _clientFactory.GetClient().From<DeviceRow>().Upsert(row);
+
+        // Re-read after upsert to guard against TOCTOU: two machines may have passed the limit
+        // check simultaneously. If we now exceed the limit we have not yet been registered.
+        var devicesAfter = await GetUserDevices(userId);
+        if (!DeviceRules.IsWithinDeviceLimit(devicesAfter, deviceId, devicesLimit))
+        {
+            return new DeviceRegistrationResult(
+                false,
+                "Превышен лимит устройств по текущему тарифу.",
+                null);
+        }
+
         return new DeviceRegistrationResult(true, null, AccountRowMapping.ToDevice(row));
     }
 
