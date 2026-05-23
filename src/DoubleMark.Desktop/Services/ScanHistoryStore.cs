@@ -40,6 +40,8 @@ public static class ScanHistoryStore
     /// <summary>Local scan log cap (~100k × ~2 KB ≈ hundreds of MB on disk; fine for production PCs).</summary>
     public const int MaxEntries = 100_000;
 
+    private static readonly ReaderWriterLockSlim _lock = new();
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -53,6 +55,7 @@ public static class ScanHistoryStore
 
     public static IReadOnlyList<ScanHistoryItem> Load()
     {
+        _lock.EnterReadLock();
         try
         {
             if (!File.Exists(HistoryFilePath))
@@ -75,10 +78,15 @@ public static class ScanHistoryStore
             TryArchiveCorruptedHistory();
             return Array.Empty<ScanHistoryItem>();
         }
+        finally
+        {
+            _lock.ExitReadLock();
+        }
     }
 
     public static void Save(IReadOnlyList<ScanHistoryItem> items)
     {
+        _lock.EnterWriteLock();
         try
         {
             Directory.CreateDirectory(HistoryDirectory);
@@ -96,6 +104,10 @@ public static class ScanHistoryStore
         catch (Exception ex)
         {
             LoggingService.Error("ScanHistory", "Save failed", ex);
+        }
+        finally
+        {
+            _lock.ExitWriteLock();
         }
     }
 

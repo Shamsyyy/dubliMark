@@ -19,7 +19,6 @@ public class Gs1Parser
 
         var normalized = Gs1BarcodeEncoding.NormalizeForParse(raw);
         raw = normalized.FoundAi01 ? normalized.Payload : StripAimIdentifier(raw);
-        raw = StripAimIdentifier(raw);
 
         if (!raw.Contains(GS))
         {

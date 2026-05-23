@@ -30,6 +30,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        WindowWorkAreaHelper.EnableWorkAreaMaximize(this);
         InitializePrintServices();
         InitializeAccountServices();
         InitializeCloudDataServices();
@@ -68,23 +69,31 @@ public partial class MainWindow : Window
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        _isLoadingSettings = true;
-        AppDataMigrationService.MigrateLegacyData();
-        SidebarVersionText.Text = AppReleaseInfoProvider.Current.VersionLabel;
-        ScannerSourceFactory.ResetHidBindingSession();
-        _settings = AppSettings.Load();
-        _printTemplates = _printTemplateService.LoadOrCreateDefaults();
-        RefreshExportSettingsUi();
-        RefreshPrintSettingsUi();
-        _isLoadingSettings = false;
-        InitializeScannerUi();
-        RefreshPorts();
-        SelectSavedPort();
-        RestartScanner();
-        SyncConnectedViews();
-        await RestoreAccountOnStartupAsync();
-        _ = CheckForUpdatesOnStartupAsync();
-        Focus();
+        try
+        {
+            _isLoadingSettings = true;
+            AppDataMigrationService.MigrateLegacyData();
+            SidebarVersionText.Text = AppReleaseInfoProvider.Current.VersionLabel;
+            ScannerSourceFactory.ResetHidBindingSession();
+            _settings = AppSettings.Load();
+            _printTemplates = _printTemplateService.LoadOrCreateDefaults();
+            RefreshExportSettingsUi();
+            RefreshPrintSettingsUi();
+            _isLoadingSettings = false;
+            InitializeScannerUi();
+            RefreshPorts();
+            SelectSavedPort();
+            RestartScanner();
+            SyncConnectedViews();
+            await ReloadScanHistoryAsync();
+            await RestoreAccountOnStartupAsync();
+            _ = CheckForUpdatesOnStartupAsync();
+            Focus();
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Error("Startup", "Init failed", ex);
+        }
     }
 
     private void SelectSavedPort()

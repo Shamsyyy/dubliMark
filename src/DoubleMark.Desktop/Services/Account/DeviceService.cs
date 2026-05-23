@@ -13,17 +13,24 @@ public sealed class DeviceService
         _clientFactory = clientFactory;
     }
 
+    private static readonly object _deviceIdLock = new();
+
     public string GetDeviceId()
     {
-        var path = GetDeviceIdPath();
-        if (File.Exists(path))
-            return File.ReadAllText(path).Trim();
+        lock (_deviceIdLock)
+        {
+            var path = GetDeviceIdPath();
+            if (File.Exists(path))
+                return File.ReadAllText(path).Trim();
 
-        var raw = string.Join("|", Environment.MachineName, Environment.UserName, Environment.OSVersion.VersionString);
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant();
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, hash);
-        return hash;
+            var raw = string.Join("|", Environment.MachineName, Environment.UserName, Environment.OSVersion.VersionString);
+            var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw))).ToLowerInvariant();
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            var tmp = path + ".tmp";
+            File.WriteAllText(tmp, hash);
+            File.Move(tmp, path, overwrite: false);
+            return hash;
+        }
     }
 
     public string GetDeviceName() => Environment.MachineName;
