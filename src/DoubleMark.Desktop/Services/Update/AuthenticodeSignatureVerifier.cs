@@ -29,18 +29,21 @@ public static class AuthenticodeSignatureVerifier
     };
 
     public static bool AllowUnsignedUpdates =>
-#if DEBUG
         string.Equals(Environment.GetEnvironmentVariable("DOUBLEMARK_ALLOW_UNSIGNED_UPDATES"), "1", StringComparison.Ordinal);
-#else
-        string.Equals(Environment.GetEnvironmentVariable("DOUBLEMARK_ALLOW_UNSIGNED_UPDATES"), "1", StringComparison.Ordinal);
-#endif
+
+    public static bool ForceRequireSignedUpdates =>
+        string.Equals(Environment.GetEnvironmentVariable("DOUBLEMARK_REQUIRE_SIGNED_UPDATES"), "1", StringComparison.Ordinal);
+
+    public static bool ShouldRequireSignature(bool manifestRequireSignature) =>
+        ForceRequireSignedUpdates || (manifestRequireSignature && !AllowUnsignedUpdates);
 
     public static AuthenticodeVerificationResult VerifyInstaller(
         string filePath,
+        bool requireSignature,
         IReadOnlyList<string>? allowedPublisherMarkers = null)
     {
-        if (AllowUnsignedUpdates)
-            return AuthenticodeVerificationResult.Success("unsigned-dev-override");
+        if (!ShouldRequireSignature(requireSignature))
+            return AuthenticodeVerificationResult.Success("unsigned-allowed");
 
         if (!OperatingSystem.IsWindows())
         {

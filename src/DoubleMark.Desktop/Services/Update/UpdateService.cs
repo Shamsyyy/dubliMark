@@ -268,8 +268,9 @@ public sealed class UpdateService
                 }
 
                 Log("SHA256 verified");
+                DownloadedFileHelper.TryClearInternetZoneMark(targetPath);
 
-                var signature = AuthenticodeSignatureVerifier.VerifyInstaller(targetPath);
+                var signature = AuthenticodeSignatureVerifier.VerifyInstaller(targetPath, manifest.RequireSignature);
                 if (!signature.IsValid)
                 {
                     Log("Update failed: " + signature.LogMessage);
@@ -283,7 +284,10 @@ public sealed class UpdateService
                         signature.LogMessage);
                 }
 
-                Log("Authenticode verified publisher=" + signature.PublisherName);
+                if (manifest.RequireSignature)
+                    Log("Authenticode verified publisher=" + signature.PublisherName);
+                else
+                    Log("Signature not required (SHA-256 only)");
                 return new UpdateDownloadResult(UpdateDownloadStatus.Success, targetPath, null, null);
             }
             catch (Exception ex) when (attempt < 2 && IsTransientException(ex))
@@ -374,9 +378,10 @@ public sealed class UpdateService
         return Convert.ToHexString(hash);
     }
 
-    public UpdateDownloadResult VerifyDownloadedInstaller(string installerPath)
+    public UpdateDownloadResult VerifyDownloadedInstaller(string installerPath, UpdateManifest? manifest = null)
     {
-        if (!VerifySha256(installerPath, LastCheck?.Manifest?.Sha256 ?? ""))
+        manifest ??= LastCheck?.Manifest;
+        if (!VerifySha256(installerPath, manifest?.Sha256 ?? ""))
         {
             return new UpdateDownloadResult(
                 UpdateDownloadStatus.HashMismatch,
@@ -385,7 +390,8 @@ public sealed class UpdateService
                 "SHA256 mismatch on launch");
         }
 
-        var signature = AuthenticodeSignatureVerifier.VerifyInstaller(installerPath);
+        var requireSignature = manifest?.RequireSignature ?? false;
+        var signature = AuthenticodeSignatureVerifier.VerifyInstaller(installerPath, requireSignature);
         if (!signature.IsValid)
         {
             return new UpdateDownloadResult(
@@ -407,6 +413,7 @@ public sealed class UpdateService
         if (verify.Status != UpdateDownloadStatus.Success)
             throw new InvalidOperationException(verify.UserMessage ?? verify.LogMessage ?? "Update verification failed");
 
+        DownloadedFileHelper.TryClearInternetZoneMark(installerPath);
         Log("Starting installer: " + installerPath);
         Process.Start(new ProcessStartInfo
         {

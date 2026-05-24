@@ -61,8 +61,11 @@ if ($env:DOUBLEMARK_BUILD_ID) {
 }
 
 & $iscc.FullName "/DMyAppVersion=$version" "/DMyAppBuildId=$buildId" (Join-Path $root "installer\DoubleMark.iss")
+if ($LASTEXITCODE -ne 0) {
+    throw "Inno Setup failed with exit code $LASTEXITCODE."
+}
 
-$installer = Get-ChildItem -Path $installerOut -Filter "DoubleMarkSetup-*.exe" -ErrorAction SilentlyContinue |
+$installer = Get-ChildItem -Path $installerOut -Filter "DoubleMarkSetup-$version*.exe" -ErrorAction SilentlyContinue |
     Sort-Object LastWriteTime -Descending |
     Select-Object -First 1
 
@@ -114,6 +117,7 @@ $updateManifest = [ordered]@{
     installerUrl        = $downloadUrl
     sha256              = $hash
     minSupportedVersion = "2.0.0"
+    requireSignature    = $false
 }
 
 $updateJsonPath = Join-Path $updatesDir "update.json"

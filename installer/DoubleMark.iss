@@ -3,7 +3,7 @@
 #endif
 
 #define MyAppName "DoubleMark"
-#define MyAppVersion "2.1.3"
+#define MyAppVersion "2.1.5"
 #define MyAppPublisher "DoubleMark"
 #define MyAppCopyright "Copyright (C) DoubleMark"
 #define MyAppExeName "DoubleMark.exe"
@@ -16,10 +16,10 @@ AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppCopyright={#MyAppCopyright}
 AppSupportURL=https://doublemark.ru/
-AppInfoURL=https://doublemark.ru/
+AppPublisherURL=https://doublemark.ru/
 VersionInfoVersion={#MyAppVersion}
 VersionInfoCompany={#MyAppPublisher}
-VersionInfoDescription=DoubleMark — сканирование и печать Честного ЗНАКА
+VersionInfoDescription=DoubleMark - Chestny ZNAK scan and print
 VersionInfoProductName={#MyAppName}
 VersionInfoProductVersion={#MyAppVersion}
 VersionInfoCopyright={#MyAppCopyright}

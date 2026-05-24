@@ -74,6 +74,9 @@ dotnet publish $project `
 $desktopExe = Join-Path $dist "DoubleMark.Desktop.exe"
 $productExe = Join-Path $dist "DoubleMark.exe"
 if (Test-Path $desktopExe) {
+    if (Test-Path $productExe) {
+        Remove-Item -Path $productExe -Force -ErrorAction Stop
+    }
     Move-Item -Path $desktopExe -Destination $productExe -Force
 }
 
@@ -179,7 +182,7 @@ if ($EnableObfuscation -and $FolderPublish) {
     $obfuscar = Get-Command obfuscar.console -ErrorAction SilentlyContinue
     if (-not $obfuscar) { $obfuscar = Get-Command obfuscar -ErrorAction SilentlyContinue }
     if ($obfuscar) {
-        Write-Warning "Obfuscar enabled — may increase Defender false positives. Use only with QA."
+        Write-Warning "Obfuscar enabled - may increase Defender false positives. Use only with QA."
         & $obfuscar.Source (Join-Path $root "obfuscar.xml")
         if ($LASTEXITCODE -ne 0) { throw "Obfuscar failed with exit code $LASTEXITCODE." }
         if (Test-Path $obfuscated) {
@@ -211,4 +214,4 @@ if ($env:SIGN_CERT_PATH -and $env:SIGN_CERT_PASSWORD) {
 }
 
 Write-Host ""
-Write-Host "Release EXE готов: $productExe"
+Write-Host "Release EXE ready: $productExe"

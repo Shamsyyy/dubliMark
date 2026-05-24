@@ -34,6 +34,12 @@ public sealed class UpdateManifest
     [JsonPropertyName("minSupportedVersion")]
     public string? MinSupportedVersion { get; set; }
 
+    /// <summary>
+    /// When false (default), SHA-256 from manifest is enough. Set true after Code Signing is enabled.
+    /// </summary>
+    [JsonPropertyName("requireSignature")]
+    public bool RequireSignature { get; set; }
+
     [JsonIgnore]
     public string EffectiveInstallerUrl =>
         !string.IsNullOrWhiteSpace(DownloadUrl) ? DownloadUrl : InstallerUrl;

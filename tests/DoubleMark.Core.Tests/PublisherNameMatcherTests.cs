@@ -20,4 +20,21 @@ public sealed class PublisherNameMatcherTests
         var name = PublisherNameMatcher.ExtractDisplayName("CN=DoubleMark, O=DoubleMark, C=RU");
         Assert.Equal("DoubleMark", name);
     }
+
+    [Fact]
+    public void VerifyInstaller_skips_signature_when_not_required()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "doublemark-unsigned-test-" + Guid.NewGuid().ToString("N") + ".exe");
+        File.WriteAllBytes(path, [0x4D, 0x5A]);
+        try
+        {
+            var result = AuthenticodeSignatureVerifier.VerifyInstaller(path, requireSignature: false);
+            Assert.True(result.IsValid);
+            Assert.Equal("unsigned-allowed", result.PublisherName);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }
