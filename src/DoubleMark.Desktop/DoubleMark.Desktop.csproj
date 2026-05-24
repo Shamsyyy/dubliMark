@@ -22,6 +22,9 @@
     <RootNamespace>DoubleMark.Desktop</RootNamespace>
     <Product>DoubleMark</Product>
     <Company>DoubleMark</Company>
+    <Copyright>Copyright © DoubleMark</Copyright>
+    <Description>DoubleMark — сканирование и печать Честного ЗНАКА</Description>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\Branding\doublemark-logo.ico</ApplicationIcon>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -29,7 +32,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="appsettings.json" CopyToOutputDirectory="Always" />
+    <Content Include="appsettings.json" CopyToOutputDirectory="Always" Condition="Exists('appsettings.json')" />
+    <Content Include="..\..\appsettings.example.json" Link="appsettings.json" CopyToOutputDirectory="Always" Condition="!Exists('appsettings.json')" />
   </ItemGroup>
 
   <ItemGroup>

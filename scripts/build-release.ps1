@@ -1,7 +1,7 @@
 param(
     [string]$Runtime = "win-x64",
     [switch]$FolderPublish,
-    [switch]$SkipObfuscation
+    [switch]$EnableObfuscation
 )
 
 $ErrorActionPreference = "Stop"
@@ -57,7 +57,7 @@ dotnet restore $solution
 dotnet build $solution -c Release
 
 $publishSingleFile = if ($FolderPublish) { "false" } else { "true" }
-$publishReadyToRun = if ($FolderPublish -and -not $SkipObfuscation) { "false" } else { "true" }
+$publishReadyToRun = if ($FolderPublish -and $EnableObfuscation) { "false" } else { "true" }
 
 dotnet publish $project `
     -c Release `
@@ -175,19 +175,21 @@ if ($warnings.Count -gt 0) {
     $warnings | ForEach-Object { Write-Warning $_ }
 }
 
-if ($FolderPublish -and -not $SkipObfuscation) {
+if ($EnableObfuscation -and $FolderPublish) {
     $obfuscar = Get-Command obfuscar.console -ErrorAction SilentlyContinue
     if (-not $obfuscar) { $obfuscar = Get-Command obfuscar -ErrorAction SilentlyContinue }
     if ($obfuscar) {
-        Write-Host "Running Obfuscar on DoubleMark.Core.dll..."
+        Write-Warning "Obfuscar enabled — may increase Defender false positives. Use only with QA."
         & $obfuscar.Source (Join-Path $root "obfuscar.xml")
         if ($LASTEXITCODE -ne 0) { throw "Obfuscar failed with exit code $LASTEXITCODE." }
         if (Test-Path $obfuscated) {
             Copy-Item -Path (Join-Path $obfuscated "DoubleMark.Core.dll") -Destination $dist -Force
         }
     } else {
-        Write-Warning "Obfuscar not installed. Skipping obfuscation."
+        throw "Obfuscar requested but not installed."
     }
+} elseif ($EnableObfuscation) {
+    Write-Warning "Obfuscation requires -FolderPublish. Skipping."
 }
 
 if (-not (Test-Path $productExe)) {
@@ -197,8 +199,14 @@ if (-not (Test-Path $productExe)) {
 if ($env:SIGN_CERT_PATH -and $env:SIGN_CERT_PASSWORD) {
     $signtool = Get-Command signtool.exe -ErrorAction SilentlyContinue
     if ($signtool) {
-        & $signtool.Source sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
-            /f $env:SIGN_CERT_PATH /p $env:SIGN_CERT_PASSWORD $productExe
+        $signArgs = @(
+            "sign", "/fd", "SHA256",
+            "/tr", "http://timestamp.digicert.com", "/td", "SHA256",
+            "/f", $env:SIGN_CERT_PATH, "/p", $env:SIGN_CERT_PASSWORD
+        )
+        & $signtool.Source @signArgs $productExe
+        Get-ChildItem $dist -Recurse -Include *.dll -File -ErrorAction SilentlyContinue |
+            ForEach-Object { & $signtool.Source @signArgs $_.FullName }
     }
 }
 

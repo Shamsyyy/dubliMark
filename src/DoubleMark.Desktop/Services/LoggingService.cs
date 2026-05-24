@@ -23,8 +23,14 @@ public static class LoggingService
         "logs");
 
     private static readonly Regex SecretPattern = new(
-        @"(access_token|refresh_token|password|SUPABASE_ANON_KEY|apikey|bearer)\s*[:=]\s*\S+",
+        @"(access_token|refresh_token|password|SUPABASE_ANON_KEY|apikey|bearer|service_role)\s*[:=]\s*\S+",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex RawPayloadPattern = new(
+        @"(raw_code|rawPayload|rawEscaped|normalizedEscaped)\s*[:=]\s*\S+",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private const int LogRetentionDays = 14;
 
     public static string LogsFolderPath => LogsDirectory;
 
@@ -40,12 +46,15 @@ public static class LoggingService
     {
         var text = ex == null ? message : message + " " + ex.GetType().Name + ": " + ex.Message;
         Write(LogLevel.Error, category, text);
+#if DEBUG
         if (ex != null)
             Write(LogLevel.Error, category, "Stack trace: " + ex.StackTrace);
+#endif
     }
 
     public static void LogStartup()
     {
+        PurgeOldLogs();
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
         Info("App", $"DoubleMark started. Version={version} OS={Environment.OSVersion}");
     }
@@ -63,7 +72,7 @@ public static class LoggingService
                 .Reverse()
                 .Take(maxLines)
                 .Reverse()
-                .Select(RedactSecrets)
+                .Select(RedactSensitive)
                 .ToList();
         }
         catch
@@ -102,12 +111,22 @@ public static class LoggingService
         sb.AppendLine("Recent logs:");
         foreach (var line in ReadRecentSafeLines(maxLogLines))
             sb.AppendLine(line);
-        return RedactSecrets(sb.ToString());
+        return RedactSensitive(sb.ToString());
     }
+
+    private static bool ShouldWrite(LogLevel level) =>
+#if DEBUG
+        true;
+#else
+        level >= LogLevel.Info;
+#endif
 
     private static void Write(LogLevel level, string category, string message)
     {
-        var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{level.ToString().ToUpperInvariant()}] [{category}] {RedactSecrets(message)}";
+        if (!ShouldWrite(level))
+            return;
+
+        var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] [{level.ToString().ToUpperInvariant()}] [{category}] {RedactSensitive(message)}";
         lock (Gate)
         {
             try
@@ -122,8 +141,35 @@ public static class LoggingService
         }
     }
 
-    private static string RedactSecrets(string text) =>
-        SecretPattern.Replace(text, "$1=[redacted]");
+    private static void PurgeOldLogs()
+    {
+        try
+        {
+            if (!Directory.Exists(LogsDirectory))
+                return;
+
+            var threshold = DateTime.UtcNow.AddDays(-LogRetentionDays);
+            foreach (var file in Directory.GetFiles(LogsDirectory, "doublemark-*.log"))
+            {
+                if (File.GetLastWriteTimeUtc(file) < threshold)
+                {
+                    try { File.Delete(file); }
+                    catch { /* best effort */ }
+                }
+            }
+        }
+        catch
+        {
+            // best effort
+        }
+    }
+
+    private static string RedactSensitive(string text)
+    {
+        var redacted = SecretPattern.Replace(text, "$1=[redacted]");
+        redacted = RawPayloadPattern.Replace(redacted, "$1=[redacted]");
+        return redacted;
+    }
 }
 
 public sealed record AppSettingsSnapshot(

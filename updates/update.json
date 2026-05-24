@@ -1,15 +1,16 @@
 {
   "version": "2.1.3",
+  "publishedAt": "2026-05-21T12:00:00.0000000Z",
   "releaseDate": "2026-05-21",
   "mandatory": false,
   "title": "DoubleMark 2.1.3",
   "notes": [
-    "DoubleMark 2.1.3 — исправлено отображение версии и установка обновлений",
-    "Шаблоны печати и история сканов в облаке (Supabase)",
-    "Установщик закрывает приложение перед заменой файлов",
-    "Проверка и установка обновлений из приложения"
+    "DoubleMark 2.1.3 — secure Windows distribution and signed updates",
+    "HTTPS update manifest with SHA-256 and Authenticode verification",
+    "Installer installs to standard Program Files without admin by default"
   ],
-  "installerUrl": "https://shamsyyy.github.io/doublemarksite/downloads/DoubleMarkSetup-2.1.3.exe",
+  "downloadUrl": "https://doublemark.ru/downloads/DoubleMarkSetup-2.1.3.exe",
+  "installerUrl": "https://doublemark.ru/downloads/DoubleMarkSetup-2.1.3.exe",
   "sha256": "e7f25071a6208427f67f3c811f8b14e53ccd026d1ff9ec8e2c27d7320d2ce7d2",
   "minSupportedVersion": "2.0.0"
 }

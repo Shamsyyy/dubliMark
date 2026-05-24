@@ -10,9 +10,11 @@ public static class ScanDiagnosticsHelper
     public static void LogScanReceived(string source, string raw)
     {
         var gsCount = Gs1BarcodeEncoding.CountGs(raw);
-        LoggingService.Info("Scanner", $"Scan received source={source} length={raw.Length} gsCount={gsCount}");
+        LoggingService.Info("Scanner", $"Scan received source={source} length={raw.Length} gsCount={gsCount} hash={PayloadHash(raw)}");
+#if DEBUG
         LoggingService.Debug("Scanner", $"escapedPreview={FormatEscapedPreview(raw, 120)}");
         LoggingService.Debug("Scanner", $"hexPreview={Gs1BarcodeEncoding.ToHex(Truncate(raw, 64))}");
+#endif
     }
 
     public static void LogParseResult(string source, ParseResult result, string raw)

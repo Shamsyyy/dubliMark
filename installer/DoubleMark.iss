@@ -5,6 +5,7 @@
 #define MyAppName "DoubleMark"
 #define MyAppVersion "2.1.3"
 #define MyAppPublisher "DoubleMark"
+#define MyAppCopyright "Copyright (C) DoubleMark"
 #define MyAppExeName "DoubleMark.exe"
 #define SourceDir "..\dist\DoubleMark"
 
@@ -13,6 +14,15 @@ AppId={{B6FD1581-5272-489E-B177-51765F27C534}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+AppCopyright={#MyAppCopyright}
+AppSupportURL=https://doublemark.ru/
+AppInfoURL=https://doublemark.ru/
+VersionInfoVersion={#MyAppVersion}
+VersionInfoCompany={#MyAppPublisher}
+VersionInfoDescription=DoubleMark — сканирование и печать Честного ЗНАКА
+VersionInfoProductName={#MyAppName}
+VersionInfoProductVersion={#MyAppVersion}
+VersionInfoCopyright={#MyAppCopyright}
 AppMutex=DoubleMarkAppRunning
 CloseApplications=force
 CloseApplicationsFilter=DoubleMark.exe,DoubleMark.Desktop.exe
@@ -39,7 +49,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "*.pdb,*.download,*.tmp,*.log,*.tests.exe,*.Test*.exe"
 
 [Icons]
 Name: "{group}\DoubleMark"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\{#MyAppExeName}"
