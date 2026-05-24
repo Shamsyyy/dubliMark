@@ -120,8 +120,16 @@ public partial class MainWindow
 
         if (download.Status != UpdateDownloadStatus.Success || string.IsNullOrWhiteSpace(download.FilePath))
         {
-            progressDialog?.SetBusy(false, download.UserMessage ?? "Не удалось скачать обновление.");
-            ShowToast(download.UserMessage ?? "Не удалось скачать обновление.", ToastKind.Error);
+            var message = download.UserMessage ?? download.Status switch
+            {
+                UpdateDownloadStatus.SignatureInvalid =>
+                    "Обновление не прошло проверку цифровой подписи. Скачайте установщик вручную с doublemark.ru.",
+                UpdateDownloadStatus.HashMismatch =>
+                    "Файл обновления повреждён. Скачайте установщик вручную с doublemark.ru.",
+                _ => "Не удалось скачать обновление."
+            };
+            progressDialog?.SetBusy(false, message);
+            ShowToast(message, ToastKind.Error);
             return;
         }
 

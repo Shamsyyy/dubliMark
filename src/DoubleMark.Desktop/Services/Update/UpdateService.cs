@@ -9,14 +9,22 @@ namespace DoubleMark.Desktop.Services.Update;
 
 public sealed class UpdateService
 {
-    public const string UpdateJsonUrl =
+    public const string UpdateJsonUrlPrimary =
+        "https://doublemark.ru/updates/update.json";
+
+    public const string UpdateJsonUrlFallback =
         "https://shamsyyy.github.io/doublemarksite/updates/update.json";
 
     public const string DownloadsPageUrl =
+        "https://doublemark.ru/download";
+
+    public const string DownloadsPageUrlFallback =
         "https://shamsyyy.github.io/doublemarksite/download";
 
     private static readonly string[] AllowedHosts =
     {
+        "doublemark.ru",
+        "www.doublemark.ru",
         "shamsyyy.github.io",
         "github.com",
         "www.github.com",
@@ -74,35 +82,16 @@ public sealed class UpdateService
     {
         var current = GetCurrentVersion();
         Log("Current version: " + current);
-        Log("Checking: " + UpdateJsonUrl);
-
+        var manifest = await TryFetchManifestAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            using var response = await Http.GetAsync(UpdateJsonUrl, cancellationToken).ConfigureAwait(false);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                var failed = new UpdateCheckResult(
-                    UpdateCheckStatus.Failed,
-                    null,
-                    "Обновления сейчас недоступны.",
-                    "update.json not found (404)");
-                LastCheck = failed;
-                Log("Update check failed: " + failed.LogMessage);
-                return failed;
-            }
-
-            response.EnsureSuccessStatusCode();
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            var manifest = await JsonSerializer.DeserializeAsync<UpdateManifest>(stream, JsonOptions, cancellationToken)
-                .ConfigureAwait(false);
-
             if (manifest == null || string.IsNullOrWhiteSpace(manifest.Version))
             {
                 var failed = new UpdateCheckResult(
                     UpdateCheckStatus.Failed,
                     null,
-                    "Не удалось прочитать информацию об обновлении.",
-                    "update.json is empty or invalid");
+                    "Обновления сейчас недоступны. Проверьте интернет или скачайте установщик с doublemark.ru.",
+                    "update.json unavailable from trusted hosts");
                 LastCheck = failed;
                 Log("Update check failed: " + failed.LogMessage);
                 return failed;
@@ -171,7 +160,7 @@ public sealed class UpdateService
         IProgress<double>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        if (!TryValidateInstallerUrl(manifest.InstallerUrl, out var uri, out var urlError))
+        if (!TryValidateInstallerUrl(manifest.EffectiveInstallerUrl, out var uri, out var urlError))
         {
             Log("Update failed: " + urlError);
             return new UpdateDownloadResult(UpdateDownloadStatus.Failed, null, urlError, urlError);
@@ -194,7 +183,7 @@ public sealed class UpdateService
             catch { /* best effort */ }
         }
 
-        Log("Download started: " + manifest.InstallerUrl);
+        Log("Download started: " + manifest.EffectiveInstallerUrl);
 
         var tempPath = targetPath + ".download";
         Exception? lastError = null;
@@ -279,6 +268,26 @@ public sealed class UpdateService
                 }
 
                 Log("SHA256 verified");
+                DownloadedFileHelper.TryClearInternetZoneMark(targetPath);
+
+                var signature = AuthenticodeSignatureVerifier.VerifyInstaller(targetPath, manifest.RequireSignature);
+                if (!signature.IsValid)
+                {
+                    Log("Update failed: " + signature.LogMessage);
+                    try { File.Delete(targetPath); }
+                    catch { /* best effort */ }
+
+                    return new UpdateDownloadResult(
+                        UpdateDownloadStatus.SignatureInvalid,
+                        null,
+                        signature.UserMessage ?? "Обновление не прошло проверку цифровой подписи.",
+                        signature.LogMessage);
+                }
+
+                if (manifest.RequireSignature)
+                    Log("Authenticode verified publisher=" + signature.PublisherName);
+                else
+                    Log("Signature not required (SHA-256 only)");
                 return new UpdateDownloadResult(UpdateDownloadStatus.Success, targetPath, null, null);
             }
             catch (Exception ex) when (attempt < 2 && IsTransientException(ex))
@@ -369,19 +378,80 @@ public sealed class UpdateService
         return Convert.ToHexString(hash);
     }
 
+    public UpdateDownloadResult VerifyDownloadedInstaller(string installerPath, UpdateManifest? manifest = null)
+    {
+        manifest ??= LastCheck?.Manifest;
+        if (!VerifySha256(installerPath, manifest?.Sha256 ?? ""))
+        {
+            return new UpdateDownloadResult(
+                UpdateDownloadStatus.HashMismatch,
+                null,
+                "Файл обновления повреждён или не прошёл проверку безопасности.",
+                "SHA256 mismatch on launch");
+        }
+
+        var requireSignature = manifest?.RequireSignature ?? false;
+        var signature = AuthenticodeSignatureVerifier.VerifyInstaller(installerPath, requireSignature);
+        if (!signature.IsValid)
+        {
+            return new UpdateDownloadResult(
+                UpdateDownloadStatus.SignatureInvalid,
+                null,
+                signature.UserMessage ?? "Обновление не прошло проверку цифровой подписи.",
+                signature.LogMessage);
+        }
+
+        return new UpdateDownloadResult(UpdateDownloadStatus.Success, installerPath, null, null);
+    }
+
     public void StartInstallerAndExit(string installerPath)
     {
         if (!File.Exists(installerPath))
             throw new FileNotFoundException("Installer not found.", installerPath);
 
+        var verify = VerifyDownloadedInstaller(installerPath);
+        if (verify.Status != UpdateDownloadStatus.Success)
+            throw new InvalidOperationException(verify.UserMessage ?? verify.LogMessage ?? "Update verification failed");
+
+        DownloadedFileHelper.TryClearInternetZoneMark(installerPath);
         Log("Starting installer: " + installerPath);
         Process.Start(new ProcessStartInfo
         {
             FileName = installerPath,
-            UseShellExecute = true
+            Arguments = "",
+            UseShellExecute = true,
+            Verb = "open"
         });
 
         System.Windows.Application.Current.Shutdown();
+    }
+
+    private static async Task<UpdateManifest?> TryFetchManifestAsync(CancellationToken cancellationToken)
+    {
+        foreach (var url in new[] { UpdateJsonUrlPrimary, UpdateJsonUrlFallback })
+        {
+            Log("Checking: " + url);
+            try
+            {
+                using var response = await Http.GetAsync(url, cancellationToken).ConfigureAwait(false);
+                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    Log("Manifest not found: " + url);
+                    continue;
+                }
+
+                response.EnsureSuccessStatusCode();
+                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                return await JsonSerializer.DeserializeAsync<UpdateManifest>(stream, JsonOptions, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Log("Manifest fetch failed for " + url + ": " + ex.Message);
+            }
+        }
+
+        return null;
     }
 
     public static bool TryValidateInstallerUrl(string url, out Uri uri, out string error)

@@ -37,8 +37,8 @@ internal sealed class ScanHistoryFile
 
 public static class ScanHistoryStore
 {
-    /// <summary>Local scan log cap (~100k × ~2 KB ≈ hundreds of MB on disk; fine for production PCs).</summary>
-    public const int MaxEntries = 100_000;
+    /// <summary>Local offline cache cap (cloud history uses Supabase limit of 100).</summary>
+    public const int MaxEntries = 100;
 
     private static readonly ReaderWriterLockSlim _lock = new();
 
