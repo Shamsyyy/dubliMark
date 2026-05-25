@@ -218,20 +218,26 @@ public partial class MainWindow
         var code = _lastSuccessfulScan?.ParseResult.Code ?? PreviewMarkingCode;
 
         return blocks
-            .Select(b => new TemplateTextBlockViewItem(
-                b.Text,
-                b.Xmm,
-                b.Ymm,
-                b.FontSizePt,
-                b.Bold,
-                MarkRenderService.SubstituteText(
+            .Select(b =>
+            {
+                var (layout, flow) = b.GetStyle();
+                return new TemplateTextBlockViewItem(
                     b.Text,
-                    code,
-                    timestamp,
-                    source,
-                    _settings.LabelShipmentNumber,
-                    _settings.LabelOrderNumber),
-                b.Orientation))
+                    b.Xmm,
+                    b.Ymm,
+                    b.FontSizePt,
+                    b.Bold,
+                    MarkRenderService.SubstituteText(
+                        b.Text,
+                        code,
+                        timestamp,
+                        source,
+                        _settings.LabelShipmentNumber,
+                        _settings.LabelOrderNumber),
+                    layout,
+                    flow,
+                    b.Orientation);
+            })
             .ToList();
     }
 

@@ -89,7 +89,9 @@ public sealed record TemplateTextBlockViewItem(
     double FontSizePt,
     bool Bold = false,
     string? PreviewText = null,
-    TextBlockDirection Orientation = TextBlockDirection.LeftToRight);
+    TextBlockLayout Layout = TextBlockLayout.Horizontal,
+    TextFlowDirection Flow = TextFlowDirection.Right,
+    TextBlockDirection? Orientation = null);
 
 public sealed record TemplateViewItem(
     string Name,

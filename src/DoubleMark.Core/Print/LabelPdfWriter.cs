@@ -155,4 +155,5 @@ internal sealed record RenderedTextBlock(
     double Ymm,
     double FontSizePt,
     bool Bold,
-    TextBlockDirection Orientation = TextBlockDirection.LeftToRight);
+    TextBlockLayout Layout = TextBlockLayout.Horizontal,
+    TextFlowDirection Flow = TextFlowDirection.Right);

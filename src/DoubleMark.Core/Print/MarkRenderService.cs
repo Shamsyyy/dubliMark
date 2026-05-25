@@ -114,7 +114,11 @@ public sealed class MarkRenderService
     private static IReadOnlyList<RenderedTextBlock> RenderTextBlocks(PrintTemplate template) =>
         template.TextBlocks
             .Where(b => TemplateLayoutHelper.IsInsideLabel(template, b))
-            .Select(t => new RenderedTextBlock(t.Text, t.Xmm, t.Ymm, t.FontSizePt, t.Bold, t.Orientation))
+            .Select(t =>
+            {
+                var (layout, flow) = t.GetStyle();
+                return new RenderedTextBlock(t.Text, t.Xmm, t.Ymm, t.FontSizePt, t.Bold, layout, flow);
+            })
             .ToList();
 
     private static BitMatrix CreateDataMatrix(string payload, int widthPx, int heightPx)
@@ -157,7 +161,8 @@ public sealed class MarkRenderService
                 block.Text,
                 block.FontSizePt,
                 block.Bold,
-                block.Orientation,
+                block.Layout,
+                block.Flow,
                 dpi,
                 MmToPx(block.Xmm, dpi),
                 MmToPx(block.Ymm, dpi));

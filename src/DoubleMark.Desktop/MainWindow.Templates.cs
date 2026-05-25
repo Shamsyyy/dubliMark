@@ -168,7 +168,9 @@ public partial class MainWindow
                 Ymm = b.Ymm,
                 FontSizePt = Math.Clamp(b.FontSizePt, 2, 12),
                 Bold = b.Bold,
-                Orientation = b.Orientation
+                Layout = b.Layout,
+                Flow = b.Flow,
+                Orientation = TextBlockStyleHelper.ToLegacy(b.Layout, b.Flow)
             })
             .ToList();
 

@@ -304,13 +304,15 @@ public sealed class PrintServicesTests
 
     private static (string Text, double X, double Y, double W, double H) GetBlockRect(PrintTextBlock block, int dpi)
     {
+        var (layout, flow) = block.GetStyle();
         var (w, h) = TemplateLayoutHelper.MeasureTextBlockMm(
             new PrintTextBlock
             {
                 Text = block.Text,
                 FontSizePt = block.FontSizePt,
                 Bold = block.Bold,
-                Orientation = block.Orientation
+                Layout = layout,
+                Flow = flow
             },
             dpi);
         return (block.Text, block.Xmm, block.Ymm, w, h);
@@ -331,7 +333,7 @@ public sealed class PrintServicesTests
             DefaultCopies = 1,
             TextBlocks =
             {
-                new PrintTextBlock { Text = "{date} {time}", Xmm = 7, Ymm = 4, FontSizePt = 4, Orientation = TextBlockDirection.BottomToTop }
+                new PrintTextBlock { Text = "{date} {time}", Xmm = 7, Ymm = 4, FontSizePt = 4, Layout = TextBlockLayout.Vertical, Flow = TextFlowDirection.Up, Orientation = TextBlockDirection.BottomToTop }
             }
         };
 
@@ -339,7 +341,8 @@ public sealed class PrintServicesTests
 
         updated.TextBlocks[0].Xmm.Should().Be(7);
         updated.TextBlocks[0].Ymm.Should().Be(4);
-        updated.TextBlocks[0].Orientation.Should().Be(TextBlockDirection.BottomToTop);
+        updated.TextBlocks[0].Layout.Should().Be(TextBlockLayout.Vertical);
+        updated.TextBlocks[0].Flow.Should().Be(TextFlowDirection.Up);
         TemplateLayoutHelper.IntersectsDataMatrix(updated, updated.TextBlocks[0]).Should().BeTrue();
     }
 

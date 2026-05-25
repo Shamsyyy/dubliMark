@@ -34,7 +34,8 @@ public partial class TemplateLayoutCanvas : UserControl
         public double Ymm { get; set; }
         public double FontSizePt { get; set; }
         public bool Bold { get; set; }
-        public TextBlockDirection Orientation { get; set; }
+        public TextBlockLayout Layout { get; set; }
+        public TextFlowDirection Flow { get; set; }
     }
 
     public event EventHandler<TemplateTextEdit>? TextBlocksEdited;
@@ -132,14 +133,15 @@ public partial class TemplateLayoutCanvas : UserControl
     private TextBlockHandle CreateHandle(int index, TemplateTextBlockViewItem block)
     {
         var display = block.PreviewText ?? block.Text;
+        var (layout, flow) = TextBlockStyleHelper.GetStyle(block.Layout, block.Flow, block.Orientation);
         var (wMm, hMm) = TextBlockRenderHelper.MeasureBlockMm(
-            display, block.FontSizePt, block.Bold, block.Orientation, RenderDpi);
+            display, block.FontSizePt, block.Bold, layout, flow, RenderDpi);
         var wPx = Math.Max(8, wMm * _pixelsPerMm);
         var hPx = Math.Max(8, hMm * _pixelsPerMm);
 
         var preview = new Image
         {
-            Source = SnippetImageFactory.Create(display, block.FontSizePt, block.Bold, block.Orientation, RenderDpi),
+            Source = SnippetImageFactory.Create(display, block.FontSizePt, block.Bold, layout, flow, RenderDpi),
             Stretch = Stretch.Uniform,
             Width = wPx,
             Height = hPx,
@@ -178,7 +180,8 @@ public partial class TemplateLayoutCanvas : UserControl
             Ymm = block.Ymm,
             FontSizePt = block.FontSizePt,
             Bold = block.Bold,
-            Orientation = block.Orientation
+            Layout = layout,
+            Flow = flow
         };
     }
 
@@ -251,7 +254,7 @@ public partial class TemplateLayoutCanvas : UserControl
         DirDownButton.IsEnabled = enabled;
         DirUpButton.IsEnabled = enabled;
 
-        var vertical = enabled && TextBlockDirectionHelper.IsVertical(_selected!.Orientation);
+        var vertical = enabled && _selected!.Layout == TextBlockLayout.Vertical;
 
         _isUpdatingFontBox = true;
         try
@@ -266,10 +269,10 @@ public partial class TemplateLayoutCanvas : UserControl
             _isUpdatingFontBox = false;
         }
 
-        HighlightDirectionButton(DirRightButton, enabled && _selected!.Orientation == TextBlockDirection.LeftToRight);
-        HighlightDirectionButton(DirLeftButton, enabled && _selected!.Orientation == TextBlockDirection.RightToLeft);
-        HighlightDirectionButton(DirDownButton, enabled && _selected!.Orientation == TextBlockDirection.TopToBottom);
-        HighlightDirectionButton(DirUpButton, enabled && _selected!.Orientation == TextBlockDirection.BottomToTop);
+        HighlightDirectionButton(DirRightButton, enabled && _selected!.Flow == TextFlowDirection.Right);
+        HighlightDirectionButton(DirLeftButton, enabled && _selected!.Flow == TextFlowDirection.Left);
+        HighlightDirectionButton(DirDownButton, enabled && _selected!.Flow == TextFlowDirection.Down);
+        HighlightDirectionButton(DirUpButton, enabled && _selected!.Flow == TextFlowDirection.Up);
     }
 
     private void HighlightDirectionButton(Button button, bool active)
@@ -287,23 +290,33 @@ public partial class TemplateLayoutCanvas : UserControl
         if (_selected == null)
             return;
 
-        _selected.Orientation = TextBlockDirectionHelper.ToggleLayout(_selected.Orientation);
+        _selected.Layout = TextBlockStyleHelper.ToggleLayout(_selected.Layout, _selected.Flow);
+        if (_selected.Layout == TextBlockLayout.Vertical
+            && _selected.Flow is TextFlowDirection.Right or TextFlowDirection.Left)
+        {
+            _selected.Flow = TextBlockStyleHelper.DefaultFlowForLayout(_selected.Layout);
+        }
+        else if (_selected.Layout == TextBlockLayout.Horizontal
+                 && _selected.Flow is TextFlowDirection.Up or TextFlowDirection.Down)
+        {
+            _selected.Flow = TextBlockStyleHelper.DefaultFlowForLayout(_selected.Layout);
+        }
         RefreshHandleVisual(_selected);
         UpdateFontControls();
         RaiseEdited();
     }
 
-    private void OnDirRightClick(object sender, RoutedEventArgs e) => SetDirection(TextBlockDirection.LeftToRight);
-    private void OnDirLeftClick(object sender, RoutedEventArgs e) => SetDirection(TextBlockDirection.RightToLeft);
-    private void OnDirDownClick(object sender, RoutedEventArgs e) => SetDirection(TextBlockDirection.TopToBottom);
-    private void OnDirUpClick(object sender, RoutedEventArgs e) => SetDirection(TextBlockDirection.BottomToTop);
+    private void OnDirRightClick(object sender, RoutedEventArgs e) => SetFlow(TextFlowDirection.Right);
+    private void OnDirLeftClick(object sender, RoutedEventArgs e) => SetFlow(TextFlowDirection.Left);
+    private void OnDirDownClick(object sender, RoutedEventArgs e) => SetFlow(TextFlowDirection.Down);
+    private void OnDirUpClick(object sender, RoutedEventArgs e) => SetFlow(TextFlowDirection.Up);
 
-    private void SetDirection(TextBlockDirection direction)
+    private void SetFlow(TextFlowDirection flow)
     {
-        if (_selected == null || _selected.Orientation == direction)
+        if (_selected == null || _selected.Flow == flow)
             return;
 
-        _selected.Orientation = direction;
+        _selected.Flow = flow;
         RefreshHandleVisual(_selected);
         UpdateFontControls();
         RaiseEdited();
@@ -370,11 +383,11 @@ public partial class TemplateLayoutCanvas : UserControl
     private void RefreshHandleVisual(TextBlockHandle handle)
     {
         var (wMm, hMm) = TextBlockRenderHelper.MeasureBlockMm(
-            handle.DisplayText, handle.FontSizePt, handle.Bold, handle.Orientation, RenderDpi);
+            handle.DisplayText, handle.FontSizePt, handle.Bold, handle.Layout, handle.Flow, RenderDpi);
         var wPx = Math.Max(8, wMm * _pixelsPerMm);
         var hPx = Math.Max(8, hMm * _pixelsPerMm);
         handle.PreviewImage.Source = SnippetImageFactory.Create(
-            handle.DisplayText, handle.FontSizePt, handle.Bold, handle.Orientation, RenderDpi);
+            handle.DisplayText, handle.FontSizePt, handle.Bold, handle.Layout, handle.Flow, RenderDpi);
         handle.PreviewImage.Width = wPx;
         handle.PreviewImage.Height = hPx;
         handle.Root.Width = wPx + 2;
@@ -387,8 +400,9 @@ public partial class TemplateLayoutCanvas : UserControl
             h.Xmm,
             h.Ymm,
             h.FontSizePt,
-            h.Bold,
-            h.Orientation)).ToList());
+                h.Bold,
+                h.Layout,
+                h.Flow)).ToList());
 
     private void RaiseEdited()
     {

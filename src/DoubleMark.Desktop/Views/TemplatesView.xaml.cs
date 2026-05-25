@@ -27,7 +27,8 @@ public sealed record TemplateTextBlockEdit(
     double Ymm,
     double FontSizePt,
     bool Bold = false,
-    TextBlockDirection Orientation = TextBlockDirection.LeftToRight);
+    TextBlockLayout Layout = TextBlockLayout.Horizontal,
+    TextFlowDirection Flow = TextFlowDirection.Right);
 
 public sealed record TemplateTextEdit(IReadOnlyList<TemplateTextBlockEdit> Blocks);
 
@@ -42,8 +43,10 @@ public partial class TemplatesView : UserControl
         public required TextBox XBox { get; init; }
         public required TextBox YBox { get; init; }
         public required TextBox SizeBox { get; init; }
-        public required Button OrientationButton { get; init; }
-        public TextBlockDirection Orientation { get; set; } = TextBlockDirection.LeftToRight;
+        public required Button LayoutButton { get; init; }
+        public required Button FlowButton { get; init; }
+        public TextBlockLayout Layout { get; set; } = TextBlockLayout.Horizontal;
+        public TextFlowDirection Flow { get; set; } = TextFlowDirection.Right;
     }
 
     public event RoutedEventHandler? ManageTemplatesRequested;
@@ -151,7 +154,8 @@ public partial class TemplatesView : UserControl
             ParsePos(row.YBox.Text, 0),
             ParseSize(row.SizeBox.Text, 4),
             false,
-            row.Orientation)).ToList());
+            row.Layout,
+            row.Flow)).ToList());
 
     private void RenderTextBlockEditors(IReadOnlyList<TemplateTextBlockViewItem> blocks)
     {
@@ -180,7 +184,11 @@ public partial class TemplatesView : UserControl
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
-            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
+
+            var (layout, flow) = TextBlockStyleHelper.GetStyle(block.Layout, block.Flow, block.Orientation);
 
             var textBorder = CreateEditorBox(block.Text, out var textBox);
             Grid.SetColumn(textBorder, 0);
@@ -198,19 +206,29 @@ public partial class TemplatesView : UserControl
             Grid.SetColumn(sizeBorder, 6);
             row.Children.Add(sizeBorder);
 
-            var orientationButton = new Button
+            var layoutButton = new Button
             {
-                Content = DirectionLabel(block.Orientation),
+                Content = LayoutLabel(layout),
                 Style = (Style)FindResource("SecondaryButton"),
                 Padding = new Thickness(6, 4, 6, 4),
-                ToolTip = "Г/В и направление: Г→ Г← В↓ В↑"
+                ToolTip = "Ориентация блока"
             };
-            Grid.SetColumn(orientationButton, 8);
-            row.Children.Add(orientationButton);
+            Grid.SetColumn(layoutButton, 8);
+            row.Children.Add(layoutButton);
+
+            var flowButton = new Button
+            {
+                Content = FlowLabel(flow),
+                Style = (Style)FindResource("SecondaryButton"),
+                Padding = new Thickness(6, 4, 6, 4),
+                ToolTip = "Направление текста: → ← ↓ ↑"
+            };
+            Grid.SetColumn(flowButton, 10);
+            row.Children.Add(flowButton);
 
             TextBlocksEditorPanel.Children.Add(new TextBlock
             {
-                Text = $"Строка {i + 1}: текст · X · Y · pt · Г/В · напр.",
+                Text = $"Строка {i + 1}: текст · X · Y · pt · блок · текст",
                 Style = (Style)FindResource("MutedText"),
                 Margin = new Thickness(0, i == 0 ? 0 : 4, 0, 4)
             });
@@ -222,13 +240,20 @@ public partial class TemplatesView : UserControl
                 XBox = xBox,
                 YBox = yBox,
                 SizeBox = sizeBox,
-                OrientationButton = orientationButton,
-                Orientation = block.Orientation
+                LayoutButton = layoutButton,
+                FlowButton = flowButton,
+                Layout = layout,
+                Flow = flow
             };
-            orientationButton.Click += (_, _) =>
+            layoutButton.Click += (_, _) =>
             {
-                rowRef.Orientation = (TextBlockDirection)(((int)rowRef.Orientation + 1) % 4);
-                orientationButton.Content = DirectionLabel(rowRef.Orientation);
+                rowRef.Layout = TextBlockStyleHelper.ToggleLayout(rowRef.Layout, rowRef.Flow);
+                layoutButton.Content = LayoutLabel(rowRef.Layout);
+            };
+            flowButton.Click += (_, _) =>
+            {
+                rowRef.Flow = (TextFlowDirection)(((int)rowRef.Flow + 1) % 4);
+                flowButton.Content = FlowLabel(rowRef.Flow);
             };
             _textBlockRows.Add(rowRef);
         }
@@ -434,17 +459,22 @@ public partial class TemplatesView : UserControl
             row.XBox.Text = Format(block.Xmm);
             row.YBox.Text = Format(block.Ymm);
             row.SizeBox.Text = Format(block.FontSizePt);
-            row.Orientation = block.Orientation;
-            row.OrientationButton.Content = DirectionLabel(block.Orientation);
+            row.Layout = block.Layout;
+            row.Flow = block.Flow;
+            row.LayoutButton.Content = LayoutLabel(block.Layout);
+            row.FlowButton.Content = FlowLabel(block.Flow);
         }
     }
 
-    private static string DirectionLabel(TextBlockDirection direction) => direction switch
+    private static string LayoutLabel(TextBlockLayout layout) =>
+        layout == TextBlockLayout.Vertical ? "В" : "Г";
+
+    private static string FlowLabel(TextFlowDirection flow) => flow switch
     {
-        TextBlockDirection.RightToLeft => "Г ←",
-        TextBlockDirection.TopToBottom => "В ↓",
-        TextBlockDirection.BottomToTop => "В ↑",
-        _ => "Г →"
+        TextFlowDirection.Left => "←",
+        TextFlowDirection.Up => "↑",
+        TextFlowDirection.Down => "↓",
+        _ => "→"
     };
 
     private void OnApplyTextBlocksClick(object sender, RoutedEventArgs e) =>
