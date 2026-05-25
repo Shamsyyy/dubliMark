@@ -1,4 +1,5 @@
 using System.Windows.Media;
+using DoubleMark.Core.Print;
 
 namespace DoubleMark.Desktop.Views;
 
@@ -86,7 +87,9 @@ public sealed record TemplateTextBlockViewItem(
     double Xmm,
     double Ymm,
     double FontSizePt,
-    bool Bold = false);
+    bool Bold = false,
+    string? PreviewText = null,
+    TextBlockDirection Orientation = TextBlockDirection.LeftToRight);
 
 public sealed record TemplateViewItem(
     string Name,

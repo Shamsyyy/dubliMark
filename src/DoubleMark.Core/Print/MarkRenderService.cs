@@ -19,17 +19,28 @@ public sealed class MarkRenderService
         var code = request.ParseResult.Code;
         var normalized = NormalizePayload(request.RawPayload, request.ParseResult);
         var baseTemplate = TemplateLayoutHelper.NormalizeForRender(request.Template);
-        var effectiveTemplate = baseTemplate with
-        {
-            TextBlocks = TemplateLayoutHelper.BuildEffectiveTextBlocks(
-                baseTemplate,
-                request.ShowDate,
-                request.ShowShipment,
-                request.ShowOrder).ToList()
-        };
+        var blockTemplates = TemplateLayoutHelper.BuildEffectiveTextBlocks(
+            baseTemplate,
+            request.ShowDate,
+            request.ShowShipment,
+            request.ShowOrder);
+        var substitutedBlocks = blockTemplates
+            .Select(block => block with
+            {
+                Text = SubstituteText(
+                    block.Text,
+                    code,
+                    timestamp,
+                    request.Source,
+                    request.ShipmentNumber,
+                    request.OrderNumber)
+            })
+            .ToList();
+        var effectiveTemplate = TemplateLayoutHelper.RelayoutTextBlocks(
+            baseTemplate with { TextBlocks = substitutedBlocks });
         var matrix = CreateDataMatrix(normalized, MmToPx(effectiveTemplate.DataMatrixWidthMm, request.Dpi),
             MmToPx(effectiveTemplate.DataMatrixHeightMm, request.Dpi));
-        var textBlocks = RenderTextBlocks(effectiveTemplate, code, timestamp, request.Source, request);
+        var textBlocks = RenderTextBlocks(effectiveTemplate);
         var png = RenderPng(effectiveTemplate, matrix, textBlocks, request.Dpi);
         var pdf = LabelPdfWriter.Encode(effectiveTemplate, matrix, textBlocks);
 
@@ -101,27 +112,11 @@ public sealed class MarkRenderService
             .Replace("{order_no}", order, StringComparison.Ordinal);
     }
 
-    private static IReadOnlyList<RenderedTextBlock> RenderTextBlocks(
-        PrintTemplate template,
-        MarkingCode code,
-        DateTimeOffset timestamp,
-        string source,
-        MarkRenderRequest request) =>
+    private static IReadOnlyList<RenderedTextBlock> RenderTextBlocks(PrintTemplate template) =>
         template.TextBlocks
             .Where(b => TemplateLayoutHelper.IsInsideLabel(template, b))
             .Where(b => !TemplateLayoutHelper.IntersectsDataMatrix(template, b))
-            .Select(t => new RenderedTextBlock(
-                SubstituteText(
-                    t.Text,
-                    code,
-                    timestamp,
-                    source,
-                    request.ShipmentNumber,
-                    request.OrderNumber),
-                t.Xmm,
-                t.Ymm,
-                t.FontSizePt,
-                t.Bold))
+            .Select(t => new RenderedTextBlock(t.Text, t.Xmm, t.Ymm, t.FontSizePt, t.Bold, t.Orientation))
             .ToList();
 
     private static BitMatrix CreateDataMatrix(string payload, int widthPx, int heightPx)
@@ -156,7 +151,19 @@ public sealed class MarkRenderService
             MmToPx(template.DataMatrixWidthMm, dpi),
             MmToPx(template.DataMatrixHeightMm, dpi));
         foreach (var block in textBlocks)
-            DrawTinyText(rgb, width, height, block, dpi);
+        {
+            TextBlockRenderHelper.PaintBlock(
+                rgb,
+                width,
+                height,
+                block.Text,
+                block.FontSizePt,
+                block.Bold,
+                block.Orientation,
+                dpi,
+                MmToPx(block.Xmm, dpi),
+                MmToPx(block.Ymm, dpi));
+        }
 
         return LabelPngWriter.EncodeRgb(width, height, rgb, dpi);
     }
@@ -201,53 +208,6 @@ public sealed class MarkRenderService
         }
     }
 
-    private static void DrawTinyText(byte[] rgb, int width, int height, RenderedTextBlock block, int dpi)
-    {
-        var scale = Math.Max(1, (int)Math.Round(block.FontSizePt * dpi / 72.0 / 7.0));
-        var x = MmToPx(block.Xmm, dpi);
-        var y = MmToPx(block.Ymm, dpi);
-
-        foreach (var ch in block.Text.ToUpperInvariant())
-        {
-            DrawGlyph(rgb, width, height, x, y, ch, scale, block.Bold);
-            x += 6 * scale;
-            if (x >= width)
-                break;
-        }
-    }
-
-    private static void DrawGlyph(byte[] rgb, int width, int height, int x, int y, char ch, int scale, bool bold)
-    {
-        var glyph = TinyFont.GetGlyph(ch);
-        for (var row = 0; row < glyph.Length; row++)
-        {
-            for (var col = 0; col < glyph[row].Length; col++)
-            {
-                if (glyph[row][col] != '1')
-                    continue;
-
-                FillRect(rgb, width, height, x + col * scale, y + row * scale, bold ? scale + 1 : scale, scale);
-            }
-        }
-    }
-
-    private static void FillRect(byte[] rgb, int width, int height, int x, int y, int w, int h)
-    {
-        for (var py = y; py < y + h; py++)
-        {
-            if (py < 0 || py >= height)
-                continue;
-
-            for (var px = x; px < x + w; px++)
-            {
-                if (px < 0 || px >= width)
-                    continue;
-
-                SetPixel(rgb, width, px, py, 0, 0, 0);
-            }
-        }
-    }
-
     private static void SetPixel(byte[] rgb, int width, int x, int y, byte r, byte g, byte b)
     {
         var idx = (y * width + x) * 3;
@@ -258,58 +218,4 @@ public sealed class MarkRenderService
 
     private static int MmToPx(double mm, int dpi) => Math.Max(1, (int)Math.Round(mm * dpi / 25.4));
     private static double MmToPt(double mm) => mm * 72.0 / 25.4;
-}
-
-internal static class TinyFont
-{
-    private static readonly string[] Unknown = ["111", "001", "010", "000", "010", "000", "010"];
-
-    public static string[] GetGlyph(char ch) =>
-        Glyphs.TryGetValue(ch, out var glyph) ? glyph : Unknown;
-
-    private static readonly Dictionary<char, string[]> Glyphs = new()
-    {
-        [' '] = ["000", "000", "000", "000", "000", "000", "000"],
-        ['-'] = ["000", "000", "000", "111", "000", "000", "000"],
-        ['_'] = ["000", "000", "000", "000", "000", "000", "111"],
-        ['.'] = ["000", "000", "000", "000", "000", "110", "110"],
-        [':'] = ["000", "110", "110", "000", "110", "110", "000"],
-        ['/'] = ["001", "001", "010", "010", "100", "100", "000"],
-        ['0'] = ["111", "101", "101", "101", "101", "101", "111"],
-        ['1'] = ["010", "110", "010", "010", "010", "010", "111"],
-        ['2'] = ["111", "001", "001", "111", "100", "100", "111"],
-        ['3'] = ["111", "001", "001", "111", "001", "001", "111"],
-        ['4'] = ["101", "101", "101", "111", "001", "001", "001"],
-        ['5'] = ["111", "100", "100", "111", "001", "001", "111"],
-        ['6'] = ["111", "100", "100", "111", "101", "101", "111"],
-        ['7'] = ["111", "001", "001", "010", "010", "100", "100"],
-        ['8'] = ["111", "101", "101", "111", "101", "101", "111"],
-        ['9'] = ["111", "101", "101", "111", "001", "001", "111"],
-        ['A'] = ["010", "101", "101", "111", "101", "101", "101"],
-        ['B'] = ["110", "101", "101", "110", "101", "101", "110"],
-        ['C'] = ["111", "100", "100", "100", "100", "100", "111"],
-        ['D'] = ["110", "101", "101", "101", "101", "101", "110"],
-        ['E'] = ["111", "100", "100", "110", "100", "100", "111"],
-        ['F'] = ["111", "100", "100", "110", "100", "100", "100"],
-        ['G'] = ["111", "100", "100", "101", "101", "101", "111"],
-        ['H'] = ["101", "101", "101", "111", "101", "101", "101"],
-        ['I'] = ["111", "010", "010", "010", "010", "010", "111"],
-        ['J'] = ["001", "001", "001", "001", "101", "101", "111"],
-        ['K'] = ["101", "101", "110", "100", "110", "101", "101"],
-        ['L'] = ["100", "100", "100", "100", "100", "100", "111"],
-        ['M'] = ["101", "111", "111", "101", "101", "101", "101"],
-        ['N'] = ["101", "111", "111", "111", "101", "101", "101"],
-        ['O'] = ["111", "101", "101", "101", "101", "101", "111"],
-        ['P'] = ["111", "101", "101", "111", "100", "100", "100"],
-        ['Q'] = ["111", "101", "101", "101", "111", "001", "001"],
-        ['R'] = ["111", "101", "101", "111", "110", "101", "101"],
-        ['S'] = ["111", "100", "100", "111", "001", "001", "111"],
-        ['T'] = ["111", "010", "010", "010", "010", "010", "010"],
-        ['U'] = ["101", "101", "101", "101", "101", "101", "111"],
-        ['V'] = ["101", "101", "101", "101", "101", "101", "010"],
-        ['W'] = ["101", "101", "101", "101", "111", "111", "101"],
-        ['X'] = ["101", "101", "101", "010", "101", "101", "101"],
-        ['Y'] = ["101", "101", "101", "010", "010", "010", "010"],
-        ['Z'] = ["111", "001", "001", "010", "100", "100", "111"]
-    };
 }

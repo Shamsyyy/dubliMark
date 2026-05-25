@@ -17,6 +17,8 @@ public partial class MainWindow
         view.DmPresetRequested += OnTemplatesDmPresetRequested;
         view.ApplyLayoutRequested += OnTemplatesApplyLayoutRequested;
         view.ApplyTextBlocksRequested += OnTemplatesApplyTextBlocksRequested;
+        view.TextBlocksEditedRequested += OnTemplatesCanvasTextEdited;
+        view.TextBlocksCommittedRequested += OnTemplatesCanvasTextCommitted;
         view.LabelExtrasApplyRequested += OnTemplatesLabelExtrasApplyRequested;
         view.PrintPreviewRequested += OnTemplatesPrintPreviewRequested;
         view.ManageTemplatesRequested += OnPrintTemplatesClick;
@@ -126,7 +128,37 @@ public partial class MainWindow
         if (!await EnsureSubscriptionForFeatureAsync("Управление шаблонами"))
             return;
 
-        var active = ResolveActiveTemplate();
+        if (!TryApplyTextBlocksInMemory(edit, out _))
+            return;
+
+        await SaveTemplatesAsync(ResolveActiveTemplate().Name);
+        RefreshSettingsIntoUi();
+        ShowToast("Позиции текста сохранены", ToastKind.Success);
+    }
+
+    private void OnTemplatesCanvasTextEdited(object? sender, TemplateTextEdit edit)
+    {
+        if (!TryApplyTextBlocksInMemory(edit, out var updated))
+            return;
+
+        _templatesView?.UpdatePreviewImage(RenderActiveTemplatePreview(updated));
+    }
+
+    private async void OnTemplatesCanvasTextCommitted(object? sender, TemplateTextEdit edit)
+    {
+        if (!await EnsureSubscriptionForFeatureAsync("Управление шаблонами"))
+            return;
+
+        if (!TryApplyTextBlocksInMemory(edit, out var updated))
+            return;
+
+        await SaveTemplatesAsync(updated.Name);
+        _templatesView?.UpdatePreviewImage(RenderActiveTemplatePreview(updated));
+    }
+
+    private bool TryApplyTextBlocksInMemory(TemplateTextEdit edit, out PrintTemplate updated)
+    {
+        updated = ResolveActiveTemplate();
         var blocks = edit.Blocks
             .Where(b => !string.IsNullOrWhiteSpace(b.Text))
             .Select(b => new PrintTextBlock
@@ -135,30 +167,30 @@ public partial class MainWindow
                 Xmm = b.Xmm,
                 Ymm = b.Ymm,
                 FontSizePt = Math.Clamp(b.FontSizePt, 2, 12),
-                Bold = b.Bold
+                Bold = b.Bold,
+                Orientation = b.Orientation
             })
             .ToList();
 
         if (blocks.Count == 0)
         {
             ShowToast("Добавьте хотя бы одну строку текста", ToastKind.Warning);
-            return;
+            return false;
         }
 
-        var updated = active with { TextBlocks = blocks };
+        updated = ResolveActiveTemplate() with { TextBlocks = blocks };
         if (!PrintTemplateService.IsUsable(updated))
         {
             ShowToast("Некорректные параметры текста", ToastKind.Warning);
-            return;
+            return false;
         }
 
+        var activeName = updated.Name;
+        var merged = updated;
         _printTemplates = _printTemplates
-            .Select(t => string.Equals(t.Name, active.Name, StringComparison.OrdinalIgnoreCase) ? updated : t)
+            .Select(t => string.Equals(t.Name, activeName, StringComparison.OrdinalIgnoreCase) ? merged : t)
             .ToList();
-
-        await SaveTemplatesAsync(active.Name);
-        RefreshSettingsIntoUi();
-        ShowToast("Позиции текста сохранены", ToastKind.Success);
+        return true;
     }
 
     private void OnTemplatesLabelExtrasApplyRequested(object? sender, LabelExtrasEdit extras)
