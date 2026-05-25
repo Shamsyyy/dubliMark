@@ -36,8 +36,7 @@ public sealed class MarkRenderService
                     request.OrderNumber)
             })
             .ToList();
-        var effectiveTemplate = TemplateLayoutHelper.RelayoutTextBlocks(
-            baseTemplate with { TextBlocks = substitutedBlocks });
+        var effectiveTemplate = baseTemplate with { TextBlocks = substitutedBlocks };
         var matrix = CreateDataMatrix(normalized, MmToPx(effectiveTemplate.DataMatrixWidthMm, request.Dpi),
             MmToPx(effectiveTemplate.DataMatrixHeightMm, request.Dpi));
         var textBlocks = RenderTextBlocks(effectiveTemplate);
@@ -115,7 +114,6 @@ public sealed class MarkRenderService
     private static IReadOnlyList<RenderedTextBlock> RenderTextBlocks(PrintTemplate template) =>
         template.TextBlocks
             .Where(b => TemplateLayoutHelper.IsInsideLabel(template, b))
-            .Where(b => !TemplateLayoutHelper.IntersectsDataMatrix(template, b))
             .Select(t => new RenderedTextBlock(t.Text, t.Xmm, t.Ymm, t.FontSizePt, t.Bold, t.Orientation))
             .ToList();
 

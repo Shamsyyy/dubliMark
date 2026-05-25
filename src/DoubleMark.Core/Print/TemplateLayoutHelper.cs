@@ -252,9 +252,7 @@ public static class TemplateLayoutHelper
         IReadOnlyList<LayoutRect> occupied,
         bool preserveManualPosition)
     {
-        if (preserveManualPosition
-            && IsInsideLabel(template, block)
-            && !occupied.Any(rect => Intersects(rect, GetTextRect(block))))
+        if (preserveManualPosition && IsInsideLabel(template, block))
             return block;
 
         var textW = TextRenderMetrics.MeasureTextWidthMm(block.Text, block.FontSizePt, block.Bold);
