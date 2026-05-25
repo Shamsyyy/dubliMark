@@ -46,6 +46,7 @@ public partial class TemplateLayoutCanvas : UserControl
         FontSmallerButton.IsEnabled = false;
         FontLargerButton.IsEnabled = false;
         SelectedFontSizeBox.IsEnabled = false;
+        LayoutToggleButton.IsEnabled = false;
     }
 
     public void LoadLayout(
@@ -244,10 +245,17 @@ public partial class TemplateLayoutCanvas : UserControl
         FontSmallerButton.IsEnabled = enabled;
         FontLargerButton.IsEnabled = enabled;
         SelectedFontSizeBox.IsEnabled = enabled;
-        DirRightButton.IsEnabled = enabled;
-        DirLeftButton.IsEnabled = enabled;
-        DirDownButton.IsEnabled = enabled;
-        DirUpButton.IsEnabled = enabled;
+        LayoutToggleButton.IsEnabled = enabled;
+
+        var vertical = enabled && TextBlockDirectionHelper.IsVertical(_selected!.Orientation);
+        DirRightButton.IsEnabled = enabled && !vertical;
+        DirLeftButton.IsEnabled = enabled && !vertical;
+        DirDownButton.IsEnabled = enabled && vertical;
+        DirUpButton.IsEnabled = enabled && vertical;
+        DirRightButton.Visibility = vertical ? Visibility.Collapsed : Visibility.Visible;
+        DirLeftButton.Visibility = vertical ? Visibility.Collapsed : Visibility.Visible;
+        DirDownButton.Visibility = vertical ? Visibility.Visible : Visibility.Collapsed;
+        DirUpButton.Visibility = vertical ? Visibility.Visible : Visibility.Collapsed;
 
         _isUpdatingFontBox = true;
         try
@@ -255,6 +263,7 @@ public partial class TemplateLayoutCanvas : UserControl
             SelectedFontSizeBox.Text = enabled
                 ? _selected!.FontSizePt.ToString("0.#", CultureInfo.InvariantCulture)
                 : "—";
+            LayoutToggleButton.Content = vertical ? "Верт." : "Гориз.";
         }
         finally
         {
@@ -275,6 +284,17 @@ public partial class TemplateLayoutCanvas : UserControl
         button.Foreground = active
             ? Brushes.White
             : (Brush)FindResource("TextBrush");
+    }
+
+    private void OnLayoutToggleClick(object sender, RoutedEventArgs e)
+    {
+        if (_selected == null)
+            return;
+
+        _selected.Orientation = TextBlockDirectionHelper.ToggleLayout(_selected.Orientation);
+        RefreshHandleVisual(_selected);
+        UpdateFontControls();
+        RaiseEdited();
     }
 
     private void OnDirRightClick(object sender, RoutedEventArgs e) => SetDirection(TextBlockDirection.LeftToRight);

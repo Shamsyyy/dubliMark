@@ -23,9 +23,12 @@ internal static class TextRenderMetrics
         var scale = GetScaleFactor(fontSizePt, dpi);
         var widthPx = 0;
         foreach (var rawCh in text.ToUpperInvariant())
-            widthPx += TinyFont.AdvanceWidthPx(NormalizeChar(rawCh), scale, bold);
+            widthPx += AdvanceWidthPx(NormalizeChar(rawCh), scale, bold);
         return Math.Max(1, widthPx);
     }
+
+    public static int AdvanceWidthPx(char ch, double scale, bool bold) =>
+        TinyFont.AdvanceWidthPx(ch, scale, bold);
 
     public static int MeasureGlyphWidthPx(double fontSizePt, bool bold, int dpi)
     {

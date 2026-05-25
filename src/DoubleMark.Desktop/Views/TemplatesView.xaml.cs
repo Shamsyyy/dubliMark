@@ -203,14 +203,14 @@ public partial class TemplatesView : UserControl
                 Content = DirectionLabel(block.Orientation),
                 Style = (Style)FindResource("SecondaryButton"),
                 Padding = new Thickness(6, 4, 6, 4),
-                ToolTip = "Направление: → ← ↓ ↑"
+                ToolTip = "Г/В и направление: Г→ Г← В↓ В↑"
             };
             Grid.SetColumn(orientationButton, 8);
             row.Children.Add(orientationButton);
 
             TextBlocksEditorPanel.Children.Add(new TextBlock
             {
-                Text = $"Строка {i + 1}: текст · X · Y · pt · направление",
+                Text = $"Строка {i + 1}: текст · X · Y · pt · Г/В · напр.",
                 Style = (Style)FindResource("MutedText"),
                 Margin = new Thickness(0, i == 0 ? 0 : 4, 0, 4)
             });
@@ -441,10 +441,10 @@ public partial class TemplatesView : UserControl
 
     private static string DirectionLabel(TextBlockDirection direction) => direction switch
     {
-        TextBlockDirection.RightToLeft => "←",
-        TextBlockDirection.TopToBottom => "↓",
-        TextBlockDirection.BottomToTop => "↑",
-        _ => "→"
+        TextBlockDirection.RightToLeft => "Г ←",
+        TextBlockDirection.TopToBottom => "В ↓",
+        TextBlockDirection.BottomToTop => "В ↑",
+        _ => "Г →"
     };
 
     private void OnApplyTextBlocksClick(object sender, RoutedEventArgs e) =>
