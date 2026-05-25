@@ -1,44 +1,5 @@
 namespace DoubleMark.Core.Print;
 
-/// <summary>
-/// Text flow on the label. Values 0–1 are legacy horizontal/vertical; 2–3 add reversed horizontal and vertical facing right.
-/// </summary>
-public enum TextBlockDirection
-{
-    /// <summary>Horizontal, left to right.</summary>
-    LeftToRight = 0,
-
-    /// <summary>Vertical, top to bottom, glyphs face left.</summary>
-    TopToBottom = 1,
-
-    /// <summary>Horizontal, right to left.</summary>
-    RightToLeft = 2,
-
-    /// <summary>Vertical, bottom to top, glyphs face right.</summary>
-    BottomToTop = 3
-}
-
-public static class TextBlockDirectionHelper
-{
-    public static bool IsVertical(TextBlockDirection direction) =>
-        direction is TextBlockDirection.TopToBottom or TextBlockDirection.BottomToTop;
-
-    public static bool IsHorizontal(TextBlockDirection direction) => !IsVertical(direction);
-
-    public static TextBlockDirection DefaultForLayout(bool vertical) =>
-        vertical ? TextBlockDirection.TopToBottom : TextBlockDirection.LeftToRight;
-
-    public static TextBlockDirection ToggleLayout(TextBlockDirection current) =>
-        current switch
-        {
-            TextBlockDirection.LeftToRight => TextBlockDirection.TopToBottom,
-            TextBlockDirection.RightToLeft => TextBlockDirection.BottomToTop,
-            TextBlockDirection.TopToBottom => TextBlockDirection.LeftToRight,
-            TextBlockDirection.BottomToTop => TextBlockDirection.RightToLeft,
-            _ => TextBlockDirection.LeftToRight
-        };
-}
-
 public static class TextBlockRenderHelper
 {
     private const int GlyphRows = 7;
@@ -51,17 +12,26 @@ public static class TextBlockRenderHelper
         CounterClockwise90
     }
 
-    public static bool IsVertical(TextBlockDirection direction) =>
-        TextBlockDirectionHelper.IsVertical(direction);
+    private enum TextPaintMode
+    {
+        HorizontalLtr,
+        HorizontalRtl,
+        VerticalTtbFaceLeft,
+        VerticalTtbFaceRight,
+        VerticalBttFaceLeft,
+        VerticalBttFaceRight
+    }
 
     public static (double WidthMm, double HeightMm) MeasureBlockMm(
         string text,
         double fontSizePt,
         bool bold,
-        TextBlockDirection direction,
+        TextBlockLayout layout,
+        TextFlowDirection flow,
         int dpi = 300)
     {
-        if (IsVertical(direction))
+        var mode = ResolvePaintMode(layout, flow);
+        if (IsVerticalRun(mode))
         {
             var runPx = MeasureVerticalRunPx(text, fontSizePt, bold, dpi);
             var glyphW = MeasureVerticalGlyphWidthPx(fontSizePt, dpi);
@@ -73,18 +43,32 @@ public static class TextBlockRenderHelper
         return (horizontalRunPx * 25.4 / dpi, glyphH * 25.4 / dpi);
     }
 
+    public static (double WidthMm, double HeightMm) MeasureBlockMm(
+        string text,
+        double fontSizePt,
+        bool bold,
+        TextBlockLayout? layout,
+        TextFlowDirection? flow,
+        TextBlockDirection? legacyOrientation = null,
+        int dpi = 300)
+    {
+        var (l, f) = TextBlockStyleHelper.GetStyle(layout, flow, legacyOrientation);
+        return MeasureBlockMm(text, fontSizePt, bold, l, f, dpi);
+    }
+
     public static byte[] RenderSnippetPng(
         string text,
         double fontSizePt,
         bool bold,
-        TextBlockDirection direction,
+        TextBlockLayout layout,
+        TextFlowDirection flow,
         int dpi = 300)
     {
-        var (widthMm, heightMm) = MeasureBlockMm(text, fontSizePt, bold, direction, dpi);
+        var (widthMm, heightMm) = MeasureBlockMm(text, fontSizePt, bold, layout, flow, dpi);
         var widthPx = Math.Max(1, (int)Math.Ceiling(widthMm * dpi / 25.4));
         var heightPx = Math.Max(1, (int)Math.Ceiling(heightMm * dpi / 25.4));
         var rgb = Enumerable.Repeat((byte)255, widthPx * heightPx * 3).ToArray();
-        PaintBlock(rgb, widthPx, heightPx, text, fontSizePt, bold, direction, dpi, 0, 0);
+        PaintBlock(rgb, widthPx, heightPx, text, fontSizePt, bold, layout, flow, dpi, 0, 0);
         return LabelPngWriter.EncodeRgb(widthPx, heightPx, rgb, dpi);
     }
 
@@ -95,7 +79,8 @@ public static class TextBlockRenderHelper
         string text,
         double fontSizePt,
         bool bold,
-        TextBlockDirection direction,
+        TextBlockLayout layout,
+        TextFlowDirection flow,
         int dpi,
         int leftPx,
         int topPx)
@@ -106,9 +91,9 @@ public static class TextBlockRenderHelper
         if (chars.Count == 0)
             return;
 
-        switch (direction)
+        switch (ResolvePaintMode(layout, flow))
         {
-            case TextBlockDirection.RightToLeft:
+            case TextPaintMode.HorizontalRtl:
             {
                 var x = leftPx + TextRenderMetrics.MeasureTextRunPx(text, fontSizePt, bold, dpi);
                 foreach (var ch in chars)
@@ -119,30 +104,22 @@ public static class TextBlockRenderHelper
 
                 break;
             }
-            case TextBlockDirection.BottomToTop:
-            {
-                var y = topPx + MeasureVerticalRunPx(text, fontSizePt, bold, dpi);
-                foreach (var ch in chars)
-                {
-                    y -= AdvanceVerticalPx(ch, scaleFactor, bold);
-                    PaintGlyph(rgb, canvasWidth, canvasHeight, leftPx, y, ch, paintScale, bold, GlyphRotation.Clockwise90);
-                }
-
+            case TextPaintMode.VerticalBttFaceRight:
+                PaintVerticalRun(rgb, canvasWidth, canvasHeight, chars, leftPx, topPx, scaleFactor, paintScale, bold,
+                    bottomToTop: true, GlyphRotation.Clockwise90, text, fontSizePt, dpi);
                 break;
-            }
-            case TextBlockDirection.TopToBottom:
-            {
-                var y = topPx;
-                foreach (var ch in chars)
-                {
-                    PaintGlyph(rgb, canvasWidth, canvasHeight, leftPx, y, ch, paintScale, bold, GlyphRotation.CounterClockwise90);
-                    y += AdvanceVerticalPx(ch, scaleFactor, bold);
-                    if (y >= canvasHeight)
-                        break;
-                }
-
+            case TextPaintMode.VerticalBttFaceLeft:
+                PaintVerticalRun(rgb, canvasWidth, canvasHeight, chars, leftPx, topPx, scaleFactor, paintScale, bold,
+                    bottomToTop: true, GlyphRotation.CounterClockwise90, text, fontSizePt, dpi);
                 break;
-            }
+            case TextPaintMode.VerticalTtbFaceRight:
+                PaintVerticalRun(rgb, canvasWidth, canvasHeight, chars, leftPx, topPx, scaleFactor, paintScale, bold,
+                    bottomToTop: false, GlyphRotation.Clockwise90, text, fontSizePt, dpi);
+                break;
+            case TextPaintMode.VerticalTtbFaceLeft:
+                PaintVerticalRun(rgb, canvasWidth, canvasHeight, chars, leftPx, topPx, scaleFactor, paintScale, bold,
+                    bottomToTop: false, GlyphRotation.CounterClockwise90, text, fontSizePt, dpi);
+                break;
             default:
             {
                 var x = leftPx;
@@ -156,6 +133,85 @@ public static class TextBlockRenderHelper
 
                 break;
             }
+        }
+    }
+
+    public static void PaintBlock(
+        byte[] rgb,
+        int canvasWidth,
+        int canvasHeight,
+        string text,
+        double fontSizePt,
+        bool bold,
+        PrintTextBlock block,
+        int dpi,
+        int leftPx,
+        int topPx)
+    {
+        var (layout, flow) = block.GetStyle();
+        PaintBlock(rgb, canvasWidth, canvasHeight, text, fontSizePt, bold, layout, flow, dpi, leftPx, topPx);
+    }
+
+    private static TextPaintMode ResolvePaintMode(TextBlockLayout layout, TextFlowDirection flow)
+    {
+        if (layout == TextBlockLayout.Horizontal)
+        {
+            return flow switch
+            {
+                TextFlowDirection.Left => TextPaintMode.HorizontalRtl,
+                TextFlowDirection.Up => TextPaintMode.VerticalBttFaceRight,
+                TextFlowDirection.Down => TextPaintMode.VerticalTtbFaceLeft,
+                _ => TextPaintMode.HorizontalLtr
+            };
+        }
+
+        return flow switch
+        {
+            TextFlowDirection.Up => TextPaintMode.VerticalBttFaceRight,
+            TextFlowDirection.Right => TextPaintMode.VerticalTtbFaceRight,
+            TextFlowDirection.Left => TextPaintMode.VerticalBttFaceLeft,
+            _ => TextPaintMode.VerticalTtbFaceLeft
+        };
+    }
+
+    private static bool IsVerticalRun(TextPaintMode mode) =>
+        mode is not TextPaintMode.HorizontalLtr and not TextPaintMode.HorizontalRtl;
+
+    private static void PaintVerticalRun(
+        byte[] rgb,
+        int canvasWidth,
+        int canvasHeight,
+        IReadOnlyList<char> chars,
+        int leftPx,
+        int topPx,
+        double scaleFactor,
+        int paintScale,
+        bool bold,
+        bool bottomToTop,
+        GlyphRotation rotation,
+        string text,
+        double fontSizePt,
+        int dpi)
+    {
+        if (bottomToTop)
+        {
+            var y = topPx + MeasureVerticalRunPx(text, fontSizePt, bold, dpi);
+            foreach (var ch in chars)
+            {
+                y -= AdvanceVerticalPx(ch, scaleFactor, bold);
+                PaintGlyph(rgb, canvasWidth, canvasHeight, leftPx, y, ch, paintScale, bold, rotation);
+            }
+
+            return;
+        }
+
+        var cursorY = topPx;
+        foreach (var ch in chars)
+        {
+            PaintGlyph(rgb, canvasWidth, canvasHeight, leftPx, cursorY, ch, paintScale, bold, rotation);
+            cursorY += AdvanceVerticalPx(ch, scaleFactor, bold);
+            if (cursorY >= canvasHeight)
+                break;
         }
     }
 
@@ -254,4 +310,10 @@ public static class TextBlockRenderHelper
             }
         }
     }
+}
+
+public static class PrintTextBlockStyleExtensions
+{
+    public static (TextBlockLayout Layout, TextFlowDirection Flow) GetStyle(this PrintTextBlock block) =>
+        TextBlockStyleHelper.GetStyle(block.Layout, block.Flow, block.Orientation);
 }

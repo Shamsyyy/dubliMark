@@ -227,8 +227,11 @@ public static class TemplateLayoutHelper
                && rect.Y + rect.H <= template.LabelHeightMm + 0.05;
     }
 
-    public static (double WidthMm, double HeightMm) MeasureTextBlockMm(PrintTextBlock block, int dpi = 300) =>
-        TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.Orientation, dpi);
+    public static (double WidthMm, double HeightMm) MeasureTextBlockMm(PrintTextBlock block, int dpi = 300)
+    {
+        var (layout, flow) = block.GetStyle();
+        return TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, layout, flow, dpi);
+    }
 
     private static PrintTextBlock PlaceDynamicBlock(
         PrintTemplate template,
@@ -291,7 +294,8 @@ public static class TemplateLayoutHelper
 
     private static LayoutRect GetTextRect(PrintTextBlock block, int dpi = 300)
     {
-        var (w, h) = TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.Orientation, dpi);
+        var (layout, flow) = block.GetStyle();
+        var (w, h) = TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, layout, flow, dpi);
         return new(block.Xmm, block.Ymm, w, h);
     }
 
@@ -305,11 +309,17 @@ public static class TemplateLayoutHelper
     private static bool Intersects(LayoutRect a, LayoutRect b) =>
         a.X < b.X + b.W && a.X + a.W > b.X && a.Y < b.Y + b.H && a.Y + a.H > b.Y;
 
-    private static double EstimateTextHeightMm(PrintTextBlock block) =>
-        TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.Orientation).HeightMm;
+    private static double EstimateTextHeightMm(PrintTextBlock block)
+    {
+        var (layout, flow) = block.GetStyle();
+        return TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, layout, flow).HeightMm;
+    }
 
-    private static double EstimateTextWidthMm(PrintTextBlock block) =>
-        TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.Orientation).WidthMm;
+    private static double EstimateTextWidthMm(PrintTextBlock block)
+    {
+        var (layout, flow) = block.GetStyle();
+        return TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, layout, flow).WidthMm;
+    }
 
     private static double RoundMm(double value) => Math.Round(value, 1);
 

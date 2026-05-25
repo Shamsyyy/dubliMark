@@ -9,7 +9,12 @@ public sealed record PrintTextBlock
     public double Ymm { get; init; }
     public double FontSizePt { get; init; } = 6;
     public bool Bold { get; init; }
-    public TextBlockDirection Orientation { get; init; } = TextBlockDirection.LeftToRight;
+
+    public TextBlockLayout? Layout { get; init; }
+    public TextFlowDirection? Flow { get; init; }
+
+    [JsonPropertyName("Orientation")]
+    public TextBlockDirection? Orientation { get; init; }
 }
 
 public sealed record PrintTemplate
