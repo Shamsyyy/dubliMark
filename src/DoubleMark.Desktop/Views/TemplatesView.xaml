@@ -1,6 +1,7 @@
 <UserControl x:Class="DoubleMark.Desktop.Views.TemplatesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:DoubleMark.Desktop.Views"
              FontFamily="Segoe UI">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="24,0,24,24">
@@ -187,14 +188,12 @@
                 </Border>
 
                 <Border Style="{StaticResource Card}">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="Предпросмотр печати" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
-                        <Border Grid.Row="1" Background="#F7FAFC" CornerRadius="18" MinHeight="240" Padding="18" ClipToBounds="True">
+                    <StackPanel>
+                        <TextBlock Text="Макет этикетки" Style="{StaticResource CardTitle}" Margin="0,0,0,10"/>
+                        <views:TemplateLayoutCanvas x:Name="LayoutCanvas" Margin="0,0,0,14"/>
+
+                        <TextBlock Text="Предпросмотр печати" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
+                        <Border Background="#F7FAFC" CornerRadius="18" MinHeight="180" Padding="18" ClipToBounds="True">
                             <Grid>
                                 <TextBlock x:Name="TemplatePreviewPlaceholder"
                                            Text="Предпросмотр появится после выбора шаблона"
@@ -203,12 +202,12 @@
                                            VerticalAlignment="Center"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap"/>
-                                <Image x:Name="TemplatePreviewImage" Stretch="Uniform" MaxHeight="280"/>
+                                <Image x:Name="TemplatePreviewImage" Stretch="Uniform" MaxHeight="220"/>
                             </Grid>
                         </Border>
-                        <Button Grid.Row="2" Style="{StaticResource PrimaryButton}" Content="Открыть предпросмотр"
+                        <Button Style="{StaticResource PrimaryButton}" Content="Открыть предпросмотр"
                                 Click="OnPrintPreviewClick" HorizontalAlignment="Left" Margin="0,14,0,0"/>
-                    </Grid>
+                    </StackPanel>
                 </Border>
             </StackPanel>
         </Grid>

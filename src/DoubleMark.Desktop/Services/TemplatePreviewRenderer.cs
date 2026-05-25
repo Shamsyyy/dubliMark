@@ -25,7 +25,7 @@ public static class TemplatePreviewRenderer
         ParseResult? scanResult = null,
         string? rawPayload = null,
         string source = "Preview",
-        int dpi = 150)
+        int dpi = 300)
     {
         ParseResult parse;
         string raw;
