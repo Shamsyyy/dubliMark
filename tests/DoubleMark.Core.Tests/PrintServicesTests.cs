@@ -271,6 +271,52 @@ public sealed class PrintServicesTests
     }
 
     [Fact]
+    public void Render_SerialWithSpecialChars_DoesNotOverlapTextBlocks()
+    {
+        var raw = $"0104014835848810215vpZYG%7'T!qV{GS}91KEY1{GS}92CRYPTO";
+        var result = _parser.Parse(raw);
+        result.IsValid.Should().BeTrue(result.ErrorMessage);
+
+        var render = new MarkRenderService().Render(new MarkRenderRequest
+        {
+            RawPayload = raw,
+            ParseResult = result,
+            Template = _template,
+            Source = "HID",
+            Timestamp = new DateTimeOffset(2026, 5, 25, 12, 0, 0, TimeSpan.Zero)
+        });
+
+        render.Serial.Should().Be("5vpZYG%7'T!qV");
+        var rects = render.Template.TextBlocks
+            .Where(b => TemplateLayoutHelper.IsInsideLabel(render.Template, b, render.Dpi))
+            .Select(b => GetBlockRect(b, render.Dpi))
+            .ToList();
+
+        for (var i = 0; i < rects.Count; i++)
+        for (var j = i + 1; j < rects.Count; j++)
+        {
+            var a = rects[i];
+            var b = rects[j];
+            var overlap = a.X < b.X + b.W && a.X + a.W > b.X && a.Y < b.Y + b.H && a.Y + a.H > b.Y;
+            overlap.Should().BeFalse($"blocks '{a.Text}' and '{b.Text}' overlap");
+        }
+    }
+
+    private static (string Text, double X, double Y, double W, double H) GetBlockRect(PrintTextBlock block, int dpi)
+    {
+        var (w, h) = TemplateLayoutHelper.MeasureTextBlockMm(
+            new PrintTextBlock
+            {
+                Text = block.Text,
+                FontSizePt = block.FontSizePt,
+                Bold = block.Bold,
+                Orientation = block.Orientation
+            },
+            dpi);
+        return (block.Text, block.Xmm, block.Ymm, w, h);
+    }
+
+    [Fact]
     public void TemplateLayoutHelper_RelayoutTextBlocks_AvoidsDataMatrixOverlap()
     {
         var template = new PrintTemplate

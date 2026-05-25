@@ -9,6 +9,7 @@ public sealed record PrintTextBlock
     public double Ymm { get; init; }
     public double FontSizePt { get; init; } = 6;
     public bool Bold { get; init; }
+    public TextBlockDirection Orientation { get; init; } = TextBlockDirection.LeftToRight;
 }
 
 public sealed record PrintTemplate
