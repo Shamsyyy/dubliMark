@@ -29,7 +29,14 @@ public static class TextBlockDirectionHelper
         vertical ? TextBlockDirection.TopToBottom : TextBlockDirection.LeftToRight;
 
     public static TextBlockDirection ToggleLayout(TextBlockDirection current) =>
-        IsVertical(current) ? TextBlockDirection.LeftToRight : TextBlockDirection.TopToBottom;
+        current switch
+        {
+            TextBlockDirection.LeftToRight => TextBlockDirection.TopToBottom,
+            TextBlockDirection.RightToLeft => TextBlockDirection.BottomToTop,
+            TextBlockDirection.TopToBottom => TextBlockDirection.LeftToRight,
+            TextBlockDirection.BottomToTop => TextBlockDirection.RightToLeft,
+            _ => TextBlockDirection.LeftToRight
+        };
 }
 
 public static class TextBlockRenderHelper
@@ -93,7 +100,8 @@ public static class TextBlockRenderHelper
         int leftPx,
         int topPx)
     {
-        var scale = TextRenderMetrics.GetScaleFactor(fontSizePt, dpi);
+        var scaleFactor = TextRenderMetrics.GetScaleFactor(fontSizePt, dpi);
+        var paintScale = TextRenderMetrics.GetScale(fontSizePt, dpi);
         var chars = text.ToUpperInvariant().Select(TextRenderMetrics.NormalizeChar).ToList();
         if (chars.Count == 0)
             return;
@@ -105,8 +113,8 @@ public static class TextBlockRenderHelper
                 var x = leftPx + TextRenderMetrics.MeasureTextRunPx(text, fontSizePt, bold, dpi);
                 foreach (var ch in chars)
                 {
-                    x -= TextRenderMetrics.AdvanceWidthPx(ch, scale, bold);
-                    PaintGlyph(rgb, canvasWidth, canvasHeight, x, topPx, ch, scale, bold, GlyphRotation.None);
+                    x -= TextRenderMetrics.AdvanceWidthPx(ch, scaleFactor, bold);
+                    PaintGlyph(rgb, canvasWidth, canvasHeight, x, topPx, ch, paintScale, bold, GlyphRotation.None);
                 }
 
                 break;
@@ -116,8 +124,8 @@ public static class TextBlockRenderHelper
                 var y = topPx + MeasureVerticalRunPx(text, fontSizePt, bold, dpi);
                 foreach (var ch in chars)
                 {
-                    y -= AdvanceVerticalPx(ch, scale, bold);
-                    PaintGlyph(rgb, canvasWidth, canvasHeight, leftPx, y, ch, scale, bold, GlyphRotation.Clockwise90);
+                    y -= AdvanceVerticalPx(ch, scaleFactor, bold);
+                    PaintGlyph(rgb, canvasWidth, canvasHeight, leftPx, y, ch, paintScale, bold, GlyphRotation.Clockwise90);
                 }
 
                 break;
@@ -127,8 +135,8 @@ public static class TextBlockRenderHelper
                 var y = topPx;
                 foreach (var ch in chars)
                 {
-                    PaintGlyph(rgb, canvasWidth, canvasHeight, leftPx, y, ch, scale, bold, GlyphRotation.CounterClockwise90);
-                    y += AdvanceVerticalPx(ch, scale, bold);
+                    PaintGlyph(rgb, canvasWidth, canvasHeight, leftPx, y, ch, paintScale, bold, GlyphRotation.CounterClockwise90);
+                    y += AdvanceVerticalPx(ch, scaleFactor, bold);
                     if (y >= canvasHeight)
                         break;
                 }
@@ -140,8 +148,8 @@ public static class TextBlockRenderHelper
                 var x = leftPx;
                 foreach (var ch in chars)
                 {
-                    PaintGlyph(rgb, canvasWidth, canvasHeight, x, topPx, ch, scale, bold, GlyphRotation.None);
-                    x += TextRenderMetrics.AdvanceWidthPx(ch, scale, bold);
+                    PaintGlyph(rgb, canvasWidth, canvasHeight, x, topPx, ch, paintScale, bold, GlyphRotation.None);
+                    x += TextRenderMetrics.AdvanceWidthPx(ch, scaleFactor, bold);
                     if (x >= canvasWidth)
                         break;
                 }
@@ -160,11 +168,8 @@ public static class TextBlockRenderHelper
         return Math.Max(1, heightPx);
     }
 
-    private static int MeasureVerticalGlyphWidthPx(double fontSizePt, int dpi)
-    {
-        var scale = TextRenderMetrics.GetScaleFactor(fontSizePt, dpi);
-        return Math.Max(1, (int)Math.Ceiling(GlyphRows * scale));
-    }
+    private static int MeasureVerticalGlyphWidthPx(double fontSizePt, int dpi) =>
+        Math.Max(1, GlyphRows * TextRenderMetrics.GetScale(fontSizePt, dpi));
 
     private static int AdvanceVerticalPx(char ch, double scale, bool bold) =>
         TextRenderMetrics.AdvanceWidthPx(ch, scale, bold);
@@ -176,7 +181,7 @@ public static class TextBlockRenderHelper
         int x,
         int y,
         char ch,
-        double scale,
+        int paintScale,
         bool bold,
         GlyphRotation rotation)
     {
@@ -188,7 +193,7 @@ public static class TextBlockRenderHelper
                 if (glyph[row][col] != '1')
                     continue;
 
-                GetScaledRect(x, y, col, row, scale, bold, rotation, out var px0, out var py0, out var px1, out var py1);
+                GetScaledRect(x, y, col, row, paintScale, bold, rotation, out var px0, out var py0, out var px1, out var py1);
                 FillRect(rgb, width, height, px0, py0, Math.Max(1, px1 - px0), Math.Max(1, py1 - py0));
             }
         }
@@ -199,7 +204,7 @@ public static class TextBlockRenderHelper
         int y,
         int col,
         int row,
-        double scale,
+        int paintScale,
         bool bold,
         GlyphRotation rotation,
         out int px0,
@@ -210,22 +215,22 @@ public static class TextBlockRenderHelper
         switch (rotation)
         {
             case GlyphRotation.Clockwise90:
-                px0 = x + (int)Math.Floor((GlyphRows - 1 - row) * scale);
-                py0 = y + (int)Math.Floor(col * scale);
-                px1 = x + (int)Math.Floor((GlyphRows - row) * scale);
-                py1 = y + (int)Math.Floor((col + 1) * scale + (bold ? 1 : 0));
+                px0 = x + (GlyphRows - 1 - row) * paintScale;
+                py0 = y + col * paintScale;
+                px1 = x + (GlyphRows - row) * paintScale;
+                py1 = y + (col + 1) * paintScale + (bold ? 1 : 0);
                 return;
             case GlyphRotation.CounterClockwise90:
-                px0 = x + (int)Math.Floor(row * scale);
-                py0 = y + (int)Math.Floor((GlyphWidth - 1 - col) * scale);
-                px1 = x + (int)Math.Floor((row + 1) * scale);
-                py1 = y + (int)Math.Floor((GlyphWidth - col) * scale + (bold ? 1 : 0));
+                px0 = x + row * paintScale;
+                py0 = y + (GlyphWidth - 1 - col) * paintScale;
+                px1 = x + (row + 1) * paintScale;
+                py1 = y + (GlyphWidth - col) * paintScale + (bold ? 1 : 0);
                 return;
             default:
-                px0 = x + (int)Math.Floor(col * scale);
-                py0 = y + (int)Math.Floor(row * scale);
-                px1 = x + (int)Math.Floor((col + 1) * scale + (bold ? 1 : 0));
-                py1 = y + (int)Math.Floor((row + 1) * scale);
+                px0 = x + col * paintScale;
+                py0 = y + row * paintScale;
+                px1 = x + (col + 1) * paintScale + (bold ? 1 : 0);
+                py1 = y + (row + 1) * paintScale;
                 return;
         }
     }

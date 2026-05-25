@@ -246,16 +246,12 @@ public partial class TemplateLayoutCanvas : UserControl
         FontLargerButton.IsEnabled = enabled;
         SelectedFontSizeBox.IsEnabled = enabled;
         LayoutToggleButton.IsEnabled = enabled;
+        DirRightButton.IsEnabled = enabled;
+        DirLeftButton.IsEnabled = enabled;
+        DirDownButton.IsEnabled = enabled;
+        DirUpButton.IsEnabled = enabled;
 
         var vertical = enabled && TextBlockDirectionHelper.IsVertical(_selected!.Orientation);
-        DirRightButton.IsEnabled = enabled && !vertical;
-        DirLeftButton.IsEnabled = enabled && !vertical;
-        DirDownButton.IsEnabled = enabled && vertical;
-        DirUpButton.IsEnabled = enabled && vertical;
-        DirRightButton.Visibility = vertical ? Visibility.Collapsed : Visibility.Visible;
-        DirLeftButton.Visibility = vertical ? Visibility.Collapsed : Visibility.Visible;
-        DirDownButton.Visibility = vertical ? Visibility.Visible : Visibility.Collapsed;
-        DirUpButton.Visibility = vertical ? Visibility.Visible : Visibility.Collapsed;
 
         _isUpdatingFontBox = true;
         try

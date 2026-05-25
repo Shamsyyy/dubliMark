@@ -317,28 +317,30 @@ public sealed class PrintServicesTests
     }
 
     [Fact]
-    public void TemplateLayoutHelper_RelayoutTextBlocks_AvoidsDataMatrixOverlap()
+    public void TemplateLayoutHelper_RelayoutTextBlocks_PreservesManualPositionOverDataMatrix()
     {
         var template = new PrintTemplate
         {
             Name = "Small",
-            LabelWidthMm = 13,
-            LabelHeightMm = 13,
-            DataMatrixWidthMm = 13,
-            DataMatrixHeightMm = 13,
-            DataMatrixXmm = 0,
-            DataMatrixYmm = 0,
+            LabelWidthMm = 30,
+            LabelHeightMm = 20,
+            DataMatrixWidthMm = 14,
+            DataMatrixHeightMm = 14,
+            DataMatrixXmm = 8,
+            DataMatrixYmm = 3,
             DefaultCopies = 1,
             TextBlocks =
             {
-                new PrintTextBlock { Text = "{date} {time}", Xmm = 2, Ymm = 9.5, FontSizePt = 4 }
+                new PrintTextBlock { Text = "{date} {time}", Xmm = 7, Ymm = 4, FontSizePt = 4, Orientation = TextBlockDirection.BottomToTop }
             }
         };
 
         var updated = TemplateLayoutHelper.RelayoutTextBlocks(template);
 
-        foreach (var block in updated.TextBlocks)
-            TemplateLayoutHelper.IntersectsDataMatrix(updated, block).Should().BeFalse();
+        updated.TextBlocks[0].Xmm.Should().Be(7);
+        updated.TextBlocks[0].Ymm.Should().Be(4);
+        updated.TextBlocks[0].Orientation.Should().Be(TextBlockDirection.BottomToTop);
+        TemplateLayoutHelper.IntersectsDataMatrix(updated, updated.TextBlocks[0]).Should().BeTrue();
     }
 
     private MarkRenderResult Render(string raw, string source)
