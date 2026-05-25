@@ -10,19 +10,19 @@
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" x:Name="ScaleInfoText" Style="{StaticResource MutedText}" TextWrapping="Wrap"/>
             <WrapPanel Grid.Row="1" HorizontalAlignment="Right" Margin="0,8,0,0">
-                <TextBlock Text="Ориентация:" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,6,0,4"/>
+                <TextBlock Text="Ориентация:" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,6,4"/>
                 <Button x:Name="LayoutToggleButton" Content="Гориз." Style="{StaticResource SecondaryButton}"
-                        Padding="10,4" Margin="0,0,12,0,4" ToolTip="Горизонтальная / вертикальная" Click="OnLayoutToggleClick" IsEnabled="False"/>
-                <TextBlock Text="Направление:" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,6,0,4"/>
+                        Padding="10,4" Margin="0,0,12,4" ToolTip="Горизонтальная / вертикальная" Click="OnLayoutToggleClick" IsEnabled="False"/>
+                <TextBlock Text="Направление:" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,6,4"/>
                 <Button x:Name="DirRightButton" Content="→" Style="{StaticResource SecondaryButton}"
-                        Padding="8,4" Margin="0,0,4,0,4" ToolTip="Гориз.: слева направо" Click="OnDirRightClick" IsEnabled="False"/>
+                        Padding="8,4" Margin="0,0,4,4" ToolTip="Гориз.: слева направо" Click="OnDirRightClick" IsEnabled="False"/>
                 <Button x:Name="DirLeftButton" Content="←" Style="{StaticResource SecondaryButton}"
-                        Padding="8,4" Margin="0,0,4,0,4" ToolTip="Гориз.: справа налево" Click="OnDirLeftClick" IsEnabled="False"/>
+                        Padding="8,4" Margin="0,0,4,4" ToolTip="Гориз.: справа налево" Click="OnDirLeftClick" IsEnabled="False"/>
                 <Button x:Name="DirDownButton" Content="↓" Style="{StaticResource SecondaryButton}"
-                        Padding="8,4" Margin="0,0,4,0,4" ToolTip="Верт.: сверху вниз, лицом влево" Click="OnDirDownClick" IsEnabled="False"/>
+                        Padding="8,4" Margin="0,0,4,4" ToolTip="Верт.: сверху вниз, лицом влево" Click="OnDirDownClick" IsEnabled="False"/>
                 <Button x:Name="DirUpButton" Content="↑" Style="{StaticResource SecondaryButton}"
-                        Padding="8,4" Margin="0,0,12,0,4" ToolTip="Верт.: снизу вверх, лицом вправо" Click="OnDirUpClick" IsEnabled="False"/>
-                <TextBlock Text="Размер pt:" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,6,0,4"/>
+                        Padding="8,4" Margin="0,0,12,4" ToolTip="Верт.: снизу вверх, лицом вправо" Click="OnDirUpClick" IsEnabled="False"/>
+                <TextBlock Text="Размер pt:" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,6,4"/>
                 <Button x:Name="FontSmallerButton" Content="−" Style="{StaticResource SecondaryButton}" Padding="10,4" Margin="0,0,0,4" Click="OnFontSmallerClick"/>
                 <TextBox x:Name="SelectedFontSizeBox" Width="44" Margin="6,0,6,4" Padding="4,2"
                          Text="—" TextAlignment="Center" VerticalContentAlignment="Center"
