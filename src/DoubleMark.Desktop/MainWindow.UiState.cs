@@ -186,9 +186,7 @@ public partial class MainWindow
             DataMatrixHeightMm = active.DataMatrixHeightMm,
             DataMatrixXmm = active.DataMatrixXmm,
             DataMatrixYmm = active.DataMatrixYmm,
-            TextBlocks = active.TextBlocks
-                .Select(b => new TemplateTextBlockViewItem(b.Text, b.Xmm, b.Ymm, b.FontSizePt, b.Bold))
-                .ToList(),
+            TextBlocks = BuildTemplateTextBlockViews(active),
             Templates = _printTemplates
                 .Select(t => new TemplateViewItem(
                     t.Name,
@@ -206,6 +204,47 @@ public partial class MainWindow
                 .ToList()
         };
     }
+
+    private IReadOnlyList<TemplateTextBlockViewItem> BuildTemplateTextBlockViews(PrintTemplate template)
+    {
+        var blocks = TemplateLayoutHelper.BuildEffectiveTextBlocks(
+            template,
+            _settings.LabelShowDate,
+            _settings.LabelShowShipment,
+            _settings.LabelShowOrder);
+
+        var timestamp = DateTimeOffset.Now;
+        var source = _lastSuccessfulScan?.Source ?? "Preview";
+        var code = _lastSuccessfulScan?.ParseResult.Code ?? PreviewMarkingCode;
+
+        return blocks
+            .Select(b => new TemplateTextBlockViewItem(
+                b.Text,
+                b.Xmm,
+                b.Ymm,
+                b.FontSizePt,
+                b.Bold,
+                MarkRenderService.SubstituteText(
+                    b.Text,
+                    code,
+                    timestamp,
+                    source,
+                    _settings.LabelShipmentNumber,
+                    _settings.LabelOrderNumber),
+                b.Orientation))
+            .ToList();
+    }
+
+    private static readonly MarkingCode PreviewMarkingCode = new()
+    {
+        Gtin = "04602019556479",
+        Serial = "5BZqLW",
+        VerificationKey = "EE11",
+        VerificationCode = "DEMOCODE",
+        CodeType = MarkingCodeType.Short,
+        RawData = "",
+        RawDataHex = ""
+    };
 
     private ExportViewState BuildExportViewState()
     {

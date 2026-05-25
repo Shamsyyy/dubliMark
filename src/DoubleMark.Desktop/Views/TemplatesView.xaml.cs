@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using DoubleMark.Core.Print;
 
 namespace DoubleMark.Desktop.Views;
 
@@ -25,7 +26,8 @@ public sealed record TemplateTextBlockEdit(
     double Xmm,
     double Ymm,
     double FontSizePt,
-    bool Bold = false);
+    bool Bold = false,
+    TextBlockDirection Orientation = TextBlockDirection.LeftToRight);
 
 public sealed record TemplateTextEdit(IReadOnlyList<TemplateTextBlockEdit> Blocks);
 
@@ -40,6 +42,8 @@ public partial class TemplatesView : UserControl
         public required TextBox XBox { get; init; }
         public required TextBox YBox { get; init; }
         public required TextBox SizeBox { get; init; }
+        public required Button OrientationButton { get; init; }
+        public TextBlockDirection Orientation { get; set; } = TextBlockDirection.LeftToRight;
     }
 
     public event RoutedEventHandler? ManageTemplatesRequested;
@@ -50,6 +54,8 @@ public partial class TemplatesView : UserControl
     public event EventHandler<(double W, double H)>? DmPresetRequested;
     public event EventHandler<TemplateLayoutEdit>? ApplyLayoutRequested;
     public event EventHandler<TemplateTextEdit>? ApplyTextBlocksRequested;
+    public event EventHandler<TemplateTextEdit>? TextBlocksEditedRequested;
+    public event EventHandler<TemplateTextEdit>? TextBlocksCommittedRequested;
     public event EventHandler<LabelExtrasEdit>? LabelExtrasApplyRequested;
     public event EventHandler? PrintPreviewRequested;
 
@@ -57,6 +63,8 @@ public partial class TemplatesView : UserControl
     {
         _isSyncing = true;
         InitializeComponent();
+        LayoutCanvas.TextBlocksEdited += OnCanvasTextBlocksEdited;
+        LayoutCanvas.TextBlocksCommitted += OnCanvasTextBlocksCommitted;
         LabelWidthSlider.ValueChanged += OnSliderValueChanged;
         LabelHeightSlider.ValueChanged += OnSliderValueChanged;
         DmWidthSlider.ValueChanged += OnSliderValueChanged;
@@ -64,6 +72,14 @@ public partial class TemplatesView : UserControl
         DmXSlider.ValueChanged += OnSliderValueChanged;
         DmYSlider.ValueChanged += OnSliderValueChanged;
         _isSyncing = false;
+    }
+
+    public void UpdatePreviewImage(System.Windows.Media.ImageSource? image)
+    {
+        TemplatePreviewImage.Source = image;
+        TemplatePreviewPlaceholder.Visibility = image == null
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     public void UpdateState(TemplateViewState state)
@@ -92,6 +108,15 @@ public partial class TemplatesView : UserControl
                 state.DataMatrixYmm);
 
             RenderTextBlockEditors(state.TextBlocks);
+
+            LayoutCanvas.LoadLayout(
+                state.LabelWidthMm,
+                state.LabelHeightMm,
+                state.DataMatrixWidthMm,
+                state.DataMatrixHeightMm,
+                state.DataMatrixXmm,
+                state.DataMatrixYmm,
+                state.TextBlocks);
 
             TemplatePreviewImage.Source = state.PreviewImage;
             TemplatePreviewPlaceholder.Visibility = state.PreviewImage == null
@@ -125,7 +150,8 @@ public partial class TemplatesView : UserControl
             ParsePos(row.XBox.Text, 0),
             ParsePos(row.YBox.Text, 0),
             ParseSize(row.SizeBox.Text, 4),
-            false)).ToList());
+            false,
+            row.Orientation)).ToList());
 
     private void RenderTextBlockEditors(IReadOnlyList<TemplateTextBlockViewItem> blocks)
     {
@@ -153,6 +179,8 @@ public partial class TemplatesView : UserControl
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(44) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(52) });
 
             var textBorder = CreateEditorBox(block.Text, out var textBox);
             Grid.SetColumn(textBorder, 0);
@@ -170,21 +198,39 @@ public partial class TemplatesView : UserControl
             Grid.SetColumn(sizeBorder, 6);
             row.Children.Add(sizeBorder);
 
+            var orientationButton = new Button
+            {
+                Content = DirectionLabel(block.Orientation),
+                Style = (Style)FindResource("SecondaryButton"),
+                Padding = new Thickness(6, 4, 6, 4),
+                ToolTip = "Г/В и направление: Г→ Г← В↓ В↑"
+            };
+            Grid.SetColumn(orientationButton, 8);
+            row.Children.Add(orientationButton);
+
             TextBlocksEditorPanel.Children.Add(new TextBlock
             {
-                Text = $"Строка {i + 1}: текст · X · Y · pt",
+                Text = $"Строка {i + 1}: текст · X · Y · pt · Г/В · напр.",
                 Style = (Style)FindResource("MutedText"),
                 Margin = new Thickness(0, i == 0 ? 0 : 4, 0, 4)
             });
             TextBlocksEditorPanel.Children.Add(row);
 
-            _textBlockRows.Add(new TextBlockEditorRow
+            var rowRef = new TextBlockEditorRow
             {
                 TextBox = textBox,
                 XBox = xBox,
                 YBox = yBox,
-                SizeBox = sizeBox
-            });
+                SizeBox = sizeBox,
+                OrientationButton = orientationButton,
+                Orientation = block.Orientation
+            };
+            orientationButton.Click += (_, _) =>
+            {
+                rowRef.Orientation = (TextBlockDirection)(((int)rowRef.Orientation + 1) % 4);
+                orientationButton.Content = DirectionLabel(rowRef.Orientation);
+            };
+            _textBlockRows.Add(rowRef);
         }
     }
 
@@ -360,6 +406,46 @@ public partial class TemplatesView : UserControl
 
     private void OnApplyLayoutClick(object sender, RoutedEventArgs e) =>
         ApplyLayoutRequested?.Invoke(this, GetLayoutEdit());
+
+    private void OnCanvasTextBlocksEdited(object? sender, TemplateTextEdit edit)
+    {
+        if (_isSyncing)
+            return;
+
+        SyncEditorRowsFromCanvas(edit);
+        TextBlocksEditedRequested?.Invoke(this, edit);
+    }
+
+    private void OnCanvasTextBlocksCommitted(object? sender, TemplateTextEdit edit)
+    {
+        if (_isSyncing)
+            return;
+
+        SyncEditorRowsFromCanvas(edit);
+        TextBlocksCommittedRequested?.Invoke(this, edit);
+    }
+
+    private void SyncEditorRowsFromCanvas(TemplateTextEdit edit)
+    {
+        for (var i = 0; i < edit.Blocks.Count && i < _textBlockRows.Count; i++)
+        {
+            var block = edit.Blocks[i];
+            var row = _textBlockRows[i];
+            row.XBox.Text = Format(block.Xmm);
+            row.YBox.Text = Format(block.Ymm);
+            row.SizeBox.Text = Format(block.FontSizePt);
+            row.Orientation = block.Orientation;
+            row.OrientationButton.Content = DirectionLabel(block.Orientation);
+        }
+    }
+
+    private static string DirectionLabel(TextBlockDirection direction) => direction switch
+    {
+        TextBlockDirection.RightToLeft => "Г ←",
+        TextBlockDirection.TopToBottom => "В ↓",
+        TextBlockDirection.BottomToTop => "В ↑",
+        _ => "Г →"
+    };
 
     private void OnApplyTextBlocksClick(object sender, RoutedEventArgs e) =>
         ApplyTextBlocksRequested?.Invoke(this, GetTextBlocksEdit());

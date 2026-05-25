@@ -93,13 +93,83 @@ public static class TemplateLayoutHelper
 
         foreach (var block in normalized.TextBlocks)
         {
-            var placed = PlaceTextBlock(normalized, block, occupied, preserveManualPosition: false);
+            var placed = PlaceTextBlock(normalized, block, occupied, preserveManualPosition: true);
             relayouted.Add(placed);
             if (IsInsideLabel(normalized, placed))
                 occupied.Add(GetTextRect(placed));
         }
 
         return normalized with { TextBlocks = relayouted };
+    }
+
+    /// <summary>Stacks text for print/preview using real glyph metrics (no overlap).</summary>
+    public static PrintTemplate RelayoutTextBlocksForRender(PrintTemplate template, int dpi = 300)
+    {
+        if (template.TextBlocks.Count == 0)
+            return template;
+
+        var normalized = ClampDataMatrixInLabel(template);
+        var occupied = new List<LayoutRect> { GetDataMatrixRect(normalized) };
+        var relayouted = new List<PrintTextBlock>(normalized.TextBlocks.Count);
+        const double margin = 0.8;
+        const double gap = 0.35;
+
+        var rightX = normalized.DataMatrixXmm + normalized.DataMatrixWidthMm + margin;
+        var rightMaxW = Math.Max(1, normalized.LabelWidthMm - rightX - margin);
+        var rightY = normalized.DataMatrixYmm + 0.3;
+
+        var belowX = margin;
+        var belowY = normalized.DataMatrixYmm + normalized.DataMatrixHeightMm + margin;
+        var belowMaxW = Math.Max(1, normalized.LabelWidthMm - 2 * margin);
+
+        foreach (var block in normalized.TextBlocks)
+        {
+            var placed = TryPlaceInColumn(
+                normalized, block, occupied, dpi, rightX, ref rightY, rightMaxW, margin, gap)
+                ?? TryPlaceInColumn(
+                    normalized, block, occupied, dpi, belowX, ref belowY, belowMaxW, margin, gap);
+
+            relayouted.Add(placed ?? block with { Xmm = -1, Ymm = -1 });
+            if (placed != null && IsInsideLabel(normalized, placed, dpi))
+                occupied.Add(GetTextRect(placed, dpi));
+        }
+
+        return normalized with { TextBlocks = relayouted };
+    }
+
+    private static PrintTextBlock? TryPlaceInColumn(
+        PrintTemplate template,
+        PrintTextBlock block,
+        List<LayoutRect> occupied,
+        int dpi,
+        double x,
+        ref double stackY,
+        double maxWidthMm,
+        double margin,
+        double gap)
+    {
+        var textW = TextRenderMetrics.MeasureTextWidthMm(block.Text, block.FontSizePt, block.Bold, dpi);
+        var textH = TextRenderMetrics.MeasureTextHeightMm(block.FontSizePt, dpi);
+        if (textW > maxWidthMm + 0.05)
+            return null;
+
+        var y = stackY;
+        while (y + textH <= template.LabelHeightMm + 0.05)
+        {
+            var candidate = block with { Xmm = RoundMm(x), Ymm = RoundMm(y) };
+            var rect = GetTextRect(candidate, dpi);
+            if (rect.X + rect.W <= template.LabelWidthMm + margin
+                && !Intersects(GetDataMatrixRect(template), rect)
+                && !occupied.Any(o => Intersects(o, rect)))
+            {
+                stackY = rect.Y + rect.H + gap;
+                return candidate;
+            }
+
+            y += textH + gap;
+        }
+
+        return null;
     }
 
     public static string CreateUniqueName(IEnumerable<PrintTemplate> templates, string baseName)
@@ -126,38 +196,39 @@ public static class TemplateLayoutHelper
     {
         var normalized = ClampDataMatrixInLabel(template);
         var blocks = normalized.TextBlocks.Where(b => !IsExtraBlock(b, normalized.LabelHeightMm)).ToList();
-        var occupied = new List<LayoutRect> { GetDataMatrixRect(normalized) };
-        occupied.AddRange(blocks.Where(IsInsideLabel).Select(GetTextRect));
 
-        if (showDate)
-            blocks.Add(PlaceDynamicBlock(normalized, "{date} {time}", normalized.LabelHeightMm - 3.5, occupied));
+        if (showDate && !blocks.Any(b => b.Text.Contains("{date}", StringComparison.Ordinal)))
+            blocks.Add(new PrintTextBlock { Text = "{date} {time}", FontSizePt = 4 });
 
-        if (showShipment)
-            blocks.Add(PlaceDynamicBlock(normalized, "OTGR {shipment}", normalized.LabelHeightMm - 3.5, occupied));
+        if (showShipment && !blocks.Any(b => b.Text.Contains("{shipment}", StringComparison.Ordinal)))
+            blocks.Add(new PrintTextBlock { Text = "OTGR {shipment}", FontSizePt = 4 });
 
-        if (showOrder)
-            blocks.Add(PlaceDynamicBlock(normalized, "ORD {order}", normalized.LabelHeightMm - 6.5, occupied));
+        if (showOrder && !blocks.Any(b => b.Text.Contains("{order}", StringComparison.Ordinal)))
+            blocks.Add(new PrintTextBlock { Text = "ORD {order}", FontSizePt = 4 });
 
         return blocks;
     }
 
-    public static bool IntersectsDataMatrix(PrintTemplate template, PrintTextBlock block)
+    public static bool IntersectsDataMatrix(PrintTemplate template, PrintTextBlock block, int dpi = 300)
     {
-        if (!IsInsideLabel(template, block))
+        if (!IsInsideLabel(template, block, dpi))
             return false;
 
-        return Intersects(GetDataMatrixRect(ClampDataMatrixInLabel(template)), GetTextRect(block));
+        return Intersects(GetDataMatrixRect(ClampDataMatrixInLabel(template)), GetTextRect(block, dpi));
     }
 
-    public static bool IsInsideLabel(PrintTemplate template, PrintTextBlock block)
+    public static bool IsInsideLabel(PrintTemplate template, PrintTextBlock block, int dpi = 300)
     {
         if (block.Xmm < 0 || block.Ymm < 0)
             return false;
 
-        var rect = GetTextRect(block);
+        var rect = GetTextRect(block, dpi);
         return rect.X + rect.W <= template.LabelWidthMm + 0.05
                && rect.Y + rect.H <= template.LabelHeightMm + 0.05;
     }
+
+    public static (double WidthMm, double HeightMm) MeasureTextBlockMm(PrintTextBlock block, int dpi = 300) =>
+        TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.Orientation, dpi);
 
     private static PrintTextBlock PlaceDynamicBlock(
         PrintTemplate template,
@@ -186,8 +257,8 @@ public static class TemplateLayoutHelper
             && !occupied.Any(rect => Intersects(rect, GetTextRect(block))))
             return block;
 
-        var textW = EstimateTextWidthMm(block);
-        var textH = EstimateTextHeightMm(block);
+        var textW = TextRenderMetrics.MeasureTextWidthMm(block.Text, block.FontSizePt, block.Bold);
+        var textH = TextRenderMetrics.MeasureTextHeightMm(block.FontSizePt);
         var slots = new (double X, double Y)[]
         {
             (template.DataMatrixXmm + template.DataMatrixWidthMm + 0.8, template.DataMatrixYmm + 0.5),
@@ -220,10 +291,9 @@ public static class TemplateLayoutHelper
     private static LayoutRect GetDataMatrixRect(PrintTemplate template) =>
         new(template.DataMatrixXmm, template.DataMatrixYmm, template.DataMatrixWidthMm, template.DataMatrixHeightMm);
 
-    private static LayoutRect GetTextRect(PrintTextBlock block)
+    private static LayoutRect GetTextRect(PrintTextBlock block, int dpi = 300)
     {
-        var h = EstimateTextHeightMm(block);
-        var w = EstimateTextWidthMm(block);
+        var (w, h) = TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.Orientation, dpi);
         return new(block.Xmm, block.Ymm, w, h);
     }
 
@@ -237,10 +307,11 @@ public static class TemplateLayoutHelper
     private static bool Intersects(LayoutRect a, LayoutRect b) =>
         a.X < b.X + b.W && a.X + a.W > b.X && a.Y < b.Y + b.H && a.Y + a.H > b.Y;
 
-    private static double EstimateTextHeightMm(PrintTextBlock block) => Math.Max(1.5, block.FontSizePt * 0.38);
+    private static double EstimateTextHeightMm(PrintTextBlock block) =>
+        TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.Orientation).HeightMm;
 
     private static double EstimateTextWidthMm(PrintTextBlock block) =>
-        Math.Max(2, block.Text.Length * block.FontSizePt * 0.17);
+        TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.Orientation).WidthMm;
 
     private static double RoundMm(double value) => Math.Round(value, 1);
 
