@@ -333,17 +333,60 @@ public sealed class PrintServicesTests
             DefaultCopies = 1,
             TextBlocks =
             {
-                new PrintTextBlock { Text = "{date} {time}", Xmm = 7, Ymm = 4, FontSizePt = 4, Layout = TextBlockLayout.Vertical, Flow = TextFlowDirection.Up, Orientation = TextBlockDirection.BottomToTop }
+                new PrintTextBlock { Text = "GTIN", Xmm = 10, Ymm = 5, FontSizePt = 4, Layout = TextBlockLayout.Horizontal, Flow = TextFlowDirection.Right }
             }
         };
 
         var updated = TemplateLayoutHelper.RelayoutTextBlocks(template);
 
-        updated.TextBlocks[0].Xmm.Should().Be(7);
-        updated.TextBlocks[0].Ymm.Should().Be(4);
-        updated.TextBlocks[0].Layout.Should().Be(TextBlockLayout.Vertical);
-        updated.TextBlocks[0].Flow.Should().Be(TextFlowDirection.Up);
+        updated.TextBlocks[0].Xmm.Should().Be(10);
+        updated.TextBlocks[0].Ymm.Should().Be(5);
+        updated.TextBlocks[0].Layout.Should().Be(TextBlockLayout.Horizontal);
+        updated.TextBlocks[0].Flow.Should().Be(TextFlowDirection.Right);
         TemplateLayoutHelper.IntersectsDataMatrix(updated, updated.TextBlocks[0]).Should().BeTrue();
+    }
+
+    [Fact]
+    public void VectorLabelFont_VerticalBlock_IsTallerThanWide()
+    {
+        const string text = "GTIN 0460000000002";
+        var (wH, hH) = TextBlockRenderHelper.MeasureBlockMm(
+            text, 6, false, LabelFontId.ArialIndustrial, TextBlockLayout.Horizontal, TextFlowDirection.Right);
+        var (wV, hV) = TextBlockRenderHelper.MeasureBlockMm(
+            text, 6, false, LabelFontId.ArialIndustrial, TextBlockLayout.Vertical, TextFlowDirection.Down);
+
+        wH.Should().BeGreaterThan(hH);
+        hV.Should().BeGreaterThan(wV);
+        hV.Should().BeGreaterThan(wH);
+    }
+
+    [Fact]
+    public void VectorLabelFont_VerticalSnippet_HasUsableDimensions()
+    {
+        var png = TextBlockRenderHelper.RenderSnippetPng(
+            "ABCDEF",
+            6,
+            false,
+            LabelFontId.ArialIndustrial,
+            TextBlockLayout.Vertical,
+            TextFlowDirection.Down);
+
+        var (width, height) = ReadPngSize(png);
+        height.Should().BeGreaterThan(width);
+        height.Should().BeGreaterThan(20);
+        width.Should().BeGreaterThan(2);
+    }
+
+    [Fact]
+    public void VectorLabelFont_DifferentFamilies_MeasureDifferently()
+    {
+        const string text = "GTIN SAMPLE";
+        var arial = TextBlockRenderHelper.MeasureBlockMm(
+            text, 8, false, LabelFontId.ArialIndustrial, TextBlockLayout.Horizontal, TextFlowDirection.Right);
+        var georgia = TextBlockRenderHelper.MeasureBlockMm(
+            text, 8, false, LabelFontId.GeorgiaClassic, TextBlockLayout.Horizontal, TextFlowDirection.Right);
+
+        georgia.WidthMm.Should().NotBe(arial.WidthMm);
     }
 
     private MarkRenderResult Render(string raw, string source)

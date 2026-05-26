@@ -9,6 +9,9 @@ public sealed record PrintTextBlock
     public double Ymm { get; init; }
     public double FontSizePt { get; init; } = 6;
     public bool Bold { get; init; }
+    public bool Enabled { get; init; } = true;
+
+    public LabelFontId FontId { get; init; } = LabelFontId.ArialIndustrial;
 
     public TextBlockLayout? Layout { get; init; }
     public TextFlowDirection? Flow { get; init; }
