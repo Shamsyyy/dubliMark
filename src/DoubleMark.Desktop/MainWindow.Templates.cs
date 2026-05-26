@@ -16,10 +16,10 @@ public partial class MainWindow
         view.DeleteTemplateRequested += OnTemplatesDeleteRequested;
         view.DmPresetRequested += OnTemplatesDmPresetRequested;
         view.ApplyLayoutRequested += OnTemplatesApplyLayoutRequested;
-        view.ApplyTextBlocksRequested += OnTemplatesApplyTextBlocksRequested;
+        view.LayoutEditedRequested += OnTemplatesLayoutEdited;
+        view.LayoutCommittedRequested += OnTemplatesLayoutCommitted;
         view.TextBlocksEditedRequested += OnTemplatesCanvasTextEdited;
         view.TextBlocksCommittedRequested += OnTemplatesCanvasTextCommitted;
-        view.LabelExtrasApplyRequested += OnTemplatesLabelExtrasApplyRequested;
         view.PrintPreviewRequested += OnTemplatesPrintPreviewRequested;
         view.ManageTemplatesRequested += OnPrintTemplatesClick;
     }
@@ -97,8 +97,38 @@ public partial class MainWindow
         if (!await EnsureSubscriptionForFeatureAsync("Управление шаблонами"))
             return;
 
+        if (!TryApplyLayoutInMemory(layout, out _))
+            return;
+
+        await SaveTemplatesAsync(ResolveActiveTemplate().Name);
+        RefreshSettingsIntoUi();
+        ShowToast("Параметры шаблона применены", ToastKind.Success);
+    }
+
+    private void OnTemplatesLayoutEdited(object? sender, TemplateLayoutEdit layout)
+    {
+        if (!TryApplyLayoutInMemory(layout, out var updated))
+            return;
+
+        _templatesView?.UpdatePreviewImage(RenderActiveTemplatePreview(updated));
+    }
+
+    private async void OnTemplatesLayoutCommitted(object? sender, TemplateLayoutEdit layout)
+    {
+        if (!await EnsureSubscriptionForFeatureAsync("Управление шаблонами"))
+            return;
+
+        if (!TryApplyLayoutInMemory(layout, out var updated))
+            return;
+
+        await SaveTemplatesAsync(updated.Name);
+        _templatesView?.UpdatePreviewImage(RenderActiveTemplatePreview(updated));
+    }
+
+    private bool TryApplyLayoutInMemory(TemplateLayoutEdit layout, out PrintTemplate updated)
+    {
         var active = ResolveActiveTemplate();
-        var updated = TemplateLayoutHelper.RelayoutTextBlocks(TemplateLayoutHelper.ClampDataMatrixInLabel(active with
+        updated = TemplateLayoutHelper.RelayoutTextBlocks(TemplateLayoutHelper.ClampDataMatrixInLabel(active with
         {
             LabelWidthMm = layout.LabelWidthMm,
             LabelHeightMm = layout.LabelHeightMm,
@@ -111,29 +141,15 @@ public partial class MainWindow
         if (!PrintTemplateService.IsUsable(updated))
         {
             ShowToast("Некорректные размеры шаблона", ToastKind.Warning);
-            return;
+            return false;
         }
 
+        var activeName = updated.Name;
+        var merged = updated;
         _printTemplates = _printTemplates
-            .Select(t => string.Equals(t.Name, active.Name, StringComparison.OrdinalIgnoreCase) ? updated : t)
+            .Select(t => string.Equals(t.Name, activeName, StringComparison.OrdinalIgnoreCase) ? merged : t)
             .ToList();
-
-        await SaveTemplatesAsync(active.Name);
-        RefreshSettingsIntoUi();
-        ShowToast("Параметры шаблона применены", ToastKind.Success);
-    }
-
-    private async void OnTemplatesApplyTextBlocksRequested(object? sender, TemplateTextEdit edit)
-    {
-        if (!await EnsureSubscriptionForFeatureAsync("Управление шаблонами"))
-            return;
-
-        if (!TryApplyTextBlocksInMemory(edit, out _))
-            return;
-
-        await SaveTemplatesAsync(ResolveActiveTemplate().Name);
-        RefreshSettingsIntoUi();
-        ShowToast("Позиции текста сохранены", ToastKind.Success);
+        return true;
     }
 
     private void OnTemplatesCanvasTextEdited(object? sender, TemplateTextEdit edit)
@@ -168,9 +184,11 @@ public partial class MainWindow
                 Ymm = b.Ymm,
                 FontSizePt = Math.Clamp(b.FontSizePt, 2, 12),
                 Bold = b.Bold,
+                Enabled = b.Enabled,
                 Layout = b.Layout,
                 Flow = b.Flow,
-                Orientation = TextBlockStyleHelper.ToLegacy(b.Layout, b.Flow)
+                Orientation = TextBlockStyleHelper.ToLegacy(b.Layout, b.Flow),
+                FontId = b.FontId
             })
             .ToList();
 
@@ -195,29 +213,11 @@ public partial class MainWindow
         return true;
     }
 
-    private void OnTemplatesLabelExtrasApplyRequested(object? sender, LabelExtrasEdit extras)
-    {
-        _settings.LabelShowDate = extras.ShowDate;
-        _settings.LabelShowShipment = extras.ShowShipment;
-        _settings.LabelShowOrder = extras.ShowOrder;
-        _settings.LabelShipmentNumber = string.IsNullOrWhiteSpace(extras.ShipmentNumber)
-            ? null
-            : extras.ShipmentNumber.Trim();
-        _settings.LabelOrderNumber = string.IsNullOrWhiteSpace(extras.OrderNumber)
-            ? null
-            : extras.OrderNumber.Trim();
-        _settings.Save();
-        SyncConnectedViews();
-        RefreshPreviewForActiveTemplate();
-        ShowToast("Настройки текста этикетки сохранены", ToastKind.Success);
-    }
-
     private void OnTemplatesPrintPreviewRequested(object? sender, EventArgs e)
     {
         var template = ResolveActiveTemplate();
         var png = TemplatePreviewRenderer.TryRenderPngBytes(
             template,
-            _settings.LabelShowDate,
             _settings.LabelShowShipment,
             _settings.LabelShowOrder,
             _settings.LabelShipmentNumber,

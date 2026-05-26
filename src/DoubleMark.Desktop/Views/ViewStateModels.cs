@@ -68,11 +68,6 @@ public sealed record TemplateViewState
     public string SyncStatusText { get; init; } = "";
     public bool IsSignedIn { get; init; }
     public ImageSource? PreviewImage { get; init; }
-    public bool LabelShowDate { get; init; } = true;
-    public bool LabelShowShipment { get; init; }
-    public bool LabelShowOrder { get; init; }
-    public string? LabelShipmentNumber { get; init; }
-    public string? LabelOrderNumber { get; init; }
     public double LabelWidthMm { get; init; }
     public double LabelHeightMm { get; init; }
     public double DataMatrixWidthMm { get; init; }
@@ -91,7 +86,9 @@ public sealed record TemplateTextBlockViewItem(
     string? PreviewText = null,
     TextBlockLayout Layout = TextBlockLayout.Horizontal,
     TextFlowDirection Flow = TextFlowDirection.Right,
-    TextBlockDirection? Orientation = null);
+    TextBlockDirection? Orientation = null,
+    bool Enabled = true,
+    LabelFontId FontId = LabelFontId.ArialIndustrial);
 
 public sealed record TemplateViewItem(
     string Name,

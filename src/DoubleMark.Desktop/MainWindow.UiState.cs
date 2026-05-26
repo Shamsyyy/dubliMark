@@ -146,7 +146,6 @@ public partial class MainWindow
     private System.Windows.Media.ImageSource? RenderActiveTemplatePreview(PrintTemplate template) =>
         TemplatePreviewRenderer.TryRender(
             template,
-            _settings.LabelShowDate,
             _settings.LabelShowShipment,
             _settings.LabelShowOrder,
             _settings.LabelShipmentNumber,
@@ -175,11 +174,6 @@ public partial class MainWindow
             IsSignedIn = signedIn,
             SyncStatusText = syncText,
             PreviewImage = RenderActiveTemplatePreview(active),
-            LabelShowDate = _settings.LabelShowDate,
-            LabelShowShipment = _settings.LabelShowShipment,
-            LabelShowOrder = _settings.LabelShowOrder,
-            LabelShipmentNumber = _settings.LabelShipmentNumber,
-            LabelOrderNumber = _settings.LabelOrderNumber,
             LabelWidthMm = active.LabelWidthMm,
             LabelHeightMm = active.LabelHeightMm,
             DataMatrixWidthMm = active.DataMatrixWidthMm,
@@ -207,17 +201,11 @@ public partial class MainWindow
 
     private IReadOnlyList<TemplateTextBlockViewItem> BuildTemplateTextBlockViews(PrintTemplate template)
     {
-        var blocks = TemplateLayoutHelper.BuildEffectiveTextBlocks(
-            template,
-            _settings.LabelShowDate,
-            _settings.LabelShowShipment,
-            _settings.LabelShowOrder);
-
         var timestamp = DateTimeOffset.Now;
         var source = _lastSuccessfulScan?.Source ?? "Preview";
         var code = _lastSuccessfulScan?.ParseResult.Code ?? PreviewMarkingCode;
 
-        return blocks
+        return template.TextBlocks
             .Select(b =>
             {
                 var (layout, flow) = b.GetStyle();
@@ -227,16 +215,20 @@ public partial class MainWindow
                     b.Ymm,
                     b.FontSizePt,
                     b.Bold,
-                    MarkRenderService.SubstituteText(
-                        b.Text,
-                        code,
-                        timestamp,
-                        source,
-                        _settings.LabelShipmentNumber,
-                        _settings.LabelOrderNumber),
+                    b.Enabled
+                        ? MarkRenderService.SubstituteText(
+                            b.Text,
+                            code,
+                            timestamp,
+                            source,
+                            _settings.LabelShipmentNumber,
+                            _settings.LabelOrderNumber)
+                        : null,
                     layout,
                     flow,
-                    b.Orientation);
+                    b.Orientation,
+                    b.Enabled,
+                    b.FontId);
             })
             .ToList();
     }
