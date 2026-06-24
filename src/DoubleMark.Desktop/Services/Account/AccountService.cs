@@ -32,19 +32,25 @@ public sealed class AccountService
         if (!IsConfigured)
             return Empty("Не настроено подключение к серверу DoubleMark. Проверьте SUPABASE_URL и SUPABASE_ANON_KEY.");
 
-        var user = await _authService.RestoreSession();
-        return user == null
-            ? Empty(null)
-            : await LoadAccount(user);
+        return await AccountNetworkTimeout.RunAsync(async () =>
+        {
+            var user = await _authService.RestoreSession();
+            return user == null
+                ? Empty(null)
+                : await LoadAccount(user);
+        }, "восстановление аккаунта");
     }
 
     public async Task<AccountSnapshot> SignIn(string email, string password)
     {
-        var user = await _authService.SignIn(email, password);
-        if (user == null)
-            return Empty("Не удалось получить пользователя DoubleMark.");
+        return await AccountNetworkTimeout.RunAsync(async () =>
+        {
+            var user = await _authService.SignIn(email, password);
+            if (user == null)
+                return Empty("Не удалось получить пользователя DoubleMark.");
 
-        return await LoadAccount(user);
+            return await LoadAccount(user);
+        }, "вход в аккаунт");
     }
 
     public Task SignOut() => _authService.SignOut();
@@ -52,7 +58,10 @@ public sealed class AccountService
     public async Task<AccountSnapshot> Refresh()
     {
         var user = _authService.GetCurrentUser();
-        return user == null ? Empty(null) : await LoadAccount(user);
+        if (user == null)
+            return Empty(null);
+
+        return await AccountNetworkTimeout.RunAsync(() => LoadAccount(user), "обновление аккаунта");
     }
 
     private async Task<AccountSnapshot> LoadAccount(AccountUser user)
@@ -132,7 +141,9 @@ public sealed class AccountService
         new(null, null, SubscriptionStatus.Missing, Array.Empty<AccountPayment>(), Array.Empty<AccountDevice>(), error);
 
     private static string FriendlyError(Exception ex) =>
-        ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase)
+        ex is TimeoutException
+            ? ex.Message
+            : ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase)
         || ex.Message.Contains("socket", StringComparison.OrdinalIgnoreCase)
         || ex.Message.Contains("internet", StringComparison.OrdinalIgnoreCase)
             ? "Нет подключения к серверу DoubleMark. Проверьте интернет и попробуйте снова."

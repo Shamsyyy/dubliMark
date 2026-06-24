@@ -17,6 +17,9 @@ public partial class LoginView : UserControl
         SignInButton.IsEnabled = !isLoading && canSignIn;
     }
 
+    public void SetLoading(bool isLoading, bool canSignIn = true) =>
+        SignInButton.IsEnabled = !isLoading && canSignIn;
+
     private void OnSignInClick(object sender, RoutedEventArgs e) =>
         SignInRequested?.Invoke(this, (EmailText.Text.Trim(), PasswordText.Password));
 

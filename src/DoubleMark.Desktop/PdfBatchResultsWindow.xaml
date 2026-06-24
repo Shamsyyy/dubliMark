@@ -1,0 +1,104 @@
+<Window x:Class="DoubleMark.Desktop.PdfBatchResultsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        xmlns:ui="clr-namespace:DoubleMark.Desktop"
+        Title="PDF-пакет — результаты"
+        Height="680"
+        Width="960"
+        MinHeight="480"
+        MinWidth="800"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Background="{StaticResource AppBackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI"
+        WindowStartupLocation="CenterOwner">
+    <Window.Resources>
+        <Style x:Key="WrapCellText" TargetType="{x:Type TextBlock}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="4,6"/>
+            <Setter Property="ToolTip" Value="{Binding Reason}"/>
+        </Style>
+    </Window.Resources>
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0"/>
+    </shell:WindowChrome.WindowChrome>
+    <Border Style="{StaticResource DialogWindowFrame}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="42"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Style="{StaticResource DialogTitleBar}" ui:DialogWindowChrome.IsDragArea="True">
+                <Grid>
+                    <TextBlock x:Name="TitleText" Text="PDF-пакет" Style="{StaticResource DialogTitleText}"/>
+                    <Button Style="{StaticResource TitleBarCloseButton}" Content="×" HorizontalAlignment="Right"
+                            Click="OnCloseClick" ui:DialogWindowChrome.WindowCommand="Close"/>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Style="{StaticResource SoftSurface}" Margin="20,16,20,8" Padding="14">
+                <StackPanel>
+                    <TextBlock x:Name="HeaderText" Style="{StaticResource CardTitle}" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="HintText" Style="{StaticResource MutedText}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
+            <Border x:Name="ProgressPanel" Grid.Row="2" Style="{StaticResource SoftSurface}" Margin="20,0,20,8"
+                    Padding="14" Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock x:Name="ProgressStatusText" Style="{StaticResource MutedText}" TextWrapping="Wrap"/>
+                    <ProgressBar x:Name="ProgressBar" Height="8" Minimum="0" Maximum="100" Margin="0,8,0,0"/>
+                </StackPanel>
+            </Border>
+
+            <DataGrid x:Name="ResultsGrid" Grid.Row="3" Margin="20,0,20,12"
+                      AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                      HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                      Background="Transparent" BorderThickness="0"
+                      SelectionMode="Extended" IsReadOnly="False"
+                      RowHeight="NaN" CanUserResizeRows="True">
+                <DataGrid.Columns>
+                    <DataGridCheckBoxColumn Header="✓" Binding="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Width="40"/>
+                    <DataGridTextColumn Header="Стр." Binding="{Binding PageNumber}" Width="56" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="GTIN" Binding="{Binding Gtin}" Width="130" IsReadOnly="True"
+                                        ElementStyle="{StaticResource WrapCellText}"/>
+                    <DataGridTextColumn Header="Серийный" Binding="{Binding Serial}" Width="140" IsReadOnly="True"
+                                        ElementStyle="{StaticResource WrapCellText}"/>
+                    <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="130" IsReadOnly="True"
+                                        ElementStyle="{StaticResource WrapCellText}"/>
+                    <DataGridTextColumn Header="Причина / детали" Binding="{Binding Reason}" Width="*" IsReadOnly="True"
+                                        ElementStyle="{StaticResource WrapCellText}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <Grid Grid.Row="4" Margin="20,0,20,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="SelectProblemsButton" Style="{StaticResource SecondaryButton}" Content="Выбрать проблемные"
+                            Margin="0,0,8,0" Click="OnSelectProblemsClick"/>
+                    <Button x:Name="RecheckSelectedButton" Style="{StaticResource SecondaryButton}" Content="Перепроверить выбранные"
+                            Margin="0,0,8,0" Click="OnRecheckSelectedClick"/>
+                    <Button x:Name="RecheckAllButton" Style="{StaticResource SecondaryButton}" Content="Перепроверить все"
+                            Margin="0,0,8,0" Click="OnRecheckAllClick"/>
+                    <Button x:Name="CancelButton" Style="{StaticResource SecondaryButton}" Content="Отменить"
+                            Visibility="Collapsed" Click="OnCancelClick"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="PrintSelectedButton" Style="{StaticResource TealButton}" Content="Печать выбранных"
+                            MinWidth="150" Margin="0,0,8,0" Click="OnPrintSelectedClick"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Закрыть" MinWidth="100" Click="OnCloseClick"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

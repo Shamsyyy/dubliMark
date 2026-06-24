@@ -47,19 +47,36 @@ public partial class MainWindow
     private async Task RestoreAccountOnStartupAsync()
     {
         UpdateAccountShell("Загружаем аккаунт...");
-        _accountSnapshot = await _accountService.RestoreAccount();
+        try
+        {
+            _accountSnapshot = await _accountService.RestoreAccount();
+        }
+        catch (TimeoutException ex)
+        {
+            _accountSnapshot = new AccountSnapshot(
+                null,
+                null,
+                SubscriptionStatus.Missing,
+                Array.Empty<AccountPayment>(),
+                Array.Empty<AccountDevice>(),
+                ex.Message);
+        }
+
         ApplyAccountSnapshot();
-        if (_accountSnapshot.User != null)
-            await LoadUserCloudDataAsync();
-        else
-            ClearUserCloudData();
 
         if (_accountSnapshot.User == null)
+        {
+            ClearUserCloudData();
             ShowLogin(_accountSnapshot.Error);
-        else if (!_accountSnapshot.Subscription.IsActive)
+            return;
+        }
+
+        if (!_accountSnapshot.Subscription.IsActive)
             NavigateTo(GetAccountView(), NavAccountButton, "Личный кабинет DoubleMark");
         else
             NavigateTo(_dashboardPage!, NavDashboardButton, "Главная панель");
+
+        _ = LoadUserCloudDataSafeAsync();
     }
 
     private async void OnLoginSignInRequested(object? sender, (string Email, string Password) credentials)
@@ -81,17 +98,26 @@ public partial class MainWindow
             _loginView?.SetStatus("Проверяем аккаунт и подписку...", isLoading: true);
             _accountSnapshot = await _accountService.SignIn(credentials.Email, credentials.Password);
             ApplyAccountSnapshot();
-            if (_accountSnapshot.User != null)
-                await LoadUserCloudDataAsync();
 
             if (_accountSnapshot.User == null || !_accountSnapshot.Subscription.IsActive)
                 NavigateTo(GetAccountView(), NavAccountButton, "Личный кабинет DoubleMark");
             else
                 NavigateTo(_dashboardPage!, NavDashboardButton, "Главная панель");
+
+            if (_accountSnapshot.User != null)
+                _ = LoadUserCloudDataSafeAsync();
+        }
+        catch (TimeoutException ex)
+        {
+            _loginView?.SetStatus(ex.Message, isLoading: false);
         }
         catch (Exception ex)
         {
             _loginView?.SetStatus(FriendlyAccountError(ex), isLoading: false);
+        }
+        finally
+        {
+            _loginView?.SetLoading(false, canSignIn: _accountService.IsConfigured);
         }
     }
 
@@ -234,6 +260,9 @@ public partial class MainWindow
     private static string FriendlyAccountError(Exception ex)
     {
         Debug.WriteLine(ex);
+        if (ex is TimeoutException)
+            return ex.Message;
+
         if (ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase)
             || ex.Message.Contains("socket", StringComparison.OrdinalIgnoreCase)
             || ex.Message.Contains("internet", StringComparison.OrdinalIgnoreCase))

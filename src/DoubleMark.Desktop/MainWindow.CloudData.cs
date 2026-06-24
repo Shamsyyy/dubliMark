@@ -1,4 +1,7 @@
-using DoubleMark.Core.Print;using DoubleMark.Desktop.Services.Cloud;
+using DoubleMark.Core.Print;
+using DoubleMark.Desktop.Services;
+using DoubleMark.Desktop.Services.Account;
+using DoubleMark.Desktop.Services.Cloud;
 using DoubleMark.Desktop.Settings;
 using DoubleMark.Desktop.Views;
 
@@ -36,6 +39,28 @@ public partial class MainWindow
         await LoadCloudTemplatesAsync();
         await MaybeOfferLocalTemplateMigrationAsync();
         await ReloadScanHistoryAsync();
+    }
+
+    private async Task LoadUserCloudDataSafeAsync()
+    {
+        try
+        {
+            await AccountNetworkTimeout.RunAsync(
+                LoadUserCloudDataAsync,
+                "загрузка облачных данных",
+                TimeSpan.FromSeconds(30));
+        }
+        catch (Exception ex)
+        {
+            LoggingService.Error("Cloud", "Cloud data load failed", ex);
+            ShowToast(
+                ex is TimeoutException
+                    ? ex.Message
+                    : "Не удалось загрузить облачные данные. Работаем с локальными шаблонами.",
+                ToastKind.Warning);
+            await ReloadScanHistoryAsync();
+            SyncConnectedViews();
+        }
     }
 
     private async Task LoadCloudTemplatesAsync()

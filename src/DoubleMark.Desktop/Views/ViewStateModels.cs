@@ -104,6 +104,44 @@ public sealed record TemplateViewItem(
     string? Description = null,
     string? UpdatedAtText = null);
 
+public sealed record PdfPrintPageResultItem(
+    int PageNumber,
+    bool Success,
+    string? Gtin,
+    string? Serial,
+    string? Error,
+    string? StatusLabel = null);
+
+public sealed record PdfPrintViewState
+{
+    public string PdfPath { get; init; } = "";
+    public IReadOnlyList<string> Printers { get; init; } = Array.Empty<string>();
+    public string? SelectedPrinter { get; init; }
+    public IReadOnlyList<string> Templates { get; init; } = Array.Empty<string>();
+    public string? SelectedTemplate { get; init; }
+    public string TemplateSize { get; init; } = "—";
+    public string DataMatrixSize { get; init; } = "—";
+    public string Status { get; init; } = "";
+    public string Summary { get; init; } = "—";
+    public string PageCountText { get; init; } = "";
+    public ImageSource? PreviewImage { get; init; }
+    public bool IsBusy { get; init; }
+    public double ProgressPercent { get; init; }
+    public bool CanPrint { get; init; }
+    public bool HasBatchRecords { get; init; }
+    public int ProblemCount { get; init; }
+    public int TotalRecordCount { get; init; }
+    public IReadOnlyList<PdfPrintPageResultItem> PageResults { get; init; } = Array.Empty<PdfPrintPageResultItem>();
+    public IReadOnlyList<PdfPrintHistoryItem> HistoryItems { get; init; } = Array.Empty<PdfPrintHistoryItem>();
+}
+
+public sealed record PdfPrintHistoryItem(
+    string JobId,
+    string Title,
+    string Subtitle,
+    int ProblemCount,
+    bool PdfMissing);
+
 public sealed record ExportViewState
 {
     public bool AutoSaveEnabled { get; init; }
