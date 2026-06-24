@@ -1,0 +1,146 @@
+<UserControl x:Class="DoubleMark.Desktop.Views.PdfPrintView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="Segoe UI">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <Grid Margin="24,0,24,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.05*"/>
+                <ColumnDefinition Width="0.95*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Style="{StaticResource HeroCard}" Margin="0,0,16,0">
+                <StackPanel>
+                    <TextBlock Text="Печать из PDF" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock Text="PDF с Честным ЗНАКом: до 5000 страниц. «Печать пакета» читает код со страницы и сразу печатает по шаблону — без отдельной проверки."
+                               Style="{StaticResource MutedText}" Margin="0,5,0,18" TextWrapping="Wrap"/>
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="PDF-файл" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                        <TextBox x:Name="PdfPathText" Grid.Column="1" Style="{StaticResource InputBox}"
+                                 IsReadOnly="True" Margin="0,0,8,0"/>
+                        <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Content="Обзор…" Click="OnBrowseClick"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Страницы" Style="{StaticResource MetricLabel}" VerticalAlignment="Top" Margin="0,8,0,0"/>
+                        <StackPanel Grid.Column="1">
+                            <TextBox x:Name="PageRangeText" Style="{StaticResource InputBox}"
+                                     ToolTip="Примеры: 1-6, 11 или 1,2,3. Пусто = все страницы."
+                                     TextChanged="OnPageRangeTextChanged"/>
+                            <TextBlock x:Name="PageCountText" Style="{StaticResource MutedText}"
+                                       Margin="0,6,0,0" TextWrapping="Wrap"/>
+                            <TextBlock Text="Примеры: 1-6, 11 · 1,2,3 · пусто = все страницы PDF"
+                                       Style="{StaticResource MutedText}" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Шаблон" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="TemplateCombo" Grid.Column="1" Style="{StaticResource DashboardComboBox}"
+                                  SelectionChanged="OnTemplateSelectionChanged"/>
+                    </Grid>
+
+                    <Grid Margin="0,0,0,18">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="110"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Принтер" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="PrinterCombo" Grid.Column="1" Style="{StaticResource DashboardComboBox}"
+                                  SelectionChanged="OnPrinterSelectionChanged"/>
+                    </Grid>
+
+                    <UniformGrid Columns="2" Margin="0,0,0,12">
+                        <Button x:Name="AnalyzeButton" Style="{StaticResource SecondaryButton}"
+                                Content="Проверить (необязательно)"
+                                ToolTip="Медленная проверка списка страниц. Для массовой печати не нужна."
+                                Click="OnAnalyzeClick" Margin="0,0,6,0"/>
+                        <Button x:Name="PrintButton" Style="{StaticResource TealButton}" Content="Печать пакета"
+                                Click="OnPrintClick" Margin="6,0,0,0"/>
+                    </UniformGrid>
+                    <Button x:Name="CancelButton" Style="{StaticResource SecondaryButton}" Content="Отменить"
+                            Click="OnCancelClick" Visibility="Collapsed" Margin="0,0,0,12"/>
+
+                    <ProgressBar x:Name="ProgressBar" Height="8" Minimum="0" Maximum="100" Visibility="Collapsed" Margin="0,0,0,10"/>
+                    <Border Style="{StaticResource SoftSurface}">
+                        <StackPanel>
+                            <TextBlock Text="Статус" Style="{StaticResource MutedText}"/>
+                            <TextBlock x:Name="StatusText" Text="Выберите PDF с кодами Честного ЗНАКа."
+                                       Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+                            <TextBlock x:Name="SummaryText" Text="—" Style="{StaticResource MutedText}"
+                                       TextWrapping="Wrap" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <StackPanel Grid.Column="1">
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Preview по макету" Style="{StaticResource CardTitle}"/>
+                            <Border Grid.Column="1" Style="{StaticResource PillBadge}" MinWidth="88">
+                                <TextBlock x:Name="TemplateSizeText" Text="—" Style="{StaticResource MutedText}"/>
+                            </Border>
+                        </Grid>
+                        <Border Background="#F7FAFC" CornerRadius="18" Width="320" Height="220" Padding="16"
+                                HorizontalAlignment="Center" ClipToBounds="True">
+                            <Grid>
+                                <TextBlock x:Name="PreviewPlaceholder"
+                                           Text="Предпросмотр появится после проверки PDF"
+                                           Style="{StaticResource MutedText}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           TextAlignment="Center" TextWrapping="Wrap"/>
+                                <Image x:Name="PreviewImage" Stretch="Uniform"/>
+                            </Grid>
+                        </Border>
+                        <TextBlock x:Name="DmSizeText" Text="DataMatrix: —" Style="{StaticResource MutedText}" Margin="0,14,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Margin="0,0,0,16">
+                    <StackPanel>
+                        <TextBlock Text="Результаты" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
+                        <StackPanel x:Name="ResultsPanel" Margin="0,0,0,12"/>
+                        <UniformGrid Columns="2">
+                            <Button x:Name="OpenAllResultsButton" Style="{StaticResource SecondaryButton}"
+                                    Content="Все коды…" Click="OnOpenAllResultsClick" Margin="0,0,6,0"/>
+                            <Button x:Name="OpenProblemsButton" Style="{StaticResource SecondaryButton}"
+                                    Content="Пропущенные…" Click="OnOpenProblemsClick" Margin="6,0,0,0"/>
+                        </UniformGrid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="История печати" Style="{StaticResource CardTitle}" Margin="0,0,0,8"/>
+                        <TextBlock Text="Сохраняется на этом ПК. Можно открыть прошлые пакеты и перепечатать пропущенные."
+                                   Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                        <StackPanel x:Name="HistoryPanel"/>
+                        <TextBlock x:Name="HistoryEmptyText" Text="История появится после первой проверки или печати PDF."
+                                   Style="{StaticResource MutedText}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

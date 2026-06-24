@@ -89,10 +89,16 @@
                             <TextBlock Text="Сканирование" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="NavPrintButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigatePrintClick">
+                    <Button x:Name="NavPrintButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigatePrintClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Data="M5,8 L5,3 L15,3 L15,8 M5,14 L3,14 L3,8 L17,8 L17,14 L15,14 M6,12 L14,12 L14,18 L6,18 Z"/>
                             <TextBlock Text="Печать" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavPdfPrintButton" Style="{StaticResource SidebarButton}" Margin="16,0,0,10" Click="OnNavigatePdfPrintClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M4,4 L16,4 L16,16 L4,16 Z M7,7 L13,7 M7,10 L13,10 M7,13 L11,13"/>
+                            <TextBlock Text="PDF-пакет" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="NavTemplatesButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateTemplatesClick">

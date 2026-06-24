@@ -34,6 +34,9 @@ public partial class MainWindow
     private void OnNavigatePrintClick(object sender, RoutedEventArgs e) =>
         NavigateToProtected(GetPrintView, NavPrintButton, "Печать");
 
+    private void OnNavigatePdfPrintClick(object sender, RoutedEventArgs e) =>
+        NavigateToProtected(GetPdfPrintView, NavPdfPrintButton, "Печать из PDF");
+
     private void OnNavigateTemplatesClick(object sender, RoutedEventArgs e) =>
         NavigateToProtected(GetTemplatesView, NavTemplatesButton, "Шаблоны");
 
@@ -239,6 +242,7 @@ public partial class MainWindow
                      NavDashboardButton,
                      NavScanButton,
                      NavPrintButton,
+                     NavPdfPrintButton,
                      NavTemplatesButton,
                      NavHistoryButton,
                      NavExportButton,

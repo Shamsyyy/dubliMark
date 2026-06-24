@@ -346,6 +346,28 @@ public sealed class PrintServicesTests
         TemplateLayoutHelper.IntersectsDataMatrix(updated, updated.TextBlocks[0]).Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData(null, 10, 10)]
+    [InlineData("", 10, 10)]
+    [InlineData("1,2,3", 10, 3)]
+    [InlineData("1-3", 10, 3)]
+    [InlineData("1-6, 11", 12, 7)]
+    [InlineData("3-1", 10, 3)]
+    public void PageRangeParser_ParsesCommonFormats(string? input, int totalPages, int expectedCount)
+    {
+        PageRangeParser.TryParse(input, totalPages, out var pages, out var error).Should().BeTrue(error);
+        pages.Should().HaveCount(expectedCount);
+        pages.Should().BeInAscendingOrder();
+        pages.Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
+    public void PageRangeParser_RejectsOutOfRangePage()
+    {
+        PageRangeParser.TryParse("13", 10, out _, out var error).Should().BeFalse();
+        error.Should().Contain("13");
+    }
+
     [Fact]
     public void VectorLabelFont_VerticalBlock_IsTallerThanWide()
     {
@@ -446,6 +468,13 @@ public sealed class PrintServicesTests
         {
             Calls++;
             LastPayload = request.Render.NormalizedPayload;
+            return Task.FromResult(new PrintJobResult { Success = true });
+        }
+
+        public Task<PrintJobResult> PrintBatchAsync(PrintBatchJobRequest request, CancellationToken cancellationToken = default)
+        {
+            Calls++;
+            LastPayload = request.Renders.LastOrDefault()?.NormalizedPayload;
             return Task.FromResult(new PrintJobResult { Success = true });
         }
     }

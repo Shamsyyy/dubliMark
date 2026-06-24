@@ -34,9 +34,21 @@ public sealed record PrintJobResult
     public string? Error { get; init; }
 }
 
+public sealed record PrintBatchJobRequest
+{
+    public required IReadOnlyList<MarkRenderResult> Renders { get; init; }
+    public string? PrinterName { get; init; }
+    public bool PrintWithoutConfirmation { get; init; } = true;
+    public string JobName { get; init; } = "DoubleMark batch";
+}
+
 public interface IMarkPrintService
 {
     Task<PrintJobResult> PrintAsync(PrintJobRequest request, CancellationToken cancellationToken = default);
+
+    Task<PrintJobResult> PrintBatchAsync(
+        PrintBatchJobRequest request,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed record PrintPipelineRequest

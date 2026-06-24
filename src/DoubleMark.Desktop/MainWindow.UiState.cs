@@ -28,6 +28,7 @@ public partial class MainWindow
     {
         SyncScannerPageState();
         SyncPrintPageState();
+        SyncPdfPrintPageState();
         SyncTemplatesPageState();
         SyncHistoryPageState();
         SyncExportPageState();
