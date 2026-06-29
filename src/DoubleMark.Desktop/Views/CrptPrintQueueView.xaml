@@ -1,0 +1,80 @@
+<UserControl x:Class="DoubleMark.Desktop.Views.CrptPrintQueueView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="Segoe UI">
+    <Grid Margin="24,0,24,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Style="{StaticResource HeroCard}" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="Очередь печати CRPT" Style="{StaticResource SectionTitle}"/>
+                <TextBlock Text="Коды из заказа СУЗ. Raw payload не отображается и не редактируется."
+                           Style="{StaticResource MutedText}" Margin="0,6,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,16">
+            <StackPanel>
+                <Border Style="{StaticResource SoftSurface}" Margin="0,0,0,12">
+                    <TextBlock Text="Каталог пуст — обновите его из Национального каталога перед печатью."
+                               Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsCatalogEmpty}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="160"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Заказ" Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding Orders}"
+                              DisplayMemberPath="LocalId"
+                              SelectedValuePath="LocalId"
+                              SelectedValue="{Binding SelectedOrderLocalId}" Margin="0,0,8,0"/>
+                    <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Content="Обновить"
+                            Command="{Binding RefreshCommand}"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource Card}">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+                    <Button Style="{StaticResource PrimaryButton}" Content="Подготовить этикетку"
+                            Command="{Binding RenderLabelCommand}" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Пакетная подготовка"
+                            Command="{Binding RenderBatchCommand}" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Отметить напечатанным"
+                            Command="{Binding MarkPrintedCommand}" Margin="0,0,8,0"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Отправить отчёт о нанесении"
+                            Command="{Binding SendUtilisationCommand}" Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MutedText}"
+                               VerticalAlignment="Center" TextWrapping="Wrap"/>
+                </StackPanel>
+                <DataGrid ItemsSource="{Binding Codes}" SelectedItem="{Binding SelectedCode}"
+                          AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="#" Binding="{Binding Id}" Width="60"/>
+                        <DataGridTextColumn Header="Статус" Binding="{Binding StatusText}" Width="140"/>
+                        <DataGridTextColumn Header="Payload" Binding="{Binding PayloadHint}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+    </Grid>
+</UserControl>

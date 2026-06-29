@@ -82,6 +82,9 @@ appsettings.local.json
 appsettings.json
 !appsettings.example.json
 secrets.json
+crpt-probe.local.json
+tools/DoubleMark.CrptProbe/crpt-probe.local.json
+tools/DoubleMark.CrptProbe/output/
 doublemark-session.bin
 
 # Local generated databases

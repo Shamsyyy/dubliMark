@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>DoubleMark.Crpt</AssemblyName>
+    <RootNamespace>DoubleMark.Crpt</RootNamespace>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DoubleMark.Core\DoubleMark.Core.csproj" />
+  </ItemGroup>
+
+</Project>

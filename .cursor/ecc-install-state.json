@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "ecc.install.v1",
+  "installedAt": "2026-06-26T21:55:18.415Z",
+  "target": {
+    "id": "cursor-project",
+    "target": "cursor",
+    "kind": "project",
+    "root": "D:\\DubliMark\\.cursor",
+    "installStatePath": "D:\\DubliMark\\.cursor\\ecc-install-state.json"
+  },
+  "request": {
+    "profile": null,
+    "modules": [
+      "skill-search-first"
+    ],
+    "includeComponents": [],
+    "excludeComponents": [],
+    "legacyLanguages": [],
+    "legacyMode": false
+  },
+  "resolution": {
+    "selectedModules": [
+      "skill-search-first"
+    ],
+    "skippedModules": []
+  },
+  "source": {
+    "repoVersion": "2.0.0",
+    "repoCommit": "2bc924faf2f8e893bfe0af86b1931283693c30ae",
+    "manifestVersion": 1
+  },
+  "operations": [
+    {
+      "kind": "copy-file",
+      "moduleId": "skill-search-first",
+      "sourcePath": "D:\\DubliMark\\.ecc-temp\\skills\\search-first\\SKILL.md",
+      "sourceRelativePath": "skills\\search-first\\SKILL.md",
+      "destinationPath": "D:\\DubliMark\\.cursor\\skills\\search-first\\SKILL.md",
+      "strategy": "preserve-relative-path",
+      "ownership": "managed",
+      "scaffoldOnly": false
+    }
+  ]
+}

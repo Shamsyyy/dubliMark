@@ -1,0 +1,17 @@
+{
+  "inn": "0000000000",
+  "trueApiBaseUrl": "https://markirovka.crpt.ru/",
+  "suzBaseUrl": "https://suzgrid.crpt.ru/",
+  "omsId": "00000000-0000-4000-8000-000000000001",
+  "connectionId": "00000000-0000-4000-8000-000000000002",
+  "certificateThumbprint": "",
+  "contactPerson": "Иванов Иван Иванович",
+  "productGroup": "chemistry",
+  "templateId": 46,
+  "gtin": "04600000000000",
+  "quantity": 10,
+  "tnvedCode": "3307490000",
+  "certificateDocType": "CONFORMITY_DECLARATION",
+  "certificateDocDate": "2024-01-01T00:00:00.000Z",
+  "codesFile": ""
+}
