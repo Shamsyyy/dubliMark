@@ -2,14 +2,21 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DoubleMark.Core\DoubleMark.Core.csproj" />
+    <ProjectReference Include="..\DoubleMark.Crpt\DoubleMark.Crpt.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
     <PackageReference Include="Supabase" Version="1.1.1" />
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
     <PackageReference Include="ZXing.Net" Version="0.16.9" />
     <PackageReference Include="ZXing.Net.Bindings.Windows.Compatibility" Version="0.16.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DoubleMark.Core.Tests" />
   </ItemGroup>
 
   <PropertyGroup>

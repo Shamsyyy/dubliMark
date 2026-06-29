@@ -73,7 +73,7 @@ public sealed class AppSettings
     public bool ScannerCustomGsRequiresShift { get; set; }
     public bool ScannerCustomGsRequiresAlt { get; set; }
 
-    private static string SettingsDirectory =>
+    public static string SettingsDirectory =>
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DoubleMark");
 
     public static string DefaultExportDirectory => Path.Combine(SettingsDirectory, "exports");

@@ -75,7 +75,8 @@
                                VerticalAlignment="Center"/>
                 </StackPanel>
 
-                <StackPanel Grid.Row="2">
+                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
                     <Button x:Name="NavDashboardButton" Style="{StaticResource SidebarButtonActive}" Margin="0,0,0,10" Click="OnNavigateDashboardClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Stroke="{StaticResource AccentBrush}"
@@ -125,6 +126,33 @@
                             <TextBlock Text="Диагностика" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
+
+                    <TextBlock Text="Маркировка CRPT" Style="{StaticResource MutedText}" FontSize="11" Margin="8,8,0,8"/>
+                    <Button x:Name="NavCrptSettingsButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigateCrptSettingsClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M10,2 L12,7 L17,7 L13,10 L14,15 L10,12 L6,15 L7,10 L3,7 L8,7 Z"/>
+                            <TextBlock Text="Настройки маркировки" Margin="12,0,0,0" FontSize="13" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavCrptCatalogButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigateCrptCatalogClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M4,4 L16,4 L16,16 L4,16 Z M7,7 L13,7 M7,10 L13,10 M7,13 L11,13"/>
+                            <TextBlock Text="Каталог товаров" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavCrptOrdersButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigateCrptOrdersClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M5,4 L15,4 L17,8 L17,17 L5,17 Z M8,8 L14,8 M8,11 L14,11"/>
+                            <TextBlock Text="Заказы кодов" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavCrptPrintQueueButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateCrptPrintQueueClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M6,5 L14,5 L16,9 L16,16 L6,16 Z M8,11 L14,11"/>
+                            <TextBlock Text="Очередь печати" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
                     <Button x:Name="NavAccountButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateAccountClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Data="M10,10 A3.5,3.5 0 1 0 10,3 A3.5,3.5 0 1 0 10,10 M4,17 C4.8,13.8 7,12.5 10,12.5 C13,12.5 15.2,13.8 16,17"/>
@@ -132,6 +160,7 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
+                </ScrollViewer>
 
                 <Border Grid.Row="3" Style="{StaticResource SoftSurface}" Padding="12" Margin="0,0,0,2">
                     <StackPanel Orientation="Horizontal" Margin="8,0,0,0">
@@ -369,7 +398,7 @@
                             </StackPanel>
 
                             <UniformGrid Columns="2" Margin="0,2,0,12">
-                                <Button Style="{StaticResource SecondaryButton}" Click="OnSetupScannerClick" Margin="0,0,6,6" Padding="10,9" Content="Настройки"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnSetupScannerClick" Margin="0,0,6,6" Padding="10,9" Content="Настройки сканера"/>
                                 <Button Style="{StaticResource SecondaryButton}" Click="OnHidDiagnosticsClick" Margin="6,0,0,6" Padding="10,9" Content="HID diag"/>
                                 <Button Style="{StaticResource SecondaryButton}" Click="OnLoadImageClick" Margin="0,6,6,0" Padding="10,9" Content="Изображение"/>
                                 <Button Style="{StaticResource SecondaryButton}" Click="OnPasteImageClick" Margin="6,6,0,0" Padding="10,9" Content="Буфер"/>
@@ -377,6 +406,17 @@
                             <TextBlock x:Name="PortsHintText" Style="{StaticResource MutedText}" Foreground="{StaticResource WarningBrush}" TextWrapping="Wrap" Visibility="Collapsed"/>
                             <TextBlock x:Name="WaitText" Text="Ожидание сканирования..." Style="{StaticResource MutedText}" Margin="0,8,0,0"/>
                             <Border x:Name="HidHelpPanel" Visibility="Collapsed"/>
+
+                            <Border Height="1" Background="{StaticResource BorderBrushSoft}" Margin="0,16,0,14"/>
+                            <TextBlock Text="Маркировка CRPT" Style="{StaticResource CardTitle}" Margin="0,0,0,6"/>
+                            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"
+                                       Text="Настройки СУЗ, ИНН, контура и Национального каталога — в боковом меню в разделе «Маркировка CRPT», не здесь."/>
+                            <UniformGrid Columns="2">
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnNavigateCrptSettingsClick"
+                                        Margin="0,0,6,0" Padding="10,9" Content="Настройки маркировки"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnNavigateCrptCatalogClick"
+                                        Margin="6,0,0,0" Padding="10,9" Content="Каталог товаров"/>
+                            </UniformGrid>
                         </StackPanel>
                     </Border>
 
@@ -456,7 +496,7 @@
                             </Button>
 
                             <UniformGrid Columns="2" Margin="0,0,0,10">
-                                <Button Style="{StaticResource SecondaryButton}" Click="OnPrintSettingsClick" Margin="0,0,6,0" Content="Настройки"/>
+                                <Button Style="{StaticResource SecondaryButton}" Click="OnPrintSettingsClick" Margin="0,0,6,0" Content="Настройки печати"/>
                                 <Button Style="{StaticResource SecondaryButton}" Click="OnOpenPrintFolderClick" Margin="6,0,0,0" Content="Папка печати"/>
                             </UniformGrid>
                             <TextBlock x:Name="LastPrintStatusText" Style="{StaticResource MutedText}" Foreground="#8ED6FF" TextWrapping="Wrap"/>

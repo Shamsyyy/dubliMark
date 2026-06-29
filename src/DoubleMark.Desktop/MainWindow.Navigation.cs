@@ -247,6 +247,10 @@ public partial class MainWindow
                      NavHistoryButton,
                      NavExportButton,
                      NavDiagnosticsButton,
+                     NavCrptSettingsButton,
+                     NavCrptCatalogButton,
+                     NavCrptOrdersButton,
+                     NavCrptPrintQueueButton,
                      NavAccountButton
                  })
         {
