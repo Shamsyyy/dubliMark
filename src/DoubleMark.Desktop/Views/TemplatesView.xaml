@@ -5,12 +5,16 @@
              FontFamily="Segoe UI">
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <Grid Margin="24,0,24,24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="0.9*"/>
                 <ColumnDefinition Width="1.1*"/>
             </Grid.ColumnDefinitions>
 
-            <Border Style="{StaticResource HeroCard}" Margin="0,0,16,0">
+            <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource HeroCard}" Margin="0,0,16,0">
                 <StackPanel>
                     <Grid Margin="0,0,0,18">
                         <Grid.ColumnDefinitions>
@@ -27,9 +31,14 @@
                                 Click="OnManageClick" Padding="12,9" VerticalAlignment="Top"/>
                     </Grid>
 
-                    <StackPanel x:Name="TemplatesListPanel"/>
+                    <ScrollViewer x:Name="TemplatesListScroll"
+                                  VerticalScrollBarVisibility="Disabled"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Margin="0,0,0,8">
+                        <StackPanel x:Name="TemplatesListPanel"/>
+                    </ScrollViewer>
 
-                    <WrapPanel Margin="0,8,0,0">
+                    <WrapPanel Margin="0,0,0,0">
                         <Button Style="{StaticResource SecondaryButton}" Content="Создать" Click="OnCreateClick"
                                 Margin="0,0,8,8" MinWidth="96"/>
                         <Button Style="{StaticResource SecondaryButton}" Content="Копировать" Click="OnCopyClick"
@@ -40,7 +49,7 @@
                 </StackPanel>
             </Border>
 
-            <StackPanel Grid.Column="1">
+            <StackPanel Grid.Row="0" Grid.Column="1">
                 <Border Style="{StaticResource Card}" Margin="0,0,0,14">
                     <StackPanel>
                         <TextBlock Text="Размер DataMatrix" Style="{StaticResource CardTitle}" Margin="0,0,0,10"/>
@@ -158,58 +167,82 @@
                         <TextBlock Text="Строки шаблона — X/Y в мм от левого верхнего угла этикетки"
                                    Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Шрифт" VerticalAlignment="Center"
+                                       Style="{StaticResource CardTitle}" FontSize="13"/>
+                            <ComboBox x:Name="LabelFontCombo" Grid.Column="2" MinWidth="220"
+                                      DisplayMemberPath="DisplayName"
+                                      SelectionChanged="OnLabelFontSelectionChanged"/>
+                        </Grid>
+                        <TextBlock Text="Arial и Verdana — максимальная читаемость при дефектах печати; Segoe UI, Calibri и Georgia — декоративные."
+                                   Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
                         <StackPanel x:Name="TextBlocksEditorPanel" Margin="0,0,0,10"/>
 
-                        <Button Style="{StaticResource SecondaryButton}" Content="Применить позиции текста"
-                                Click="OnApplyTextBlocksClick" HorizontalAlignment="Left" Margin="0,0,0,14"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Создать новый текст"
+                                Click="OnAddTextBlockClick" HorizontalAlignment="Left" Margin="0,0,0,10"/>
 
-                        <CheckBox x:Name="LabelShowDateCheck" Content="Показывать дату и время" Margin="0,0,0,8"/>
-                        <CheckBox x:Name="LabelShowShipmentCheck" Content="Показывать номер отгрузки" Margin="0,0,0,8"/>
-                        <Grid Margin="0,0,0,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="130"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="№ отгрузки" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Column="1" x:Name="ShipmentNumberBox" Margin="8,0,0,0"/>
-                        </Grid>
-                        <CheckBox x:Name="LabelShowOrderCheck" Content="Показывать номер заказа" Margin="0,0,0,8"/>
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="130"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="№ заказа" Style="{StaticResource MutedText}" VerticalAlignment="Center"/>
-                            <TextBox Grid.Column="1" x:Name="OrderNumberBox" Margin="8,0,0,0"/>
-                        </Grid>
-                        <Button Style="{StaticResource SecondaryButton}" Content="Сохранить настройки текста"
-                                Click="OnApplyLabelExtrasClick" HorizontalAlignment="Left"/>
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource Card}">
-                    <StackPanel>
-                        <TextBlock Text="Макет этикетки" Style="{StaticResource CardTitle}" Margin="0,0,0,10"/>
-                        <views:TemplateLayoutCanvas x:Name="LayoutCanvas" Margin="0,0,0,14"/>
-
-                        <TextBlock Text="Предпросмотр печати" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
-                        <Border Background="#F7FAFC" CornerRadius="18" MinHeight="180" Padding="18" ClipToBounds="True">
-                            <Grid>
-                                <TextBlock x:Name="TemplatePreviewPlaceholder"
-                                           Text="Предпросмотр появится после выбора шаблона"
-                                           Style="{StaticResource MutedText}"
-                                           HorizontalAlignment="Center"
-                                           VerticalAlignment="Center"
-                                           TextAlignment="Center"
-                                           TextWrapping="Wrap"/>
-                                <Image x:Name="TemplatePreviewImage" Stretch="Uniform" MaxHeight="220"/>
-                            </Grid>
-                        </Border>
-                        <Button Style="{StaticResource PrimaryButton}" Content="Открыть предпросмотр"
-                                Click="OnPrintPreviewClick" HorizontalAlignment="Left" Margin="0,14,0,0"/>
+                        <TextBlock Text="Подстановки из QR — нажмите, чтобы вставить в выбранную строку:"
+                                   Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <WrapPanel x:Name="PlaceholderButtonsPanel"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
+
+            <Border Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Style="{StaticResource Card}" Margin="0,14,0,0">
+                <StackPanel>
+                    <TextBlock Text="Макет этикетки" Style="{StaticResource CardTitle}" Margin="0,0,0,10"/>
+                    <Grid Grid.IsSharedSizeScope="True">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto" SharedSizeGroup="LayoutMeta"/>
+                            <RowDefinition Height="Auto" SharedSizeGroup="LayoutToolbar"/>
+                            <RowDefinition Height="340"/>
+                            <RowDefinition Height="Auto" SharedSizeGroup="LayoutHint"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Предпросмотр печати"
+                                   Style="{StaticResource CardTitle}" Margin="0,0,0,8"/>
+                        <TextBlock Grid.Row="0" Grid.Column="2" Text="Редактор макета"
+                                   Style="{StaticResource CardTitle}" Margin="0,0,0,8"/>
+
+                        <Grid Grid.Row="1" Grid.RowSpan="4" Grid.Column="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" SharedSizeGroup="LayoutMeta"/>
+                                <RowDefinition Height="Auto" SharedSizeGroup="LayoutToolbar"/>
+                                <RowDefinition Height="340"/>
+                                <RowDefinition Height="Auto" SharedSizeGroup="LayoutHint"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="2" Background="#F7FAFC" CornerRadius="18"
+                                    Padding="18" ClipToBounds="True"
+                                    Height="340" MinHeight="340" MaxHeight="340">
+                                <Grid VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock x:Name="TemplatePreviewPlaceholder"
+                                               Text="Предпросмотр появится после выбора шаблона"
+                                               Style="{StaticResource MutedText}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               TextAlignment="Center"
+                                               TextWrapping="Wrap"/>
+                                    <Image x:Name="TemplatePreviewImage" Stretch="Uniform" MaxHeight="300" MaxWidth="300"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <views:TemplateLayoutCanvas Grid.Row="1" Grid.RowSpan="4" Grid.Column="2" x:Name="LayoutCanvas"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
         </Grid>
     </ScrollViewer>
 </UserControl>

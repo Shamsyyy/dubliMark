@@ -188,25 +188,10 @@ public static class TemplateLayoutHelper
         return baseName + " " + Guid.NewGuid().ToString("N")[..4];
     }
 
-    public static IReadOnlyList<PrintTextBlock> BuildEffectiveTextBlocks(
-        PrintTemplate template,
-        bool showDate,
-        bool showShipment,
-        bool showOrder)
+    public static IReadOnlyList<PrintTextBlock> BuildEffectiveTextBlocks(PrintTemplate template)
     {
         var normalized = ClampDataMatrixInLabel(template);
-        var blocks = normalized.TextBlocks.Where(b => !IsExtraBlock(b, normalized.LabelHeightMm)).ToList();
-
-        if (showDate && !blocks.Any(b => b.Text.Contains("{date}", StringComparison.Ordinal)))
-            blocks.Add(new PrintTextBlock { Text = "{date} {time}", FontSizePt = 4 });
-
-        if (showShipment && !blocks.Any(b => b.Text.Contains("{shipment}", StringComparison.Ordinal)))
-            blocks.Add(new PrintTextBlock { Text = "OTGR {shipment}", FontSizePt = 4 });
-
-        if (showOrder && !blocks.Any(b => b.Text.Contains("{order}", StringComparison.Ordinal)))
-            blocks.Add(new PrintTextBlock { Text = "ORD {order}", FontSizePt = 4 });
-
-        return blocks;
+        return normalized.TextBlocks.Where(b => b.Enabled).ToList();
     }
 
     public static bool IntersectsDataMatrix(PrintTemplate template, PrintTextBlock block, int dpi = 300)
@@ -230,7 +215,7 @@ public static class TemplateLayoutHelper
     public static (double WidthMm, double HeightMm) MeasureTextBlockMm(PrintTextBlock block, int dpi = 300)
     {
         var (layout, flow) = block.GetStyle();
-        return TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, layout, flow, dpi);
+        return TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.FontId, layout, flow, dpi);
     }
 
     private static PrintTextBlock PlaceDynamicBlock(
@@ -295,7 +280,8 @@ public static class TemplateLayoutHelper
     private static LayoutRect GetTextRect(PrintTextBlock block, int dpi = 300)
     {
         var (layout, flow) = block.GetStyle();
-        var (w, h) = TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, layout, flow, dpi);
+        var (w, h) = TextBlockRenderHelper.MeasureBlockMm(
+            block.Text, block.FontSizePt, block.Bold, block.FontId, layout, flow, dpi);
         return new(block.Xmm, block.Ymm, w, h);
     }
 
@@ -312,13 +298,13 @@ public static class TemplateLayoutHelper
     private static double EstimateTextHeightMm(PrintTextBlock block)
     {
         var (layout, flow) = block.GetStyle();
-        return TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, layout, flow).HeightMm;
+        return TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.FontId, layout, flow).HeightMm;
     }
 
     private static double EstimateTextWidthMm(PrintTextBlock block)
     {
         var (layout, flow) = block.GetStyle();
-        return TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, layout, flow).WidthMm;
+        return TextBlockRenderHelper.MeasureBlockMm(block.Text, block.FontSizePt, block.Bold, block.FontId, layout, flow).WidthMm;
     }
 
     private static double RoundMm(double value) => Math.Round(value, 1);

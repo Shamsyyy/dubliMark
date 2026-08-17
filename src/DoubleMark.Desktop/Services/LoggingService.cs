@@ -2,6 +2,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using DoubleMark.Crpt;
 
 namespace DoubleMark.Desktop.Services;
 
@@ -168,7 +169,7 @@ public static class LoggingService
     {
         var redacted = SecretPattern.Replace(text, "$1=[redacted]");
         redacted = RawPayloadPattern.Replace(redacted, "$1=[redacted]");
-        return redacted;
+        return CrptLogRedactor.Redact(redacted);
     }
 }
 

@@ -11,11 +11,12 @@ internal static class SnippetImageFactory
         string text,
         double fontSizePt,
         bool bold,
+        LabelFontId fontId,
         TextBlockLayout layout,
         TextFlowDirection flow,
         int dpi)
     {
-        var png = TextBlockRenderHelper.RenderSnippetPng(text, fontSizePt, bold, layout, flow, dpi);
+        var png = TextBlockRenderHelper.RenderSnippetPng(text, fontSizePt, bold, fontId, layout, flow, dpi);
         using var ms = new MemoryStream(png);
         var bitmap = new BitmapImage();
         bitmap.BeginInit();

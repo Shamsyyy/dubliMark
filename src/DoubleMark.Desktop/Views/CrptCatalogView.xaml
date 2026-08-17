@@ -1,0 +1,482 @@
+<UserControl x:Class="DoubleMark.Desktop.Views.CrptCatalogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:crpt="clr-namespace:DoubleMark.Desktop.ViewModels.Crpt"
+             FontFamily="Segoe UI">
+    <UserControl.Resources>
+        <crpt:CrptCatalogEnumLabelConverter x:Key="CatalogEnumLabelConverter"/>
+        <crpt:CrptProductGroupFilterLabelConverter x:Key="ProductGroupFilterLabelConverter"/>
+
+        <DataTemplate x:Key="CatalogFilterItemTemplate">
+            <TextBlock Text="{Binding Converter={StaticResource CatalogEnumLabelConverter}}"/>
+        </DataTemplate>
+
+        <DataTemplate x:Key="CatalogCategoryFilterItemTemplate">
+            <TextBlock>
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Text" Value="{Binding}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding}" Value="">
+                                <Setter Property="Text" Value="Все"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </DataTemplate>
+
+        <DataTemplate x:Key="CatalogProductGroupFilterItemTemplate">
+            <TextBlock Text="{Binding Converter={StaticResource ProductGroupFilterLabelConverter}}"/>
+        </DataTemplate>
+
+        <Style x:Key="CatalogCellText" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+
+        <Style x:Key="CatalogHeaderFilterInput" TargetType="TextBox" BasedOn="{StaticResource EditorToolbarInput}">
+            <Setter Property="Width" Value="Auto"/>
+            <Setter Property="MinWidth" Value="56"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="MaxHeight" Value="24"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+        </Style>
+
+        <Style x:Key="CatalogHeaderFilterCombo" TargetType="ComboBox" BasedOn="{StaticResource EditorToolbarCombo}">
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="MaxHeight" Value="24"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+        </Style>
+
+        <Style x:Key="CatalogCategoryHeaderFilterCombo" TargetType="ComboBox" BasedOn="{StaticResource EditorToolbarCombo}">
+            <Setter Property="Height" Value="28"/>
+            <Setter Property="MinHeight" Value="28"/>
+            <Setter Property="MaxHeight" Value="28"/>
+            <Setter Property="MinWidth" Value="112"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+        </Style>
+
+        <Style x:Key="CatalogHeaderTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+        </Style>
+
+        <Style x:Key="CatalogHeaderFilterPanel" TargetType="StackPanel">
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="CatalogFilterColumnHeader" TargetType="DataGridColumnHeader"
+               BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="VerticalContentAlignment" Value="Stretch"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="24,0,24,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource Card}" Margin="0,0,0,6" Padding="12,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Grid.Column="0"
+                               Text="Синхронизация GTIN из Национального каталога для заказа кодов СУЗ."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                        <TextBlock Text="Показать:" Style="{StaticResource MutedText}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                        <ComboBox Width="168" Margin="0,0,8,0"
+                                  ItemsSource="{Binding FilterOptions}"
+                                  SelectedItem="{Binding Filter}"
+                                  ItemTemplate="{StaticResource CatalogFilterItemTemplate}"
+                                  Style="{StaticResource EditorToolbarCombo}"/>
+                        <Button Margin="0,0,8,0">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource SecondaryButton}">
+                                    <Setter Property="Content" Value="Отмена"/>
+                                    <Setter Property="Command" Value="{Binding CancelCommand}"/>
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSyncing}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Экспорт CSV"
+                                Command="{Binding ExportCsvCommand}" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource PrimaryButton}" Content="Обновить из НК"
+                                Command="{Binding SyncCommand}"/>
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Grid.Row="1" Margin="0,6,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ProgressText}" Style="{StaticResource MetricValue}"
+                                   TextWrapping="Wrap" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding ElapsedTimeText}" Margin="12,0,0,0" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource MutedText}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsSyncing}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                    <ProgressBar Value="{Binding SyncProgressPercent, Mode=OneWay}" Maximum="100"
+                                 Height="4" Margin="0,4,0,0">
+                        <ProgressBar.Style>
+                            <Style TargetType="ProgressBar">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                <Setter Property="Background" Value="{StaticResource PanelAltBrush}"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSyncing}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ProgressBar.Style>
+                    </ProgressBar>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Margin="0,0,0,6" Padding="12,10"
+                Background="{StaticResource WarningBadgeBackgroundBrush}"
+                BorderBrush="{StaticResource WarningBrush}" BorderThickness="1" CornerRadius="8">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ShowConnectivityWarning}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <TextBlock Text="{Binding ConnectivityWarning}" Foreground="{StaticResource WarningBrush}"
+                       TextWrapping="Wrap"/>
+        </Border>
+
+        <Border Grid.Row="2" Style="{StaticResource Card}" Padding="10,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0" MinHeight="200">
+                    <Border CornerRadius="10" ClipToBounds="True" Background="Transparent">
+                    <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}"
+                              AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                              CanUserSortColumns="True" SelectionMode="Single"
+                              ColumnHeaderHeight="62" MinHeight="200">
+                        <DataGrid.ColumnHeaderStyle>
+                            <StaticResource ResourceKey="CatalogFilterColumnHeader"/>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="ToolTip" Value="{Binding Item.SyncError}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Item.SyncError}" Value="{x:Null}">
+                                        <Setter Property="ToolTip" Value="{x:Null}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Item.SyncError}" Value="">
+                                        <Setter Property="ToolTip" Value="{x:Null}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding Gtin}" Width="140" MinWidth="130"
+                                                SortMemberPath="Gtin">
+                                <DataGridTextColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="GTIN" Style="{StaticResource CatalogHeaderTitle}"/>
+                                            <TextBox Style="{StaticResource CatalogHeaderFilterInput}"
+                                                     Text="{Binding DataContext.GtinFilter, RelativeSource={RelativeSource AncestorType=DataGrid}, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTextColumn.HeaderTemplate>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CatalogCellText}">
+                                        <Setter Property="FontFamily" Value="Consolas"/>
+                                        <Setter Property="FontSize" Value="12"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding Name}" Width="*" MinWidth="180"
+                                                SortMemberPath="Name">
+                                <DataGridTextColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="Название" Style="{StaticResource CatalogHeaderTitle}"/>
+                                            <TextBox Style="{StaticResource CatalogHeaderFilterInput}"
+                                                     Text="{Binding DataContext.NameFilter, RelativeSource={RelativeSource AncestorType=DataGrid}, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTextColumn.HeaderTemplate>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CatalogCellText}">
+                                        <Setter Property="ToolTip">
+                                            <Setter.Value>
+                                                <ToolTip Style="{StaticResource {x:Type ToolTip}}">
+                                                    <TextBlock Text="{Binding Name}" TextWrapping="Wrap" MaxWidth="480"/>
+                                                </ToolTip>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding TnvedCode}" Width="100" MinWidth="90"
+                                                SortMemberPath="TnvedCode">
+                                <DataGridTextColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="ТН ВЭД" Style="{StaticResource CatalogHeaderTitle}"/>
+                                            <TextBox Style="{StaticResource CatalogHeaderFilterInput}"
+                                                     Text="{Binding DataContext.TnvedFilter, RelativeSource={RelativeSource AncestorType=DataGrid}, UpdateSourceTrigger=PropertyChanged}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTextColumn.HeaderTemplate>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CatalogCellText}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="Дата изменения" Binding="{Binding UpdatedAtDisplay}"
+                                                Width="118" MinWidth="110" SortMemberPath="UpdatedAtSortKey">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CatalogCellText}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding ProductStateDisplay}" Width="120" MinWidth="110"
+                                                SortMemberPath="ProductStateDisplay">
+                                <DataGridTextColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="Состояние" Style="{StaticResource CatalogHeaderTitle}"/>
+                                            <ComboBox Style="{StaticResource CatalogHeaderFilterCombo}"
+                                                      ItemsSource="{Binding DataContext.ProductStateFilterOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      SelectedItem="{Binding DataContext.ProductStateFilter, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      ItemTemplate="{StaticResource CatalogFilterItemTemplate}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTextColumn.HeaderTemplate>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CatalogCellText}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding CardStatusDisplay}" Width="130" MinWidth="120"
+                                                SortMemberPath="CardStatusDisplay">
+                                <DataGridTextColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="Статус карточки" Style="{StaticResource CatalogHeaderTitle}"/>
+                                            <ComboBox Style="{StaticResource CatalogHeaderFilterCombo}"
+                                                      ItemsSource="{Binding DataContext.CardStatusFilterOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      SelectedItem="{Binding DataContext.CardStatusFilter, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      ItemTemplate="{StaticResource CatalogFilterItemTemplate}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTextColumn.HeaderTemplate>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CatalogCellText}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding CardTypeDisplay}" Width="110" MinWidth="100"
+                                                SortMemberPath="CardTypeDisplay">
+                                <DataGridTextColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="Тип" Style="{StaticResource CatalogHeaderTitle}"/>
+                                            <ComboBox Style="{StaticResource CatalogHeaderFilterCombo}"
+                                                      ItemsSource="{Binding DataContext.CardTypeFilterOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      SelectedItem="{Binding DataContext.CardTypeFilter, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      ItemTemplate="{StaticResource CatalogFilterItemTemplate}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTextColumn.HeaderTemplate>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CatalogCellText}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding CategoryName}" Width="130" MinWidth="110"
+                                                SortMemberPath="CategoryName">
+                                <DataGridTextColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource CatalogFilterColumnHeader}">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTextColumn.HeaderStyle>
+                                <DataGridTextColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Style="{StaticResource CatalogHeaderFilterPanel}">
+                                            <TextBlock Text="Категория" Style="{StaticResource CatalogHeaderTitle}"/>
+                                            <ComboBox Style="{StaticResource CatalogCategoryHeaderFilterCombo}"
+                                                      ItemsSource="{Binding DataContext.CategoryFilterOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      SelectedItem="{Binding DataContext.CategoryFilter, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      ItemTemplate="{StaticResource CatalogCategoryFilterItemTemplate}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTextColumn.HeaderTemplate>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CatalogCellText}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Binding="{Binding ProductGroupDisplay}" Width="220" MinWidth="160"
+                                                SortMemberPath="ProductGroupDisplay">
+                                <DataGridTextColumn.HeaderTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="Товарная группа" Style="{StaticResource CatalogHeaderTitle}"/>
+                                            <ComboBox Style="{StaticResource CatalogHeaderFilterCombo}"
+                                                      ItemsSource="{Binding DataContext.ProductGroupFilterOptions, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      SelectedItem="{Binding DataContext.ProductGroupFilter, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                      ItemTemplate="{StaticResource CatalogProductGroupFilterItemTemplate}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTextColumn.HeaderTemplate>
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock" BasedOn="{StaticResource CatalogCellText}"/>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTemplateColumn Header="Можно заказать" Width="118" MinWidth="110"
+                                                    SortMemberPath="CanOrderCodes">
+                                <DataGridTemplateColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource CatalogFilterColumnHeader}">
+                                        <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                                    </Style>
+                                </DataGridTemplateColumn.HeaderStyle>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <Border>
+                                                <Border.Style>
+                                                    <Style TargetType="Border" BasedOn="{StaticResource CatalogOrderableYesIndicator}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CanOrderCodes}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Path Width="12" Height="12" Stretch="Uniform"
+                                                      Stroke="{StaticResource SuccessBrush}" StrokeThickness="2"
+                                                      Data="M2,7 L5.5,10.5 L12,3"/>
+                                            </Border>
+                                            <Border>
+                                                <Border.Style>
+                                                    <Style TargetType="Border" BasedOn="{StaticResource CatalogOrderableNoIndicator}">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CanOrderCodes}" Value="False">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Path Width="12" Height="12" Stretch="Uniform"
+                                                      Stroke="{StaticResource DangerBrush}" StrokeThickness="2"
+                                                      Data="M3,3 L12,12 M12,3 L3,12"/>
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    </Border>
+
+                    <Border Background="{StaticResource CardBrush}" Padding="24">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowEmptyState}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                            <TextBlock Text="{Binding EmptyStateTitle}" Style="{StaticResource CardTitle}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" TextAlignment="Center"
+                                       Text="{Binding EmptyStateMessage}"/>
+                            <Button Style="{StaticResource SecondaryButton}" Content="Настройки маркировки CRPT"
+                                    HorizontalAlignment="Center" Margin="0,14,0,0"
+                                    Click="OnOpenSettingsClick"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="{StaticResource CardBrush}" Padding="24" Margin="0,62,0,0">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ShowFilteredEmptyState}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="520">
+                            <TextBlock Text="{Binding EmptyStateTitle}" Style="{StaticResource CardTitle}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                            <TextBlock Style="{StaticResource MutedText}" TextWrapping="Wrap" TextAlignment="Center"
+                                       Text="{Binding EmptyStateMessage}"/>
+                            <Button Style="{StaticResource SecondaryButton}" Content="Сбросить фильтры"
+                                    Command="{Binding ResetFiltersCommand}"
+                                    HorizontalAlignment="Center" Margin="0,14,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button Style="{StaticResource PrimaryButton}" Content="Заказать коды"
+                            Command="{Binding OrderCodesCommand}" Margin="0,0,12,0"
+                            ToolTip="{Binding OrderCodesTooltip}"/>
+                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource MutedText}"
+                               VerticalAlignment="Center" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <TextBlock Grid.Row="3" Text="{Binding LastSyncText}" Style="{StaticResource MutedText}" Margin="0,8,0,0"/>
+    </Grid>
+</UserControl>

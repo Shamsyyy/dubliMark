@@ -17,7 +17,6 @@ public static class TemplatePreviewRenderer
 
     public static ImageSource? TryRender(
         PrintTemplate template,
-        bool showDate = true,
         bool showShipment = false,
         bool showOrder = false,
         string? shipmentNumber = null,
@@ -53,7 +52,6 @@ public static class TemplatePreviewRenderer
                 Source = source,
                 Timestamp = DateTimeOffset.Now,
                 Dpi = dpi,
-                ShowDate = showDate,
                 ShowShipment = showShipment,
                 ShowOrder = showOrder,
                 ShipmentNumber = shipmentNumber,
@@ -71,7 +69,6 @@ public static class TemplatePreviewRenderer
 
     public static byte[]? TryRenderPngBytes(
         PrintTemplate template,
-        bool showDate = true,
         bool showShipment = false,
         bool showOrder = false,
         string? shipmentNumber = null,
@@ -107,7 +104,6 @@ public static class TemplatePreviewRenderer
                 Source = source,
                 Timestamp = DateTimeOffset.Now,
                 Dpi = dpi,
-                ShowDate = showDate,
                 ShowShipment = showShipment,
                 ShowOrder = showOrder,
                 ShipmentNumber = shipmentNumber,

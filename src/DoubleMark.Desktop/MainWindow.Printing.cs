@@ -13,6 +13,8 @@ namespace DoubleMark.Desktop;
 public partial class MainWindow
 {
     private readonly PrintTemplateService _printTemplateService = new();
+    private MarkRenderService _markRenderService = null!;
+    private MarkPrintService _markPrintService = null!;
     private PrintPipelineService _printPipeline = null!;
     private IReadOnlyList<PrintTemplate> _printTemplates = Array.Empty<PrintTemplate>();
     private LastSuccessfulScan? _lastSuccessfulScan;
@@ -21,10 +23,12 @@ public partial class MainWindow
 
     private void InitializePrintServices()
     {
+        _markRenderService = new MarkRenderService();
+        _markPrintService = new MarkPrintService(this);
         _printPipeline = new PrintPipelineService(
-            new MarkRenderService(),
+            _markRenderService,
             new PrintExportService(),
-            new MarkPrintService(this));
+            _markPrintService);
     }
 
 

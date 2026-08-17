@@ -36,6 +36,7 @@ public partial class MainWindow : Window
         InitializeAccountServices();
         InitializeCloudDataServices();
         InitializeNavigation();
+        InitializeCrptIntegration();
         Loaded += OnLoaded;
         Closed += OnClosed;
         PreviewKeyDown += OnPreviewKeyDown;

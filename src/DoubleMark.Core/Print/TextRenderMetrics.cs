@@ -39,7 +39,7 @@ internal static class TextRenderMetrics
     public static int MeasureGlyphHeightPx(double fontSizePt, int dpi)
     {
         var scale = GetScaleFactor(fontSizePt, dpi);
-        return Math.Max(1, (int)Math.Round(GlyphRows * scale));
+        return Math.Max(1, (int)Math.Ceiling(GlyphRows * scale));
     }
 
     public static double MeasureTextWidthMm(string text, double fontSizePt, bool bold, int dpi = 300) =>

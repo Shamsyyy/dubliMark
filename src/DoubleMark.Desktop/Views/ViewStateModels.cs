@@ -68,11 +68,6 @@ public sealed record TemplateViewState
     public string SyncStatusText { get; init; } = "";
     public bool IsSignedIn { get; init; }
     public ImageSource? PreviewImage { get; init; }
-    public bool LabelShowDate { get; init; } = true;
-    public bool LabelShowShipment { get; init; }
-    public bool LabelShowOrder { get; init; }
-    public string? LabelShipmentNumber { get; init; }
-    public string? LabelOrderNumber { get; init; }
     public double LabelWidthMm { get; init; }
     public double LabelHeightMm { get; init; }
     public double DataMatrixWidthMm { get; init; }
@@ -91,7 +86,9 @@ public sealed record TemplateTextBlockViewItem(
     string? PreviewText = null,
     TextBlockLayout Layout = TextBlockLayout.Horizontal,
     TextFlowDirection Flow = TextFlowDirection.Right,
-    TextBlockDirection? Orientation = null);
+    TextBlockDirection? Orientation = null,
+    bool Enabled = true,
+    LabelFontId FontId = LabelFontId.ArialIndustrial);
 
 public sealed record TemplateViewItem(
     string Name,
@@ -106,6 +103,44 @@ public sealed record TemplateViewItem(
     bool IsDefault = false,
     string? Description = null,
     string? UpdatedAtText = null);
+
+public sealed record PdfPrintPageResultItem(
+    int PageNumber,
+    bool Success,
+    string? Gtin,
+    string? Serial,
+    string? Error,
+    string? StatusLabel = null);
+
+public sealed record PdfPrintViewState
+{
+    public string PdfPath { get; init; } = "";
+    public IReadOnlyList<string> Printers { get; init; } = Array.Empty<string>();
+    public string? SelectedPrinter { get; init; }
+    public IReadOnlyList<string> Templates { get; init; } = Array.Empty<string>();
+    public string? SelectedTemplate { get; init; }
+    public string TemplateSize { get; init; } = "—";
+    public string DataMatrixSize { get; init; } = "—";
+    public string Status { get; init; } = "";
+    public string Summary { get; init; } = "—";
+    public string PageCountText { get; init; } = "";
+    public ImageSource? PreviewImage { get; init; }
+    public bool IsBusy { get; init; }
+    public double ProgressPercent { get; init; }
+    public bool CanPrint { get; init; }
+    public bool HasBatchRecords { get; init; }
+    public int ProblemCount { get; init; }
+    public int TotalRecordCount { get; init; }
+    public IReadOnlyList<PdfPrintPageResultItem> PageResults { get; init; } = Array.Empty<PdfPrintPageResultItem>();
+    public IReadOnlyList<PdfPrintHistoryItem> HistoryItems { get; init; } = Array.Empty<PdfPrintHistoryItem>();
+}
+
+public sealed record PdfPrintHistoryItem(
+    string JobId,
+    string Title,
+    string Subtitle,
+    int ProblemCount,
+    bool PdfMissing);
 
 public sealed record ExportViewState
 {

@@ -2,6 +2,8 @@ using System.Threading;
 using System.Windows;
 using System.Windows.Threading;
 using DoubleMark.Desktop.Services;
+using DoubleMark.Desktop.Services.Crpt;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DoubleMark.Desktop;
 
@@ -9,6 +11,8 @@ public partial class App : Application
 {
     private const string AppMutexName = "DoubleMarkAppRunning";
     private static Mutex? _singleInstanceMutex;
+
+    public static IServiceProvider Services { get; private set; } = null!;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -24,6 +28,10 @@ public partial class App : Application
             Shutdown();
             return;
         }
+
+        Services = new ServiceCollection()
+            .AddCrptServices()
+            .BuildServiceProvider();
 
         LoggingService.LogStartup();
         RegisterExceptionHandlers();

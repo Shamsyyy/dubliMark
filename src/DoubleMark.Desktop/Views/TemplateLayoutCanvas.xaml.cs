@@ -11,17 +11,27 @@ namespace DoubleMark.Desktop.Views;
 public partial class TemplateLayoutCanvas : UserControl
 {
     private const int RenderDpi = 300;
-    private const double MaxCanvasWidthPx = 380;
+    private const double MaxCanvasWidthPx = 520;
 
     private readonly List<TextBlockHandle> _handles = new();
     private TextBlockHandle? _selected;
     private TextBlockHandle? _dragging;
+    private Border? _dmHandle;
+    private TextBlock? _dmLabel;
     private Point _dragStartCanvas;
     private double _dragStartXmm;
     private double _dragStartYmm;
+    private bool _draggingDm;
     private bool _isLoading;
     private bool _isUpdatingFontBox;
+    private bool _isSyncingFontCombo;
     private double _pixelsPerMm = 10;
+    private double _labelWidthMm;
+    private double _labelHeightMm;
+    private double _dmWidthMm;
+    private double _dmHeightMm;
+    private double _dmXmm;
+    private double _dmYmm;
 
     private sealed class TextBlockHandle
     {
@@ -36,10 +46,13 @@ public partial class TemplateLayoutCanvas : UserControl
         public bool Bold { get; set; }
         public TextBlockLayout Layout { get; set; }
         public TextFlowDirection Flow { get; set; }
+        public LabelFontId FontId { get; set; } = LabelFontId.ArialIndustrial;
     }
 
     public event EventHandler<TemplateTextEdit>? TextBlocksEdited;
     public event EventHandler<TemplateTextEdit>? TextBlocksCommitted;
+    public event EventHandler<TemplateLayoutEdit>? LayoutEdited;
+    public event EventHandler<TemplateLayoutEdit>? LayoutCommitted;
 
     public TemplateLayoutCanvas()
     {
@@ -48,6 +61,21 @@ public partial class TemplateLayoutCanvas : UserControl
         FontLargerButton.IsEnabled = false;
         SelectedFontSizeBox.IsEnabled = false;
         LayoutToggleButton.IsEnabled = false;
+        CanvasFontCombo.ItemsSource = LabelFontRegistry.All;
+        CanvasFontCombo.DisplayMemberPath = nameof(LabelFontRegistry.FontOption.DisplayName);
+    }
+
+    public void SetFontSelection(LabelFontId fontId)
+    {
+        _isSyncingFontCombo = true;
+        try
+        {
+            CanvasFontCombo.SelectedItem = LabelFontRegistry.Resolve(fontId);
+        }
+        finally
+        {
+            _isSyncingFontCombo = false;
+        }
     }
 
     public void LoadLayout(
@@ -62,6 +90,13 @@ public partial class TemplateLayoutCanvas : UserControl
         _isLoading = true;
         try
         {
+            var selectedIndex = _selected?.Index;
+            _labelWidthMm = labelWidthMm;
+            _labelHeightMm = labelHeightMm;
+            _dmWidthMm = dmWidthMm;
+            _dmHeightMm = dmHeightMm;
+            _dmXmm = dmXmm;
+            _dmYmm = dmYmm;
             _pixelsPerMm = Math.Min(12, MaxCanvasWidthPx / Math.Max(1, labelWidthMm));
             ScaleInfoText.Text =
                 $"Этикетка {labelWidthMm.ToString("0.#", CultureInfo.InvariantCulture)}×{labelHeightMm.ToString("0.#", CultureInfo.InvariantCulture)} мм · " +
@@ -92,36 +127,66 @@ public partial class TemplateLayoutCanvas : UserControl
             Canvas.SetTop(labelRect, 12);
             LayoutCanvas.Children.Add(labelRect);
 
-            var dmRect = new Rectangle
+            var dmPanel = new Grid
             {
                 Width = dmWidthMm * _pixelsPerMm,
                 Height = dmHeightMm * _pixelsPerMm,
+                IsHitTestVisible = false
+            };
+            dmPanel.Children.Add(new Rectangle
+            {
                 Stroke = new SolidColorBrush(Color.FromRgb(0x2D, 0x6A, 0x4E)),
                 StrokeThickness = 1.5,
                 StrokeDashArray = new DoubleCollection { 4, 2 },
                 Fill = new SolidColorBrush(Color.FromArgb(40, 45, 106, 78))
-            };
-            Canvas.SetLeft(dmRect, 12 + dmXmm * _pixelsPerMm);
-            Canvas.SetTop(dmRect, 12 + dmYmm * _pixelsPerMm);
-            LayoutCanvas.Children.Add(dmRect);
+            });
 
-            var dmLabel = new TextBlock
+            _dmLabel = new TextBlock
             {
                 Text = $"DM {dmWidthMm.ToString("0.#", CultureInfo.InvariantCulture)}×{dmHeightMm.ToString("0.#", CultureInfo.InvariantCulture)}",
                 FontSize = 9,
                 Foreground = new SolidColorBrush(Color.FromRgb(0x2D, 0x6A, 0x4E)),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(2, -14, 0, 0),
                 IsHitTestVisible = false
             };
-            Canvas.SetLeft(dmLabel, 12 + dmXmm * _pixelsPerMm);
-            Canvas.SetTop(dmLabel, 12 + dmYmm * _pixelsPerMm - 14);
-            LayoutCanvas.Children.Add(dmLabel);
+            dmPanel.Children.Add(_dmLabel);
+
+            _dmHandle = new Border
+            {
+                Width = dmWidthMm * _pixelsPerMm + 2,
+                Height = dmHeightMm * _pixelsPerMm + 2,
+                Background = new SolidColorBrush(Color.FromArgb(24, 45, 106, 78)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(0x2D, 0x6A, 0x4E)),
+                BorderThickness = new Thickness(1.5),
+                CornerRadius = new CornerRadius(3),
+                Padding = new Thickness(1),
+                Cursor = Cursors.SizeAll,
+                Child = dmPanel
+            };
+            _dmHandle.MouseLeftButtonDown += OnDmMouseDown;
+            _dmHandle.MouseMove += OnDmMouseMove;
+            _dmHandle.MouseLeftButtonUp += OnDmMouseUp;
+            UpdateDmVisual();
+            LayoutCanvas.Children.Add(_dmHandle);
 
             for (var i = 0; i < blocks.Count; i++)
             {
                 var block = blocks[i];
+                if (!block.Enabled)
+                    continue;
+
                 var handle = CreateHandle(i, block);
                 _handles.Add(handle);
                 LayoutCanvas.Children.Add(handle.Root);
+            }
+
+            if (selectedIndex != null)
+            {
+                var restored = _handles.FirstOrDefault(h => h.Index == selectedIndex.Value);
+                if (restored != null)
+                    SelectHandle(restored);
             }
         }
         finally
@@ -135,14 +200,14 @@ public partial class TemplateLayoutCanvas : UserControl
         var display = block.PreviewText ?? block.Text;
         var (layout, flow) = TextBlockStyleHelper.GetStyle(block.Layout, block.Flow, block.Orientation);
         var (wMm, hMm) = TextBlockRenderHelper.MeasureBlockMm(
-            display, block.FontSizePt, block.Bold, layout, flow, RenderDpi);
+            display, block.FontSizePt, block.Bold, block.FontId, layout, flow, RenderDpi);
         var wPx = Math.Max(8, wMm * _pixelsPerMm);
         var hPx = Math.Max(8, hMm * _pixelsPerMm);
 
         var preview = new Image
         {
-            Source = SnippetImageFactory.Create(display, block.FontSizePt, block.Bold, layout, flow, RenderDpi),
-            Stretch = Stretch.Uniform,
+            Source = SnippetImageFactory.Create(display, block.FontSizePt, block.Bold, block.FontId, layout, flow, RenderDpi),
+            Stretch = Stretch.Fill,
             Width = wPx,
             Height = hPx,
             IsHitTestVisible = false
@@ -181,7 +246,8 @@ public partial class TemplateLayoutCanvas : UserControl
             FontSizePt = block.FontSizePt,
             Bold = block.Bold,
             Layout = layout,
-            Flow = flow
+            Flow = flow,
+            FontId = block.FontId
         };
     }
 
@@ -194,6 +260,7 @@ public partial class TemplateLayoutCanvas : UserControl
         if (_selected == null)
             return;
 
+        DeselectDm();
         SelectHandle(_selected);
         _dragging = _selected;
         _dragStartCanvas = e.GetPosition(LayoutCanvas);
@@ -228,6 +295,87 @@ public partial class TemplateLayoutCanvas : UserControl
         e.Handled = true;
     }
 
+    private void OnDmMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        if (_dmHandle == null)
+            return;
+
+        DeselectTextHandles();
+        SelectDm();
+        _draggingDm = true;
+        _dragStartCanvas = e.GetPosition(LayoutCanvas);
+        _dragStartXmm = _dmXmm;
+        _dragStartYmm = _dmYmm;
+        _dmHandle.CaptureMouse();
+        e.Handled = true;
+    }
+
+    private void OnDmMouseMove(object sender, MouseEventArgs e)
+    {
+        if (!_draggingDm || e.LeftButton != MouseButtonState.Pressed)
+            return;
+
+        var pos = e.GetPosition(LayoutCanvas);
+        var dx = (pos.X - _dragStartCanvas.X) / _pixelsPerMm;
+        var dy = (pos.Y - _dragStartCanvas.Y) / _pixelsPerMm;
+        var maxX = Math.Max(0, _labelWidthMm - _dmWidthMm);
+        var maxY = Math.Max(0, _labelHeightMm - _dmHeightMm);
+        _dmXmm = RoundMm(Math.Clamp(_dragStartXmm + dx, 0, maxX));
+        _dmYmm = RoundMm(Math.Clamp(_dragStartYmm + dy, 0, maxY));
+        UpdateDmVisual();
+        RaiseLayoutEdited();
+    }
+
+    private void OnDmMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (!_draggingDm || _dmHandle == null)
+            return;
+
+        _dmHandle.ReleaseMouseCapture();
+        _draggingDm = false;
+        RaiseLayoutCommitted();
+        e.Handled = true;
+    }
+
+    private void UpdateDmVisual()
+    {
+        if (_dmHandle == null)
+            return;
+
+        Canvas.SetLeft(_dmHandle, 12 + _dmXmm * _pixelsPerMm - 1);
+        Canvas.SetTop(_dmHandle, 12 + _dmYmm * _pixelsPerMm - 1);
+    }
+
+    private void DeselectTextHandles()
+    {
+        foreach (var h in _handles)
+        {
+            h.Root.BorderBrush = new SolidColorBrush(Color.FromRgb(0x3A, 0x7C, 0xB8));
+            h.Root.BorderThickness = new Thickness(1);
+        }
+
+        _selected = null;
+        UpdateFontControls();
+    }
+
+    private void DeselectDm()
+    {
+        if (_dmHandle == null)
+            return;
+
+        _dmHandle.BorderBrush = new SolidColorBrush(Color.FromRgb(0x2D, 0x6A, 0x4E));
+        _dmHandle.BorderThickness = new Thickness(1.5);
+    }
+
+    private void SelectDm()
+    {
+        if (_dmHandle == null)
+            return;
+
+        _dmHandle.BorderBrush = (Brush)FindResource("AccentBrush");
+        _dmHandle.BorderThickness = new Thickness(2);
+    }
+
     private void SelectHandle(TextBlockHandle handle)
     {
         foreach (var h in _handles)
@@ -253,20 +401,27 @@ public partial class TemplateLayoutCanvas : UserControl
         DirLeftButton.IsEnabled = enabled;
         DirDownButton.IsEnabled = enabled;
         DirUpButton.IsEnabled = enabled;
+        CanvasFontCombo.IsEnabled = enabled;
 
         var vertical = enabled && _selected!.Layout == TextBlockLayout.Vertical;
 
         _isUpdatingFontBox = true;
+        _isSyncingFontCombo = true;
         try
         {
             SelectedFontSizeBox.Text = enabled
                 ? _selected!.FontSizePt.ToString("0.#", CultureInfo.InvariantCulture)
                 : "—";
             LayoutToggleButton.Content = vertical ? "Верт." : "Гориз.";
+            if (enabled)
+                CanvasFontCombo.SelectedItem = LabelFontRegistry.Resolve(_selected!.FontId);
+            else if (CanvasFontCombo.SelectedItem != null)
+                CanvasFontCombo.SelectedItem = null;
         }
         finally
         {
             _isUpdatingFontBox = false;
+            _isSyncingFontCombo = false;
         }
 
         HighlightDirectionButton(DirRightButton, enabled && _selected!.Flow == TextFlowDirection.Right);
@@ -277,12 +432,29 @@ public partial class TemplateLayoutCanvas : UserControl
 
     private void HighlightDirectionButton(Button button, bool active)
     {
-        button.Background = active
-            ? (Brush)FindResource("AccentBrush")
-            : (Brush)FindResource("CardBrush");
-        button.Foreground = active
-            ? Brushes.White
-            : (Brush)FindResource("TextBrush");
+        button.Style = active
+            ? (Style)FindResource("EditorToolbarButtonActive")
+            : (Style)FindResource("EditorToolbarButton");
+    }
+
+    private void OnCanvasFontSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isLoading || _isSyncingFontCombo || _selected == null)
+            return;
+
+        if (CanvasFontCombo.SelectedItem is not LabelFontRegistry.FontOption option)
+            return;
+
+        if (_selected.FontId == option.Id)
+            return;
+
+        foreach (var handle in _handles)
+        {
+            handle.FontId = option.Id;
+            RefreshHandleVisual(handle);
+        }
+
+        RaiseEdited();
     }
 
     private void OnLayoutToggleClick(object sender, RoutedEventArgs e)
@@ -327,7 +499,7 @@ public partial class TemplateLayoutCanvas : UserControl
         if (_selected == null)
             return;
 
-        _selected.FontSizePt = Math.Clamp(RoundMm(_selected.FontSizePt - 0.5), 2, 12);
+        _selected.FontSizePt = Math.Clamp(RoundPt(_selected.FontSizePt - 0.1), 2, 12);
         RefreshHandleVisual(_selected);
         UpdateFontControls();
         RaiseEdited();
@@ -338,7 +510,7 @@ public partial class TemplateLayoutCanvas : UserControl
         if (_selected == null)
             return;
 
-        _selected.FontSizePt = Math.Clamp(RoundMm(_selected.FontSizePt + 0.5), 2, 12);
+        _selected.FontSizePt = Math.Clamp(RoundPt(_selected.FontSizePt + 0.1), 2, 12);
         RefreshHandleVisual(_selected);
         UpdateFontControls();
         RaiseEdited();
@@ -355,6 +527,12 @@ public partial class TemplateLayoutCanvas : UserControl
         }
     }
 
+    private void OnFontSizeBoxPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter)
+            ApplyFontSizeFromBox();
+    }
+
     private void ApplyFontSizeFromBox()
     {
         if (_isUpdatingFontBox || _selected == null)
@@ -367,7 +545,7 @@ public partial class TemplateLayoutCanvas : UserControl
             return;
         }
 
-        pt = Math.Clamp(RoundMm(pt), 2, 12);
+        pt = Math.Clamp(RoundPt(pt), 2, 12);
         if (Math.Abs(pt - _selected.FontSizePt) < 0.05)
         {
             UpdateFontControls();
@@ -383,11 +561,11 @@ public partial class TemplateLayoutCanvas : UserControl
     private void RefreshHandleVisual(TextBlockHandle handle)
     {
         var (wMm, hMm) = TextBlockRenderHelper.MeasureBlockMm(
-            handle.DisplayText, handle.FontSizePt, handle.Bold, handle.Layout, handle.Flow, RenderDpi);
+            handle.DisplayText, handle.FontSizePt, handle.Bold, handle.FontId, handle.Layout, handle.Flow, RenderDpi);
         var wPx = Math.Max(8, wMm * _pixelsPerMm);
         var hPx = Math.Max(8, hMm * _pixelsPerMm);
         handle.PreviewImage.Source = SnippetImageFactory.Create(
-            handle.DisplayText, handle.FontSizePt, handle.Bold, handle.Layout, handle.Flow, RenderDpi);
+            handle.DisplayText, handle.FontSizePt, handle.Bold, handle.FontId, handle.Layout, handle.Flow, RenderDpi);
         handle.PreviewImage.Width = wPx;
         handle.PreviewImage.Height = hPx;
         handle.Root.Width = wPx + 2;
@@ -400,9 +578,12 @@ public partial class TemplateLayoutCanvas : UserControl
             h.Xmm,
             h.Ymm,
             h.FontSizePt,
-                h.Bold,
-                h.Layout,
-                h.Flow)).ToList());
+            h.Bold,
+            h.Layout,
+            h.Flow,
+            Enabled: true,
+            RowIndex: h.Index,
+            FontId: h.FontId)).ToList());
 
     private void RaiseEdited()
     {
@@ -420,5 +601,31 @@ public partial class TemplateLayoutCanvas : UserControl
         TextBlocksCommitted?.Invoke(this, BuildEdit());
     }
 
+    private TemplateLayoutEdit BuildLayoutEdit() => new(
+        _labelWidthMm,
+        _labelHeightMm,
+        _dmWidthMm,
+        _dmHeightMm,
+        _dmXmm,
+        _dmYmm);
+
+    private void RaiseLayoutEdited()
+    {
+        if (_isLoading)
+            return;
+
+        LayoutEdited?.Invoke(this, BuildLayoutEdit());
+    }
+
+    private void RaiseLayoutCommitted()
+    {
+        if (_isLoading)
+            return;
+
+        LayoutCommitted?.Invoke(this, BuildLayoutEdit());
+    }
+
     private static double RoundMm(double value) => Math.Round(value, 1);
+
+    private static double RoundPt(double value) => Math.Round(value, 1, MidpointRounding.AwayFromZero);
 }

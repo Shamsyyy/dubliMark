@@ -19,11 +19,7 @@ public sealed class MarkRenderService
         var code = request.ParseResult.Code;
         var normalized = NormalizePayload(request.RawPayload, request.ParseResult);
         var baseTemplate = TemplateLayoutHelper.NormalizeForRender(request.Template);
-        var blockTemplates = TemplateLayoutHelper.BuildEffectiveTextBlocks(
-            baseTemplate,
-            request.ShowDate,
-            request.ShowShipment,
-            request.ShowOrder);
+        var blockTemplates = TemplateLayoutHelper.BuildEffectiveTextBlocks(baseTemplate);
         var substitutedBlocks = blockTemplates
             .Select(block => block with
             {
@@ -113,11 +109,10 @@ public sealed class MarkRenderService
 
     private static IReadOnlyList<RenderedTextBlock> RenderTextBlocks(PrintTemplate template) =>
         template.TextBlocks
-            .Where(b => TemplateLayoutHelper.IsInsideLabel(template, b))
             .Select(t =>
             {
                 var (layout, flow) = t.GetStyle();
-                return new RenderedTextBlock(t.Text, t.Xmm, t.Ymm, t.FontSizePt, t.Bold, layout, flow);
+                return new RenderedTextBlock(t.Text, t.Xmm, t.Ymm, t.FontSizePt, t.Bold, t.FontId, layout, flow);
             })
             .ToList();
 
@@ -161,6 +156,7 @@ public sealed class MarkRenderService
                 block.Text,
                 block.FontSizePt,
                 block.Bold,
+                block.FontId,
                 block.Layout,
                 block.Flow,
                 dpi,

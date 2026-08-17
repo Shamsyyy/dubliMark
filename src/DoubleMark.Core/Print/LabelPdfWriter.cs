@@ -17,11 +17,13 @@ internal static class LabelPdfWriter
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             string.Format(CultureInfo.InvariantCulture,
-                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {0:F3} {1:F3}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {0:F3} {1:F3}] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 7 0 R /F4 8 0 R >> >> /Contents 6 0 R >>",
                 widthPt, heightPt),
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
-            $"<< /Length {contentBytes.Length} >>\nstream\n{content}\nendstream"
+            $"<< /Length {contentBytes.Length} >>\nstream\n{content}\nendstream",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold >>"
         };
 
         using var stream = new MemoryStream();
@@ -105,7 +107,7 @@ internal static class LabelPdfWriter
             var x = MmToPt(block.Xmm);
             var y = pageHeightPt - MmToPt(block.Ymm) - block.FontSizePt;
             sb.AppendFormat(CultureInfo.InvariantCulture, "BT /{0} {1:F2} Tf {2:F3} {3:F3} Td ({4}) Tj ET\n",
-                block.Bold ? "F2" : "F1",
+                ResolvePdfFontName(block.Bold, block.FontId),
                 block.FontSizePt,
                 x,
                 y,
@@ -140,6 +142,11 @@ internal static class LabelPdfWriter
         return new string(chars);
     }
 
+    private static string ResolvePdfFontName(bool bold, LabelFontId fontId) =>
+        fontId == LabelFontId.GeorgiaClassic
+            ? bold ? "F4" : "F3"
+            : bold ? "F2" : "F1";
+
     private static double MmToPt(double mm) => mm * 72.0 / 25.4;
 
     private static void WriteAscii(Stream stream, string text)
@@ -155,5 +162,6 @@ internal sealed record RenderedTextBlock(
     double Ymm,
     double FontSizePt,
     bool Bold,
+    LabelFontId FontId = LabelFontId.ArialIndustrial,
     TextBlockLayout Layout = TextBlockLayout.Horizontal,
     TextFlowDirection Flow = TextFlowDirection.Right);
