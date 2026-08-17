@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: doublemark-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-doublemark}
+      POSTGRES_USER: ${POSTGRES_USER:-doublemark}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - doublemark_pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-doublemark} -d ${POSTGRES_DB:-doublemark}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - doublemark
+
+  api:
+    build:
+      context: .
+      dockerfile: src/DoubleMark.Api/Dockerfile
+    container_name: doublemark-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_URLS: http://0.0.0.0:5080
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:-doublemark};Username=${POSTGRES_USER:-doublemark};Password=${POSTGRES_PASSWORD}
+      Jwt__Issuer: ${Jwt__Issuer:-DoubleMark}
+      Jwt__Audience: ${Jwt__Audience:-DoubleMark.Desktop}
+      Jwt__SigningKey: ${Jwt__SigningKey:?Set Jwt__SigningKey in .env (min 32 chars)}
+      Jwt__AccessTokenMinutes: ${Jwt__AccessTokenMinutes:-60}
+      Jwt__RefreshTokenDays: ${Jwt__RefreshTokenDays:-30}
+    ports:
+      - "127.0.0.1:5080:5080"
+    networks:
+      - doublemark
+
+networks:
+  doublemark:
+
+volumes:
+  doublemark_pgdata:

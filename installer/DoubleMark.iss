@@ -3,7 +3,7 @@
 #endif
 
 #define MyAppName "DoubleMark"
-#define MyAppVersion "2.1.5"
+#define MyAppVersion "2.1.6"
 #define MyAppPublisher "DoubleMark"
 #define MyAppCopyright "Copyright (C) DoubleMark"
 #define MyAppExeName "DoubleMark.exe"

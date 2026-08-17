@@ -78,6 +78,7 @@ CLAUDE.md
 .env
 .env.*
 !.env.example
+!.env.production.example
 appsettings.local.json
 appsettings.json
 !appsettings.example.json

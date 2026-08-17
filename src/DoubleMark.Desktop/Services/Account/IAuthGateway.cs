@@ -1,5 +1,3 @@
-using Supabase.Gotrue;
-
 namespace DoubleMark.Desktop.Services.Account;
 
 public interface IAuthGateway
@@ -10,7 +8,7 @@ public interface IAuthGateway
     Task<AccountUser?> SignIn(string email, string password);
     Task SignOut();
     AccountUser? GetCurrentUser();
-    Session? GetSession();
+    string? AccessToken { get; }
     Task<AccountUser?> RestoreSession();
     Task<AccountUser?> RefreshSession();
 }

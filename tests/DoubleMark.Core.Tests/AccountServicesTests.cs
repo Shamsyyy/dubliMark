@@ -130,7 +130,7 @@ public sealed class AccountServicesTests
 
         public Task SignOut() => Task.CompletedTask;
         public AccountUser? GetCurrentUser() => _user;
-        public Supabase.Gotrue.Session? GetSession() => null;
+        public string? AccessToken => _user == null ? null : "test-token";
         public Task<AccountUser?> RestoreSession() => Task.FromResult(_user);
         public Task<AccountUser?> RefreshSession() => Task.FromResult(_user);
     }

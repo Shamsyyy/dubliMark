@@ -1,6 +1,6 @@
 namespace DoubleMark.Desktop.Services.Account;
 
-public sealed class AccountService
+public sealed class AccountService : IAccountPortal
 {
     private readonly AuthService _authService;
     private readonly ProfileService _profileService;

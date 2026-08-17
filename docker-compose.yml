@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: doublemark-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-doublemark}
+      POSTGRES_USER: ${POSTGRES_USER:-doublemark}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-doublemark_dev_change_me}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - doublemark_pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-doublemark} -d ${POSTGRES_DB:-doublemark}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  doublemark_pgdata:

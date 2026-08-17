@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -12,6 +12,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoubleMark.Core.Tests", "tests\DoubleMark.Core.Tests\DoubleMark.Core.Tests.csproj", "{E388E590-9B6B-4BAB-994F-2BA5A305BA15}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoubleMark.Desktop", "src\DoubleMark.Desktop\DoubleMark.Desktop.csproj", "{C79748B5-9CCF-4273-BC58-E653E48C38DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoubleMark.Api", "src\DoubleMark.Api\DoubleMark.Api.csproj", "{7607D385-EDEF-4B99-A5C5-C209BC6D69BB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,10 +36,15 @@ Global
 		{C79748B5-9CCF-4273-BC58-E653E48C38DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C79748B5-9CCF-4273-BC58-E653E48C38DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C79748B5-9CCF-4273-BC58-E653E48C38DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7607D385-EDEF-4B99-A5C5-C209BC6D69BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7607D385-EDEF-4B99-A5C5-C209BC6D69BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7607D385-EDEF-4B99-A5C5-C209BC6D69BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7607D385-EDEF-4B99-A5C5-C209BC6D69BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{E4086CDA-B1CC-4D40-8449-407D482E612D} = {DAD0AD2C-B705-4A55-B850-4BFB529E785F}
 		{E388E590-9B6B-4BAB-994F-2BA5A305BA15} = {70336F5E-62D5-42E2-AECD-A88CF98D1304}
 		{C79748B5-9CCF-4273-BC58-E653E48C38DC} = {DAD0AD2C-B705-4A55-B850-4BFB529E785F}
+		{7607D385-EDEF-4B99-A5C5-C209BC6D69BB} = {DAD0AD2C-B705-4A55-B850-4BFB529E785F}
 	EndGlobalSection
 EndGlobal

@@ -13,14 +13,29 @@ public partial class MainWindow
 
     private void InitializeCloudDataServices()
     {
-        _cloudScanHistoryService = new CloudScanHistoryService(
-            _supabaseClientFactory,
-            () => _accountSnapshot.User,
-            () => _settings);
-        _userTemplateService = new UserTemplateService(
-            _supabaseClientFactory,
-            () => _accountSnapshot.User,
-            _printTemplateService);
+        if (_apiClient != null)
+        {
+            _cloudScanHistoryService = new CloudScanHistoryService(
+                _apiClient,
+                () => _accountSnapshot.User,
+                () => _settings);
+            _userTemplateService = new UserTemplateService(
+                _apiClient,
+                () => _accountSnapshot.User,
+                _printTemplateService);
+        }
+        else
+        {
+            _cloudScanHistoryService = new CloudScanHistoryService(
+                _supabaseClientFactory!,
+                () => _accountSnapshot.User,
+                () => _settings);
+            _userTemplateService = new UserTemplateService(
+                _supabaseClientFactory!,
+                () => _accountSnapshot.User,
+                _printTemplateService);
+        }
+
         InitializeHistoryServices();
     }
 

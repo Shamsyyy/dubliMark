@@ -1,18 +1,19 @@
 ﻿{
-    "version":  "2.1.5",
-    "publishedAt":  "2026-05-24T15:16:09.3657874Z",
-    "releaseDate":  "2026-05-24",
+    "version":  "2.1.6",
+    "publishedAt":  "2026-05-25T19:38:57.3937951Z",
+    "releaseDate":  "2026-05-25",
     "mandatory":  false,
-    "title":  "DoubleMark 2.1.5",
+    "title":  "DoubleMark 2.1.6",
     "notes":  [
-                  "DoubleMark 2.1.5 — автообновление без цифровой подписи",
-                  "Проверка обновления по SHA-256 (requireSignature: false)",
-                  "Снятие метки «из интернета» перед запуском установщика",
-                  "Build ID: 20260524-181558"
+                  "DoubleMark 2.1.6 — редактор шаблонов и улучшенный рендер текста на этикетке",
+                  "Визуальный макет шаблона (TemplateLayoutCanvas)",
+                  "Обновлённый предпросмотр и печать текстовых блоков",
+                  "Автообновление по SHA-256 (requireSignature: false)",
+                  "Build ID: 20260525-223846"
               ],
-    "downloadUrl":  "https://doublemark.ru/downloads/DoubleMarkSetup-2.1.5.exe",
-    "installerUrl":  "https://doublemark.ru/downloads/DoubleMarkSetup-2.1.5.exe",
-    "sha256":  "2e379256a85e09c84daf1345890b8ce50e64c9bf0602a3df8665ccd8a4803c2e",
+    "downloadUrl":  "https://doublemark.ru/downloads/DoubleMarkSetup-2.1.6.exe",
+    "installerUrl":  "https://doublemark.ru/downloads/DoubleMarkSetup-2.1.6.exe",
+    "sha256":  "e4290292355cc1c2e9d681908d25d7346f600f892c46ad6d85a77ffdbc9c368a",
     "minSupportedVersion":  "2.0.0",
     "requireSignature":  false
 }

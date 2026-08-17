@@ -27,10 +27,9 @@ public sealed class AuthService
 
     public AccountUser? GetCurrentUser() => _gateway.GetCurrentUser();
 
-    public Supabase.Gotrue.Session? GetSession() => _gateway.GetSession();
+    public string? AccessToken => _gateway.AccessToken;
 
-    public bool HasAccessToken =>
-        !string.IsNullOrWhiteSpace(GetSession()?.AccessToken);
+    public bool HasAccessToken => !string.IsNullOrWhiteSpace(AccessToken);
 
     public Task<AccountUser?> RestoreSession() => _gateway.RestoreSession();
 

@@ -1,0 +1,6 @@
+@DoubleMark.Api_HostAddress = http://localhost:5286
+
+GET {{DoubleMark.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

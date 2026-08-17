@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Windows;
 using DoubleMark.Desktop.Services;
 using DoubleMark.Desktop.Services.Account;
+using DoubleMark.Desktop.Services.Api;
+using DoubleMark.Desktop.Settings;
 
 namespace DoubleMark.Desktop;
 
@@ -12,13 +14,13 @@ public partial class MainWindow
     private const string DoubleMarkAccountUrl = "https://shamsyyy.github.io/doublemarksite/account";
     private const string DoubleMarkPricingUrl = DoubleMarkSite;
 
-    private SupabaseClientFactory _supabaseClientFactory = null!;
+    private BackendConfig _backendConfig = null!;
+    private DoubleMarkApiClient? _apiClient;
+    private SupabaseClientFactory? _supabaseClientFactory;
     private AuthService _authService = null!;
-    private ProfileService _profileService = null!;
-    private SubscriptionService _subscriptionService = null!;
-    private PaymentService _paymentService = null!;
-    private DeviceService _deviceService = null!;
-    private AccountService _accountService = null!;
+    private ProfileService? _profileService;
+    private LocalApiProfileService? _localProfileService;
+    private IAccountPortal _accountService = null!;
     private AccountSnapshot _accountSnapshot = new(
         null,
         null,
@@ -29,19 +31,38 @@ public partial class MainWindow
 
     private void InitializeAccountServices()
     {
+        _backendConfig = BackendConfigLoader.Load();
+
+        if (_backendConfig.Mode == BackendMode.LocalApi)
+        {
+            _apiClient = new DoubleMarkApiClient(_backendConfig.ApiBaseUrl);
+            _authService = new AuthService(new LocalApiAuthGateway(_apiClient));
+            _localProfileService = new LocalApiProfileService(_apiClient);
+            _accountService = new LocalApiAccountService(
+                _authService,
+                _localProfileService,
+                new LocalApiSubscriptionService(_apiClient),
+                new LocalApiPaymentService(_apiClient),
+                new LocalApiDeviceService(_apiClient),
+                _backendConfig.ApiBaseUrl);
+            LoggingService.Info("Backend", "Mode=LocalApi url=" + _backendConfig.ApiBaseUrl);
+            return;
+        }
+
         _supabaseClientFactory = new SupabaseClientFactory();
         _authService = new AuthService(_supabaseClientFactory);
         _profileService = new ProfileService(_supabaseClientFactory);
-        _subscriptionService = new SubscriptionService(_supabaseClientFactory);
-        _paymentService = new PaymentService(_subscriptionService);
-        _deviceService = new DeviceService(_supabaseClientFactory);
+        var subscriptionService = new SubscriptionService(_supabaseClientFactory);
+        var paymentService = new PaymentService(subscriptionService);
+        var deviceService = new DeviceService(_supabaseClientFactory);
         _accountService = new AccountService(
             _authService,
             _profileService,
-            _subscriptionService,
-            _paymentService,
-            _deviceService,
+            subscriptionService,
+            paymentService,
+            deviceService,
             _supabaseClientFactory);
+        LoggingService.Info("Backend", "Mode=Supabase url=" + _supabaseClientFactory.SupabaseUrl);
     }
 
     private async Task RestoreAccountOnStartupAsync()
@@ -66,7 +87,7 @@ public partial class MainWindow
     {
         if (!_accountService.IsConfigured)
         {
-            _loginView?.SetStatus("Не настроено подключение к серверу DoubleMark. Проверьте SUPABASE_URL и SUPABASE_ANON_KEY.", canSignIn: false);
+            _loginView?.SetStatus(NotConfiguredMessage(), canSignIn: false);
             return;
         }
 
@@ -120,7 +141,10 @@ public partial class MainWindow
 
         try
         {
-            await _profileService.UpdateProfile(_accountSnapshot.User.Id, window.Result);
+            if (_localProfileService != null)
+                await _localProfileService.UpdateProfile(_accountSnapshot.User.Id, window.Result);
+            else if (_profileService != null)
+                await _profileService.UpdateProfile(_accountSnapshot.User.Id, window.Result);
             await RefreshAccountSnapshotAsync(showToast: false);
             ShowToast("Профиль DoubleMark обновлен", ToastKind.Success);
         }
@@ -155,12 +179,17 @@ public partial class MainWindow
         login.SetStatus(
             status ?? (canSignIn
                 ? "Введите email и пароль."
-                : "Не настроено подключение к серверу DoubleMark. Проверьте SUPABASE_URL и SUPABASE_ANON_KEY."),
+                : NotConfiguredMessage()),
             canSignIn: canSignIn);
         PageTitleText.Text = "Вход в DoubleMark";
         PageHost.Content = login;
         SetActiveNav(NavAccountButton);
     }
+
+    private string NotConfiguredMessage() =>
+        _backendConfig.Mode == BackendMode.LocalApi
+            ? "Не настроено подключение к API. Запустите Postgres (docker compose up -d) и DoubleMark.Api на http://localhost:5080."
+            : "Не настроено подключение к серверу DoubleMark. Проверьте SUPABASE_URL и SUPABASE_ANON_KEY.";
 
     private void ApplyAccountSnapshot()
     {
@@ -222,6 +251,51 @@ public partial class MainWindow
         }
 
         return false;
+    }
+
+    private async void OnLoginRegisterRequested(object? sender, RoutedEventArgs e)
+    {
+        if (_backendConfig.Mode == BackendMode.LocalApi && _apiClient != null)
+        {
+            var window = new RegisterWindow { Owner = this };
+            if (window.ShowDialog() != true)
+                return;
+
+            var email = window.Email;
+            var password = window.Password;
+            var company = window.CompanyName;
+
+            try
+            {
+                _loginView?.SetStatus("Создаём аккаунт...", isLoading: true);
+                await _apiClient.RegisterAsync(email, password);
+                if (!string.IsNullOrWhiteSpace(company))
+                {
+                    await _apiClient.UpdateProfileAsync(new ProfileUpdate(company, null, null));
+                }
+
+                _accountSnapshot = await _accountService.SignIn(email, password);
+                ApplyAccountSnapshot();
+                if (_accountSnapshot.User != null)
+                    await LoadUserCloudDataAsync();
+
+                if (_accountSnapshot.User == null || !_accountSnapshot.Subscription.IsActive)
+                    NavigateTo(GetAccountView(), NavAccountButton, "Личный кабинет DoubleMark");
+                else
+                    NavigateTo(_dashboardPage!, NavDashboardButton, "Главная панель");
+
+                ShowToast("Аккаунт создан", ToastKind.Success);
+            }
+            catch (Exception ex)
+            {
+                ShowToast("Регистрация не удалась: " + FriendlyAccountError(ex), ToastKind.Error);
+                _loginView?.SetStatus(FriendlyAccountError(ex));
+            }
+
+            return;
+        }
+
+        OpenRegister();
     }
 
     private void OpenRegister() => OpenUrl(DoubleMarkRegisterUrl);

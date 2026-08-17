@@ -54,6 +54,8 @@ public sealed class SupabaseAuthGateway : IAuthGateway
     public Session? GetSession() =>
         IsConfigured ? _clientFactory.GetClient().Auth.CurrentSession : null;
 
+    public string? AccessToken => GetSession()?.AccessToken;
+
     public async Task<AccountUser?> RestoreSession()
     {
         await InitializeAsync();

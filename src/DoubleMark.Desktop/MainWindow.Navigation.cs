@@ -174,7 +174,7 @@ public partial class MainWindow
 
         _loginView = new LoginView();
         _loginView.SignInRequested += OnLoginSignInRequested;
-        _loginView.RegisterRequested += (_, _) => OpenRegister();
+        _loginView.RegisterRequested += OnLoginRegisterRequested;
         _loginView.ResetPasswordRequested += (_, _) => OpenAccountSite();
         return _loginView;
     }
