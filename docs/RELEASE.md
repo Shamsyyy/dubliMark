@@ -24,7 +24,7 @@ C:\Projects\DubliMark\dist\DoubleMark\DoubleMark.exe
 
 Сборка: `win-x64`, self-contained, single-file, без `.pdb`.
 
-Скрипт копирует иконки из `ico\` в `src\DoubleMark.Desktop\Assets\Branding\` и генерирует `dist\DoubleMark\appsettings.json` из `.env.local` / `.env` / `appsettings.local.json` (только Supabase URL и anon key).
+Скрипт копирует иконки из `ico\` в `src\DoubleMark.Desktop\Assets\Branding\` и генерирует `dist\DoubleMark\appsettings.json` из `DOUBLEMARK_API_URL` / `.env.local` / `appsettings.local.json`. Если URL не задан, в релиз попадает `https://api.doublemark.ru`.
 
 Для folder-publish (например, с Obfuscar):
 
@@ -73,7 +73,7 @@ C:\Projects\DubliMark\dist\installer\DoubleMarkSetup-2.1.0-YYYYMMDD-HHMMSS.exe
 
 ## Проверка перед отправкой пользователю
 
-1. Запустить `dist\DoubleMark\DoubleMark.exe` — вход в ЛК без ошибки конфигурации Supabase.
+1. Запустить `dist\DoubleMark\DoubleMark.exe` — вход в ЛК через API DoubleMark, без ошибки конфигурации.
 2. Собрать установщик и установить на чистой Windows / VM.
 3. Проверить иконку в окне, taskbar, Alt+Tab, ярлыке.
 4. Проверить подписку, COM, HID/RawInput, печать, автопечать, шаблоны.

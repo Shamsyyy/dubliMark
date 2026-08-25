@@ -118,8 +118,7 @@ public sealed class LocalApiAccountService : IAccountPortal
 
         try
         {
-            var deviceLimit = subscription.Subscription?.DevicesLimit ?? 1;
-            var registration = await _deviceService.RegisterCurrentDevice(user.Id, deviceLimit);
+            var registration = await _deviceService.RegisterCurrentDevice(user.Id);
             devices = await _deviceService.GetUserDevices(user.Id);
             if (!registration.Success)
             {
@@ -132,13 +131,32 @@ public sealed class LocalApiAccountService : IAccountPortal
                     registration.Error);
             }
         }
-        catch (Exception ex) { AccountDiagnostics.LogError("devices query", ex); }
+        catch (Exception ex)
+        {
+            AccountDiagnostics.LogError("devices query", ex);
+            var friendly = FriendlyDeviceError(ex);
+            try { devices = await _deviceService.GetUserDevices(user.Id); }
+            catch { /* keep empty */ }
+            return new AccountSnapshot(user, profile, subscription, payments, devices, friendly);
+        }
 
         return new AccountSnapshot(user, profile, subscription, payments, devices, criticalError);
     }
 
     private static AccountSnapshot Empty(string? error) =>
         new(null, null, SubscriptionStatus.Missing, Array.Empty<AccountPayment>(), Array.Empty<AccountDevice>(), error);
+
+    private static string FriendlyDeviceError(Exception ex)
+    {
+        var message = ex.Message ?? "";
+        if (message.Contains("лимит", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("403", StringComparison.OrdinalIgnoreCase))
+        {
+            return "Лимит устройств организации исчерпан. Отключите устройство в личном кабинете на сайте DoubleMark.";
+        }
+
+        return FriendlyError(ex);
+    }
 
     private static string FriendlyError(Exception ex) =>
         ex.Message.Contains("refused", StringComparison.OrdinalIgnoreCase)

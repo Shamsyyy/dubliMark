@@ -9,7 +9,6 @@
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
-    <PackageReference Include="Supabase" Version="1.1.1" />
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
     <PackageReference Include="ZXing.Net" Version="0.16.9" />
     <PackageReference Include="ZXing.Net.Bindings.Windows.Compatibility" Version="0.16.12" />
@@ -22,10 +21,10 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <Version>2.1.6</Version>
-    <AssemblyVersion>2.1.6.0</AssemblyVersion>
-    <FileVersion>2.1.6.0</FileVersion>
-    <InformationalVersion>2.1.6</InformationalVersion>
+    <Version>3.0.3</Version>
+    <AssemblyVersion>3.0.3.0</AssemblyVersion>
+    <FileVersion>3.0.3.0</FileVersion>
+    <InformationalVersion>3.0.3</InformationalVersion>
     <AssemblyName>DoubleMark.Desktop</AssemblyName>
     <RootNamespace>DoubleMark.Desktop</RootNamespace>
     <Product>DoubleMark</Product>
@@ -50,6 +49,9 @@
     <Resource Include="Assets\Branding\doublemark-logo.svg" />
     <Resource Include="Assets\Branding\doublemark-tray.ico" />
     <Resource Include="Assets\Branding\doublemark-favicon.png" />
+    <Resource Include="Assets\Chrome\window-minimize.png" />
+    <Resource Include="Assets\Chrome\window-maximize.png" />
+    <Resource Include="Assets\Chrome\window-close.png" />
   </ItemGroup>
 
   <PropertyGroup Condition="'$(RuntimeIdentifier)' != ''">

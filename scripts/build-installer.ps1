@@ -21,7 +21,7 @@ if (Test-Path $buildInfoPath) {
     }
 }
 
-$version = "2.1.0"
+$version = "3.0.3"
 $propsPath = Join-Path $root "Directory.Build.props"
 if (Test-Path $propsPath) {
     $props = Get-Content $propsPath -Raw
@@ -104,19 +104,18 @@ if ($env:DOUBLEMARK_BUILD_ID) {
 
 $publishedAt = (Get-Date).ToUniversalTime().ToString("o")
 $downloadUrl = "https://doublemark.ru/downloads/$stableInstallerName"
-$fallbackUrl = "https://shamsyyy.github.io/doublemarksite/downloads/$stableInstallerName"
 
 $updateManifest = [ordered]@{
     version             = $version
     publishedAt         = $publishedAt
     releaseDate         = (Get-Date).ToString("yyyy-MM-dd")
-    mandatory           = $false
+    mandatory           = $true
     title               = "DoubleMark $version"
     notes               = $releaseNotes
     downloadUrl         = $downloadUrl
     installerUrl        = $downloadUrl
     sha256              = $hash
-    minSupportedVersion = "2.0.0"
+    minSupportedVersion = $version
     requireSignature    = $false
 }
 
@@ -142,4 +141,3 @@ Write-Host "update.json: $updateJsonPath"
 Write-Host "update.json (repo): $repoUpdateJsonPath"
 Write-Host "SHA256: $hash"
 Write-Host "downloadUrl: $downloadUrl"
-Write-Host "fallback mirror: $fallbackUrl"

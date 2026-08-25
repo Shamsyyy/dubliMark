@@ -31,6 +31,5 @@ public partial class MainWindow
         WindowState = WindowState == WindowState.Maximized
             ? WindowState.Normal
             : WindowState.Maximized;
-        MaximizeRestoreButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
     }
 }

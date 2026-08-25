@@ -3,44 +3,20 @@ using System.Text.Json;
 
 namespace DoubleMark.Desktop.Settings;
 
-public enum BackendMode
+public sealed record BackendConfig(string ApiBaseUrl)
 {
-    LocalApi,
-    Supabase
-}
-
-public sealed record BackendConfig(
-    BackendMode Mode,
-    string ApiBaseUrl,
-    string? SupabaseUrl,
-    string? SupabaseAnonKey)
-{
-    public bool IsConfigured =>
-        Mode == BackendMode.LocalApi
-            ? !string.IsNullOrWhiteSpace(ApiBaseUrl)
-            : !string.IsNullOrWhiteSpace(SupabaseUrl) && !string.IsNullOrWhiteSpace(SupabaseAnonKey);
+    public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiBaseUrl);
 }
 
 public static class BackendConfigLoader
 {
     public static BackendConfig Load()
     {
-        var modeRaw = Environment.GetEnvironmentVariable("DOUBLEMARK_BACKEND")
-                      ?? ReadJson("Backend:Mode")
-                      ?? ReadJson("BackendMode")
-                      ?? "LocalApi";
-
-        var mode = modeRaw.Equals("Supabase", StringComparison.OrdinalIgnoreCase)
-            ? BackendMode.Supabase
-            : BackendMode.LocalApi;
-
         var apiUrl = Environment.GetEnvironmentVariable("DOUBLEMARK_API_URL")
                      ?? ReadJson("Backend:ApiBaseUrl")
                      ?? ReadJson("ApiBaseUrl")
-                     ?? "http://localhost:5080";
-
-        var supabase = SupabaseConfigLoader.Load();
-        return new BackendConfig(mode, apiUrl.TrimEnd('/'), supabase.Url, supabase.AnonKey);
+                     ?? "https://api.doublemark.ru";
+        return new BackendConfig(apiUrl.TrimEnd('/'));
     }
 
     private static string? ReadJson(params string[] keys)

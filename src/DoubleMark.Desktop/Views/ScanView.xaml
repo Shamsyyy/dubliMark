@@ -116,10 +116,10 @@
                                        TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
                         </Border>
                     </Grid>
-                    <Border Background="#F7FAFC" CornerRadius="18" Width="236" Height="236" Padding="16" HorizontalAlignment="Center">
+                    <Border Background="{StaticResource PanelAltBrush}" CornerRadius="18" Width="236" Height="236" Padding="16" HorizontalAlignment="Center">
                         <Grid>
                             <Image x:Name="ScanPreviewImage" Stretch="Uniform"/>
-                            <TextBlock x:Name="ScanPreviewPlaceholder" Text="Нет данных" Foreground="#293241"
+                            <TextBlock x:Name="ScanPreviewPlaceholder" Text="Нет данных" Foreground="{StaticResource MutedTextBrush}"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13"/>
                         </Grid>
                     </Border>

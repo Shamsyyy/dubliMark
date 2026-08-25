@@ -68,8 +68,8 @@
                         <Border Width="36"
                                 Height="36"
                                 CornerRadius="18"
-                                Background="#142A3D"
-                                BorderBrush="#2F80ED"
+                                Background="{StaticResource AccentSoftBrush}"
+                                BorderBrush="{StaticResource TealBrush}"
                                 BorderThickness="1"
                                 HorizontalAlignment="Left"
                                 VerticalAlignment="Center">

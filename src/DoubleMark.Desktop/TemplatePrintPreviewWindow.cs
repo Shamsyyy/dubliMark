@@ -17,8 +17,8 @@ public sealed class TemplatePrintPreviewWindow : Window
         MinWidth = 420;
         MinHeight = 360;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        Background = Brush("AppBackgroundBrush", "#0B1220");
-        Foreground = Brush("TextBrush", "#E8EEF5");
+        Background = Brush("AppBackgroundBrush", "#F4F6F8");
+        Foreground = Brush("TextBrush", "#1A2330");
         FontFamily = new FontFamily("Segoe UI");
 
         var root = new Grid { Margin = new Thickness(24) };
@@ -49,7 +49,7 @@ public sealed class TemplatePrintPreviewWindow : Window
         var frame = new Border
         {
             Background = Brushes.White,
-            BorderBrush = (Brush)new BrushConverter().ConvertFrom("#D6DEE8")!,
+            BorderBrush = (Brush)FindResource("BorderBrushSoft"),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(12),
             Padding = new Thickness(12),

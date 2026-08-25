@@ -65,7 +65,18 @@ public sealed class AccountController : ControllerBase
         CancellationToken ct)
     {
         var userId = AccountDataService.GetUserId(User);
-        return Ok(await _data.UpsertDeviceAsync(userId, request, ct));
+        var result = await _data.UpsertDeviceAsync(userId, request, ct);
+        if (!result.Success)
+            return StatusCode(StatusCodes.Status403Forbidden, result);
+        return Ok(result);
+    }
+
+    [HttpDelete("me/devices/{deviceId}")]
+    public async Task<IActionResult> RevokeDevice(string deviceId, CancellationToken ct)
+    {
+        var userId = AccountDataService.GetUserId(User);
+        var ok = await _data.RevokeDeviceAsync(userId, deviceId, ct);
+        return ok ? NoContent() : NotFound(new { error = "Устройство не найдено." });
     }
 
     [HttpGet("me/templates")]
@@ -128,7 +139,7 @@ public sealed class AccountController : ControllerBase
     {
         var userId = AccountDataService.GetUserId(User);
         var count = await _data.GetScanHistoryCountAsync(userId, ct);
-        return Ok(new { count, limit = 1000 });
+        return Ok(new { count, limit = AccountDataService.MaxScanHistoryPerOrg });
     }
 
     [HttpPost("me/scan-history")]
@@ -161,5 +172,25 @@ public sealed class AccountController : ControllerBase
         var userId = AccountDataService.GetUserId(User);
         await _data.ClearScanHistoryAsync(userId, ct);
         return NoContent();
+    }
+
+    [HttpPost("me/downloads/installer")]
+    public async Task<ActionResult<object>> RecordInstallerDownload(
+        [FromBody] InstallerDownloadRequest? request,
+        CancellationToken ct)
+    {
+        var userId = AccountDataService.GetUserId(User);
+        var row = await _data.RecordInstallerDownloadAsync(
+            userId,
+            request?.Version,
+            request?.FileName,
+            ct);
+        return Ok(new
+        {
+            id = row.Id,
+            version = row.Version,
+            fileName = row.FileName,
+            createdAt = row.CreatedAt
+        });
     }
 }

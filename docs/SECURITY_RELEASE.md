@@ -100,17 +100,17 @@ signtool verify /pa /v dist\installer\DoubleMarkSetup-2.1.3.exe
 | `sha256` | SHA-256 установщика (hex lower) |
 | `mandatory`, `minSupportedVersion`, `notes` | Политика обновления |
 
-Допустимые хосты загрузки заданы в `UpdateService.AllowedHosts` (`doublemark.ru`, GitHub Pages fallback).
+Допустимые хосты загрузки заданы в `UpdateService.AllowedHosts` (`doublemark.ru`, `www.doublemark.ru`).
 
 ## Секреты — нельзя в репозитории
 
 - PFX / приватные ключи код-подписи
 - Пароли PFX, OTP токенов
-- Supabase `service_role`, SMTP, webhook secrets
+- SMTP, webhook secrets, JWT signing keys
 - Реальные коды Честного ЗНАКА в тестах/логах
 - `.env`, `appsettings.local.json` с production ключами
 
-В релиз попадает только **anon** ключ Supabase через `appsettings.json` на этапе сборки.
+В релиз попадает только публичный `Backend:ApiBaseUrl` (`https://api.doublemark.ru` по умолчанию). Server-side секреты в desktop не класть.
 
 ## Снижение AV false positives
 
@@ -119,7 +119,7 @@ signtool verify /pa /v dist\installer\DoubleMarkSetup-2.1.3.exe
 - Обновления не из Temp: `%LocalAppData%\DoubleMark\Updates\`.
 - Подписанный установщик и exe.
 - Логи Release: уровень ≥ Info, редактирование токенов/сырых payload.
-- Токены сессии: DPAPI (`SupabaseSessionStorage`).
+- Токены сессии: DPAPI (`ApiSessionStore`).
 
 ## Команды сборки и проверки
 

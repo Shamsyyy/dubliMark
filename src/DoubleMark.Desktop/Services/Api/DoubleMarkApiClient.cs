@@ -38,11 +38,32 @@ public sealed class DoubleMarkApiClient
             ? null
             : new AccountUser(_session.UserId, _session.Email);
 
-    public async Task<AccountUser> RegisterAsync(string email, string password, CancellationToken ct = default)
+    public async Task<AccountUser> RegisterAsync(
+        string email,
+        string password,
+        string? companyName = null,
+        string? inn = null,
+        string? phone = null,
+        bool personalDataConsent = false,
+        string? personalDataConsentVersion = null,
+        CancellationToken ct = default)
     {
-        var tokens = await PostAnonymousAsync<AuthTokensResponse>("api/auth/register", new { email, password }, ct);
-        SaveSession(tokens);
-        return CurrentUser!;
+        var result = await PostAnonymousAsync<RegisterResponse>(
+            "api/auth/register",
+            new
+            {
+                email,
+                password,
+                companyName,
+                inn,
+                phone,
+                personalDataConsent,
+                personalDataConsentVersion
+            },
+            ct);
+        if (!result.NeedsEmailConfirmation)
+            throw new InvalidOperationException("API вернул неожиданный ответ регистрации.");
+        return new AccountUser(string.Empty, email);
     }
 
     public async Task<AccountUser> LoginAsync(string email, string password, CancellationToken ct = default)
@@ -72,12 +93,20 @@ public sealed class DoubleMarkApiClient
         if (_session == null || string.IsNullOrWhiteSpace(_session.RefreshToken))
             return null;
 
-        var tokens = await PostAnonymousAsync<AuthTokensResponse>(
-            "api/auth/refresh",
-            new { refreshToken = _session.RefreshToken },
-            ct);
-        SaveSession(tokens);
-        return CurrentUser;
+        try
+        {
+            var tokens = await PostAnonymousAsync<AuthTokensResponse>(
+                "api/auth/refresh",
+                new { refreshToken = _session.RefreshToken },
+                ct);
+            SaveSession(tokens);
+            return CurrentUser;
+        }
+        catch
+        {
+            ClearSession();
+            throw;
+        }
     }
 
     public async Task LogoutAsync(CancellationToken ct = default)
@@ -117,19 +146,37 @@ public sealed class DoubleMarkApiClient
     public Task<List<DeviceDto>?> GetDevicesAsync(CancellationToken ct = default) =>
         GetAsync<List<DeviceDto>>("api/me/devices", ct);
 
-    public Task<DeviceRegistrationDto?> UpsertDeviceAsync(
+    public async Task<DeviceRegistrationDto?> UpsertDeviceAsync(
         string deviceId,
         string deviceName,
         string platform,
-        int devicesLimit,
-        CancellationToken ct = default) =>
-        SendAsync<DeviceRegistrationDto>(HttpMethod.Post, "api/me/devices", new
+        CancellationToken ct = default)
+    {
+        using var response = await SendCoreAsync(HttpMethod.Post, "api/me/devices", new
         {
             deviceId,
             deviceName,
-            platform,
-            devicesLimit
+            platform
         }, ct);
+
+        // Device limit exceeded is returned as 403 with a structured body.
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+        {
+            var denied = await response.Content.ReadFromJsonAsync<DeviceRegistrationDto>(JsonOptions, ct);
+            if (denied != null)
+                return denied;
+
+            var text = await response.Content.ReadAsStringAsync(ct);
+            return new DeviceRegistrationDto
+            {
+                Success = false,
+                Error = ExtractErrorMessage(text)
+            };
+        }
+
+        await EnsureSuccess(response);
+        return await response.Content.ReadFromJsonAsync<DeviceRegistrationDto>(JsonOptions, ct);
+    }
 
     public Task<List<TemplateDto>?> GetTemplatesAsync(CancellationToken ct = default) =>
         GetAsync<List<TemplateDto>>("api/me/templates", ct);
@@ -251,7 +298,30 @@ public sealed class DoubleMarkApiClient
             return;
 
         var text = await response.Content.ReadAsStringAsync();
-        throw new HttpRequestException($"API {(int)response.StatusCode}: {text}");
+        var message = ExtractErrorMessage(text);
+        var status = (int)response.StatusCode;
+        throw new HttpRequestException($"API {status}: {message}");
+    }
+
+    private static string ExtractErrorMessage(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return "Пустой ответ API.";
+
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("error", out var error)
+                && error.ValueKind == JsonValueKind.String)
+                return error.GetString() ?? text;
+        }
+        catch
+        {
+            // ignore malformed payload
+        }
+
+        return text;
     }
 
     private sealed class AuthTokensResponse
@@ -261,6 +331,12 @@ public sealed class DoubleMarkApiClient
         public DateTime ExpiresAtUtc { get; set; }
         public Guid UserId { get; set; }
         public string Email { get; set; } = "";
+    }
+
+    private sealed class RegisterResponse
+    {
+        public bool NeedsEmailConfirmation { get; set; }
+        public string Message { get; set; } = "";
     }
 
     public sealed class ProfileDto
@@ -277,6 +353,7 @@ public sealed class DoubleMarkApiClient
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
+        public Guid? OrgId { get; set; }
         public string? PlanId { get; set; }
         public string Status { get; set; } = "";
         public DateTime? CurrentPeriodStart { get; set; }
@@ -284,6 +361,7 @@ public sealed class DoubleMarkApiClient
         public DateTime? TrialEndsAt { get; set; }
         public int DevicesLimit { get; set; }
         public string? ProviderSubscriptionId { get; set; }
+        public int ActiveDeviceCount { get; set; }
     }
 
     public sealed class PaymentDto

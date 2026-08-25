@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net.Http;
 using System.Windows;
 using DoubleMark.Desktop.Services;
 using DoubleMark.Desktop.Services.Account;
@@ -9,16 +10,15 @@ namespace DoubleMark.Desktop;
 
 public partial class MainWindow
 {
-    private const string DoubleMarkSite = "https://shamsyyy.github.io/doublemarksite/";
-    private const string DoubleMarkRegisterUrl = "https://shamsyyy.github.io/doublemarksite/register";
-    private const string DoubleMarkAccountUrl = "https://shamsyyy.github.io/doublemarksite/account";
-    private const string DoubleMarkPricingUrl = DoubleMarkSite;
+    private const string DoubleMarkSite = "https://doublemark.ru/";
+    private const string DoubleMarkRegisterUrl = "https://doublemark.ru/register";
+    private const string DoubleMarkAccountUrl = "https://doublemark.ru/account";
+    private const string DoubleMarkPricingUrl = "https://doublemark.ru/pricing";
+    private const string DoubleMarkResetPasswordUrl = "https://doublemark.ru/reset-password";
 
     private BackendConfig _backendConfig = null!;
     private DoubleMarkApiClient? _apiClient;
-    private SupabaseClientFactory? _supabaseClientFactory;
     private AuthService _authService = null!;
-    private ProfileService? _profileService;
     private LocalApiProfileService? _localProfileService;
     private IAccountPortal _accountService = null!;
     private AccountSnapshot _accountSnapshot = new(
@@ -32,37 +32,17 @@ public partial class MainWindow
     private void InitializeAccountServices()
     {
         _backendConfig = BackendConfigLoader.Load();
-
-        if (_backendConfig.Mode == BackendMode.LocalApi)
-        {
-            _apiClient = new DoubleMarkApiClient(_backendConfig.ApiBaseUrl);
-            _authService = new AuthService(new LocalApiAuthGateway(_apiClient));
-            _localProfileService = new LocalApiProfileService(_apiClient);
-            _accountService = new LocalApiAccountService(
-                _authService,
-                _localProfileService,
-                new LocalApiSubscriptionService(_apiClient),
-                new LocalApiPaymentService(_apiClient),
-                new LocalApiDeviceService(_apiClient),
-                _backendConfig.ApiBaseUrl);
-            LoggingService.Info("Backend", "Mode=LocalApi url=" + _backendConfig.ApiBaseUrl);
-            return;
-        }
-
-        _supabaseClientFactory = new SupabaseClientFactory();
-        _authService = new AuthService(_supabaseClientFactory);
-        _profileService = new ProfileService(_supabaseClientFactory);
-        var subscriptionService = new SubscriptionService(_supabaseClientFactory);
-        var paymentService = new PaymentService(subscriptionService);
-        var deviceService = new DeviceService(_supabaseClientFactory);
-        _accountService = new AccountService(
+        _apiClient = new DoubleMarkApiClient(_backendConfig.ApiBaseUrl);
+        _authService = new AuthService(new LocalApiAuthGateway(_apiClient));
+        _localProfileService = new LocalApiProfileService(_apiClient);
+        _accountService = new LocalApiAccountService(
             _authService,
-            _profileService,
-            subscriptionService,
-            paymentService,
-            deviceService,
-            _supabaseClientFactory);
-        LoggingService.Info("Backend", "Mode=Supabase url=" + _supabaseClientFactory.SupabaseUrl);
+            _localProfileService,
+            new LocalApiSubscriptionService(_apiClient),
+            new LocalApiPaymentService(_apiClient),
+            new LocalApiDeviceService(_apiClient),
+            _backendConfig.ApiBaseUrl);
+        LoggingService.Info("Backend", "Mode=LocalApi url=" + _backendConfig.ApiBaseUrl);
     }
 
     private async Task RestoreAccountOnStartupAsync()
@@ -161,7 +141,7 @@ public partial class MainWindow
         }
 
         var window = new AccountSettingsWindow(_accountSnapshot.Profile) { Owner = this };
-        window.ResetPasswordRequested += (_, _) => OpenAccountSite();
+        window.ResetPasswordRequested += (_, _) => OpenResetPassword();
         if (window.ShowDialog() != true || window.Result == null)
             return;
 
@@ -169,8 +149,6 @@ public partial class MainWindow
         {
             if (_localProfileService != null)
                 await _localProfileService.UpdateProfile(_accountSnapshot.User.Id, window.Result);
-            else if (_profileService != null)
-                await _profileService.UpdateProfile(_accountSnapshot.User.Id, window.Result);
             await RefreshAccountSnapshotAsync(showToast: false);
             ShowToast("Профиль DoubleMark обновлен", ToastKind.Success);
         }
@@ -213,9 +191,7 @@ public partial class MainWindow
     }
 
     private string NotConfiguredMessage() =>
-        _backendConfig.Mode == BackendMode.LocalApi
-            ? "Не настроено подключение к API. Запустите Postgres (docker compose up -d) и DoubleMark.Api на http://localhost:5080."
-            : "Не настроено подключение к серверу DoubleMark. Проверьте SUPABASE_URL и SUPABASE_ANON_KEY.";
+        "Не настроено подключение к API DoubleMark. Проверьте DOUBLEMARK_API_URL или Backend:ApiBaseUrl.";
 
     private void ApplyAccountSnapshot()
     {
@@ -279,78 +255,108 @@ public partial class MainWindow
         return false;
     }
 
-    private async void OnLoginRegisterRequested(object? sender, RoutedEventArgs e)
-    {
-        if (_backendConfig.Mode == BackendMode.LocalApi && _apiClient != null)
-        {
-            var window = new RegisterWindow { Owner = this };
-            if (window.ShowDialog() != true)
-                return;
-
-            var email = window.Email;
-            var password = window.Password;
-            var company = window.CompanyName;
-
-            try
-            {
-                _loginView?.SetStatus("Создаём аккаунт...", isLoading: true);
-                await _apiClient.RegisterAsync(email, password);
-                if (!string.IsNullOrWhiteSpace(company))
-                {
-                    await _apiClient.UpdateProfileAsync(new ProfileUpdate(company, null, null));
-                }
-
-                _accountSnapshot = await _accountService.SignIn(email, password);
-                ApplyAccountSnapshot();
-                if (_accountSnapshot.User != null)
-                    await LoadUserCloudDataAsync();
-
-                if (_accountSnapshot.User == null || !_accountSnapshot.Subscription.IsActive)
-                    NavigateTo(GetAccountView(), NavAccountButton, "Личный кабинет DoubleMark");
-                else
-                    NavigateTo(_dashboardPage!, NavDashboardButton, "Главная панель");
-
-                ShowToast("Аккаунт создан", ToastKind.Success);
-            }
-            catch (Exception ex)
-            {
-                ShowToast("Регистрация не удалась: " + FriendlyAccountError(ex), ToastKind.Error);
-                _loginView?.SetStatus(FriendlyAccountError(ex));
-            }
-
-            return;
-        }
-
+    private void OnLoginRegisterRequested(object? sender, RoutedEventArgs e) =>
         OpenRegister();
-    }
 
     private void OpenRegister() => OpenUrl(DoubleMarkRegisterUrl);
     private void OpenAccountSite() => OpenUrl(DoubleMarkAccountUrl);
     private void OpenPricing() => OpenUrl(DoubleMarkPricingUrl);
+    private void OpenResetPassword() => OpenUrl(DoubleMarkResetPasswordUrl);
 
     private static void OpenUrl(string url) =>
         Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
 
-    private static string FriendlyAccountError(Exception ex)
+    private string FriendlyAccountError(Exception ex)
     {
         Debug.WriteLine(ex);
         if (ex is TimeoutException)
             return ex.Message;
 
-        if (ex.Message.Contains("network", StringComparison.OrdinalIgnoreCase)
-            || ex.Message.Contains("socket", StringComparison.OrdinalIgnoreCase)
-            || ex.Message.Contains("internet", StringComparison.OrdinalIgnoreCase))
-            return "Нет подключения к серверу DoubleMark. Проверьте интернет и попробуйте снова.";
+        var message = ex.Message ?? "";
+        var apiDetail = ExtractApiErrorDetail(message);
 
-        if (ex.Message.Contains("invalid", StringComparison.OrdinalIgnoreCase)
-            || ex.Message.Contains("credentials", StringComparison.OrdinalIgnoreCase)
-            || ex.Message.Contains("login", StringComparison.OrdinalIgnoreCase))
-            return "Неверный email или пароль.";
+        if (message.Contains("refused", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("actively refused", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("No connection could be made", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("localhost:5080", StringComparison.OrdinalIgnoreCase))
+        {
+            var url = _backendConfig.ApiBaseUrl;
+            if (url.Contains("localhost", StringComparison.OrdinalIgnoreCase)
+                || url.Contains("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+                return "Нет связи с API DoubleMark. Запустите локальный API или укажите https://api.doublemark.ru.";
 
-        if (ex.Message.Contains("confirm", StringComparison.OrdinalIgnoreCase))
+            return $"Нет связи с API DoubleMark ({url}). Проверьте интернет и попробуйте снова.";
+        }
+
+        if (message.Contains("network", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("socket", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("internet", StringComparison.OrdinalIgnoreCase)
+            || ex is HttpRequestException)
+            return string.IsNullOrWhiteSpace(apiDetail)
+                ? "Нет подключения к серверу DoubleMark. Проверьте интернет и попробуйте снова."
+                : apiDetail;
+
+        if (!string.IsNullOrWhiteSpace(apiDetail)
+            && (apiDetail.Contains("подтверд", StringComparison.OrdinalIgnoreCase)
+                || apiDetail.Contains("confirm", StringComparison.OrdinalIgnoreCase)))
+            return apiDetail;
+
+        if (!string.IsNullOrWhiteSpace(apiDetail)
+            && (apiDetail.Contains("Неверный", StringComparison.OrdinalIgnoreCase)
+                || apiDetail.Contains("парол", StringComparison.OrdinalIgnoreCase)))
+            return apiDetail;
+
+        if (message.Contains("invalid", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("credentials", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Unauthorized", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("401", StringComparison.OrdinalIgnoreCase))
+            return string.IsNullOrWhiteSpace(apiDetail) ? "Неверный email или пароль." : apiDetail;
+
+        if (message.Contains("confirm", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("подтверд", StringComparison.OrdinalIgnoreCase))
             return "Email не подтвержден. Проверьте почту и подтвердите аккаунт DoubleMark.";
 
-        return "Ошибка входа в DoubleMark. Проверьте данные и попробуйте снова.";
+        if (message.Contains("403", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("лимит устройств", StringComparison.OrdinalIgnoreCase))
+        {
+            if (message.Contains("лимит", StringComparison.OrdinalIgnoreCase)
+                || (!string.IsNullOrWhiteSpace(apiDetail)
+                    && apiDetail.Contains("лимит", StringComparison.OrdinalIgnoreCase)))
+            {
+                return "Лимит устройств организации исчерпан. Отключите устройство в личном кабинете на сайте.";
+            }
+
+            return "Доступ запрещён для этого действия.";
+        }
+
+        if (message.Contains("429", StringComparison.OrdinalIgnoreCase))
+            return "Слишком много запросов. Подождите немного и попробуйте снова.";
+
+        if (message.Contains("500", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("email не настроена", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("Smtp", StringComparison.OrdinalIgnoreCase))
+            return string.IsNullOrWhiteSpace(apiDetail)
+                ? "Сервер DoubleMark временно недоступен. Попробуйте позже."
+                : apiDetail;
+
+        return string.IsNullOrWhiteSpace(apiDetail)
+            ? "Ошибка входа в DoubleMark. Проверьте данные и попробуйте снова."
+            : apiDetail;
+    }
+
+    private static string? ExtractApiErrorDetail(string message)
+    {
+        const string marker = "API ";
+        var idx = message.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (idx < 0)
+            return null;
+
+        var colon = message.IndexOf(':', idx);
+        if (colon < 0 || colon + 1 >= message.Length)
+            return null;
+
+        var detail = message[(colon + 1)..].Trim();
+        return string.IsNullOrWhiteSpace(detail) ? null : detail;
     }
 
     private static string BuildInitials(string? title, string? fallback)

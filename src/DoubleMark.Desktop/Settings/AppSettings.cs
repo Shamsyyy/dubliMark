@@ -36,7 +36,7 @@ public sealed class AppSettings
     public bool AutoCheckUpdates { get; set; } = true;
     public bool LocalTemplatesMigratedToCloud { get; set; }
     public ScanHistoryDuplicateMode ScanHistoryDuplicateMode { get; set; } = ScanHistoryDuplicateMode.IgnoreRecentDuplicates;
-    /// <summary>Сохранять и загружать историю в Supabase (требуется вход).</summary>
+    /// <summary>Сохранять и загружать историю через API аккаунта DoubleMark (требуется вход).</summary>
     public bool CloudHistoryEnabled { get; set; } = true;
     /// <summary>Сохранять историю локально на этом ПК.</summary>
     public bool LocalHistoryEnabled { get; set; } = true;

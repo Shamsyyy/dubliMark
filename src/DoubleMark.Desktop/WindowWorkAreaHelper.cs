@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace DoubleMark.Desktop;
 
@@ -14,6 +15,38 @@ internal static class WindowWorkAreaHelper
             Hook(window);
         else
             window.SourceInitialized += (_, _) => Hook(window);
+    }
+
+    public static System.Windows.Rect GetWorkAreaDip(Window window)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        var fallback = SystemParameters.WorkArea;
+        try
+        {
+            var hwnd = new WindowInteropHelper(window).Handle;
+            if (hwnd == IntPtr.Zero && window.Owner != null)
+                hwnd = new WindowInteropHelper(window.Owner).Handle;
+            if (hwnd == IntPtr.Zero)
+                return fallback;
+
+            var monitor = MonitorFromWindow(hwnd, MonitorDefaultToNearest);
+            var monitorInfo = new MonitorInfo { cbSize = Marshal.SizeOf<MonitorInfo>() };
+            if (!GetMonitorInfo(monitor, ref monitorInfo))
+                return fallback;
+
+            var source = PresentationSource.FromVisual(window)
+                ?? (window.Owner == null ? null : PresentationSource.FromVisual(window.Owner));
+            var fromDevice = source?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+            var work = monitorInfo.rcWork;
+            var topLeft = fromDevice.Transform(new System.Windows.Point(work.Left, work.Top));
+            var bottomRight = fromDevice.Transform(new System.Windows.Point(work.Right, work.Bottom));
+            return new System.Windows.Rect(topLeft, bottomRight);
+        }
+        catch
+        {
+            return fallback;
+        }
     }
 
     private static void Hook(Window window)
@@ -64,24 +97,24 @@ internal static class WindowWorkAreaHelper
     [StructLayout(LayoutKind.Sequential)]
     private struct MinMaxInfo
     {
-        public Point ptReserved;
-        public Point ptMaxSize;
-        public Point ptMaxPosition;
-        public Point ptMinTrackSize;
-        public Point ptMaxTrackSize;
+        public NativePoint ptReserved;
+        public NativePoint ptMaxSize;
+        public NativePoint ptMaxPosition;
+        public NativePoint ptMinTrackSize;
+        public NativePoint ptMaxTrackSize;
     }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct MonitorInfo
     {
         public int cbSize;
-        public Rect rcMonitor;
-        public Rect rcWork;
+        public NativeRect rcMonitor;
+        public NativeRect rcWork;
         public uint dwFlags;
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct Rect
+    private struct NativeRect
     {
         public int Left;
         public int Top;
@@ -90,7 +123,7 @@ internal static class WindowWorkAreaHelper
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    private struct Point
+    private struct NativePoint
     {
         public int X;
         public int Y;

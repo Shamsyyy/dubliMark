@@ -7,6 +7,10 @@ public partial class RegisterWindow : Window
     public string Email => EmailText.Text.Trim();
     public string Password => PasswordText.Password;
     public string CompanyName => CompanyText.Text.Trim();
+    public string Inn => InnText.Text.Trim();
+    public string Phone => PhoneText.Text.Trim();
+    public bool PersonalDataConsent => ConsentCheck.IsChecked == true;
+    public bool AcceptOffer => OfferCheck.IsChecked == true;
 
     public RegisterWindow()
     {
@@ -34,9 +38,21 @@ public partial class RegisterWindow : Window
             return;
         }
 
-        if (Password.Length < 6)
+        if (Password.Length < 8)
         {
-            StatusText.Text = "Пароль должен быть не короче 6 символов.";
+            StatusText.Text = "Пароль должен быть не короче 8 символов.";
+            return;
+        }
+
+        if (!AcceptOffer)
+        {
+            StatusText.Text = "Подтвердите принятие оферты.";
+            return;
+        }
+
+        if (!PersonalDataConsent)
+        {
+            StatusText.Text = "Нужно согласие на обработку персональных данных.";
             return;
         }
 

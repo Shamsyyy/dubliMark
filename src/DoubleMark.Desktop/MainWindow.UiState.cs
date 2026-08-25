@@ -397,7 +397,7 @@ public partial class MainWindow
         await ReloadScanHistoryAsync();
 
         if (cloudFailed && _settings.CloudHistoryEnabled)
-            ShowToast("Не удалось сохранить историю в Supabase. Локальная копия сохранена.", ToastKind.Warning);
+            ShowToast("Не удалось сохранить историю в аккаунт DoubleMark. Локальная копия сохранена.", ToastKind.Warning);
     }
 
     private void RebuildDashboardHistoryRows()

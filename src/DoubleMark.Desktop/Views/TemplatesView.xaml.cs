@@ -451,7 +451,7 @@ public partial class TemplatesView : UserControl
                 ? (Brush)FindResource("AccentBrush")
                 : (Brush)FindResource("BorderBrushSoft"),
             Background = template.IsActive
-                ? (Brush)new BrushConverter().ConvertFrom("#12243B")!
+                ? (Brush)FindResource("AccentSoftBrush")
                 : (Brush)FindResource("PanelAltBrush")
         };
         border.MouseLeftButtonUp += (_, _) => TemplateSelected?.Invoke(this, template.Name);

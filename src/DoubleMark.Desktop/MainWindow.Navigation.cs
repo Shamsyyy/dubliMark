@@ -26,7 +26,7 @@ public partial class MainWindow
     }
 
     private void OnNavigateDashboardClick(object sender, RoutedEventArgs e) =>
-        NavigateToProtected(() => _dashboardPage!, NavDashboardButton, "Главная панель");
+        NavigateToProtected(() => _dashboardPage!, NavDashboardButton, "Главная");
 
     private void OnNavigateScanClick(object sender, RoutedEventArgs e) =>
         NavigateToProtected(GetScanView, NavScanButton, "Сканирование");
@@ -159,7 +159,7 @@ public partial class MainWindow
         _accountView.RefreshRequested += OnAccountRefreshRequested;
         _accountView.OpenAccountSiteRequested += (_, _) => OpenAccountSite();
         _accountView.OpenPricingRequested += (_, _) => OpenPricing();
-        _accountView.ResetPasswordRequested += (_, _) => OpenAccountSite();
+        _accountView.ResetPasswordRequested += (_, _) => OpenResetPassword();
         _accountView.CheckUpdatesRequested += OnAccountCheckUpdatesRequested;
         _accountView.DownloadUpdateRequested += OnAccountDownloadUpdateRequested;
         _accountView.OpenDownloadsPageRequested += OnAccountOpenDownloadsPageRequested;
@@ -178,7 +178,7 @@ public partial class MainWindow
         _loginView = new LoginView();
         _loginView.SignInRequested += OnLoginSignInRequested;
         _loginView.RegisterRequested += OnLoginRegisterRequested;
-        _loginView.ResetPasswordRequested += (_, _) => OpenAccountSite();
+        _loginView.ResetPasswordRequested += (_, _) => OpenResetPassword();
         return _loginView;
     }
 
@@ -237,6 +237,8 @@ public partial class MainWindow
     {
         var inactive = (Style)FindResource("SidebarButton");
         var active = (Style)FindResource("SidebarButtonActive");
+        var activeStroke = (System.Windows.Media.Brush)FindResource("TealBrush");
+        var inactiveStroke = (System.Windows.Media.Brush)FindResource("MutedTextBrush");
         foreach (var button in new[]
                  {
                      NavDashboardButton,
@@ -254,7 +256,22 @@ public partial class MainWindow
                      NavAccountButton
                  })
         {
-            button.Style = ReferenceEquals(button, activeButton) ? active : inactive;
+            var isActive = ReferenceEquals(button, activeButton);
+            button.Style = isActive ? active : inactive;
+            if (button.Content is not StackPanel panel)
+                continue;
+
+            foreach (var child in panel.Children)
+            {
+                if (child is System.Windows.Shapes.Path path)
+                    path.Stroke = isActive ? activeStroke : inactiveStroke;
+            }
         }
+
+        if (ReferenceEquals(activeButton, NavCrptSettingsButton)
+            || ReferenceEquals(activeButton, NavCrptCatalogButton)
+            || ReferenceEquals(activeButton, NavCrptOrdersButton)
+            || ReferenceEquals(activeButton, NavCrptPrintQueueButton))
+            CrptNavExpander.IsExpanded = true;
     }
 }

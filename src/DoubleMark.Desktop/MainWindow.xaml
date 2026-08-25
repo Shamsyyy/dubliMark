@@ -18,33 +18,141 @@
     </shell:WindowChrome.WindowChrome>
     <Grid x:Name="RootShell" PreviewMouseDown="OnRootShellPreviewMouseDown">
         <Grid.RowDefinitions>
-            <RowDefinition Height="38"/>
+            <RowDefinition Height="64"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="36"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="236"/>
+            <ColumnDefinition Width="248"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <Border Grid.Row="0" Grid.ColumnSpan="2"
-                Background="#0A1016"
-                BorderBrush="{StaticResource BorderBrushSoft}"
-                BorderThickness="0,0,0,1"
+                Background="{StaticResource HeaderBackgroundBrush}"
                 MouseLeftButtonDown="OnTitleBarMouseLeftButtonDown">
-            <Grid>
+            <Grid Margin="16,0,8,0">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="248"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
-                    <Ellipse Width="8" Height="8" Fill="{StaticResource SuccessBrush}" Margin="0,0,10,0"/>
-                    <TextBlock Text="DoubleMark" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" FontSize="13"/>
-                    <TextBlock Text=" · локальная работа с Честным знаком" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="6,1,0,0"/>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Source="Assets/Branding/doublemark-favicon.png"
+                           Width="28" Height="28" Stretch="Uniform" SnapsToDevicePixels="True"/>
+                    <TextBlock Text="DoubleMark" Foreground="{StaticResource HeaderTextBrush}"
+                               FontWeight="SemiBold" FontSize="16" Margin="10,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" shell:WindowChrome.IsHitTestVisibleInChrome="True">
-                    <Button Style="{StaticResource TitleBarButton}" Click="OnMinimizeClick" Content="—"/>
-                    <Button x:Name="MaximizeRestoreButton" Style="{StaticResource TitleBarButton}" Click="OnMaximizeRestoreClick" Content="□"/>
-                    <Button Style="{StaticResource TitleBarCloseButton}" Click="OnCloseClick" Content="×"/>
+
+                <Grid Grid.Column="1" Margin="12,0,24,0" VerticalAlignment="Center" MaxWidth="720" HorizontalAlignment="Stretch">
+                    <Border x:Name="GlobalSearchFrame" Height="40" CornerRadius="10"
+                            Background="{StaticResource HeaderSearchBrush}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="42"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Width="16" Height="16" Stretch="Uniform"
+                                  Stroke="{StaticResource HeaderMutedBrush}" StrokeThickness="1.7"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  Data="M8,3 A5,5 0 1 0 8,13 A5,5 0 1 0 8,3 M12,12 L16,16"/>
+                            <Grid Grid.Column="1">
+                                <TextBox x:Name="GlobalSearchBox" Style="{StaticResource HeaderSearchBox}"
+                                         TextChanged="OnGlobalSearchTextChanged" GotKeyboardFocus="OnGlobalSearchFocused"
+                                         KeyDown="OnGlobalSearchKeyDown" Padding="0" VerticalContentAlignment="Center"/>
+                                <TextBlock x:Name="SearchPlaceholderText" Text="Поиск по сканам, GS, серийному номеру..."
+                                           Foreground="{StaticResource HeaderMutedBrush}" IsHitTestVisible="False"
+                                           VerticalAlignment="Center" FontSize="13"/>
+                            </Grid>
+                            <Border Grid.Column="2" Margin="0,0,10,0" Padding="8,3" CornerRadius="6"
+                                    Background="#111827" VerticalAlignment="Center">
+                                <TextBlock Text="Ctrl+K" Foreground="{StaticResource HeaderMutedBrush}" FontSize="11"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <Popup x:Name="SearchPopup" PlacementTarget="{Binding ElementName=GlobalSearchFrame}" Placement="Bottom"
+                           AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="True">
+                        <Border Style="{StaticResource SoftSurface}" Width="{Binding ActualWidth, ElementName=GlobalSearchFrame}" MaxHeight="360" Padding="12" Effect="{StaticResource CardShadow}">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel>
+                                    <TextBlock Text="Результаты поиска" Style="{StaticResource MutedText}" Margin="0,0,0,10"/>
+                                    <StackPanel x:Name="SearchResultsPanel"/>
+                                    <TextBlock x:Name="SearchEmptyText" Text="Ничего не найдено" Style="{StaticResource MutedText}" Visibility="Collapsed"/>
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Border>
+                    </Popup>
+                </Grid>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Grid VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Button x:Name="NotificationsButton" Style="{StaticResource TitleBarButton}" Width="40" Height="40"
+                                Click="OnNotificationsClick">
+                            <Path Width="18" Height="18" Stretch="Uniform" Stroke="{StaticResource HeaderTextBrush}" StrokeThickness="1.6"
+                                  Data="M10,17 C11.1,17 12,16.2 12.2,15.2 M5,12 L5,8 C5,5.5 7,3.5 10,3.5 C13,3.5 15,5.5 15,8 L15,12 L17,14 L3,14 Z"/>
+                        </Button>
+                        <Border x:Name="NotificationsBadge" Width="17" Height="17" CornerRadius="8.5" Background="{StaticResource TealBrush}"
+                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,4,0" Visibility="Collapsed">
+                            <TextBlock x:Name="NotificationsBadgeText" Text="0" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <Popup x:Name="NotificationsPopup" PlacementTarget="{Binding ElementName=NotificationsButton}" Placement="Bottom"
+                               AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="False">
+                            <Border Style="{StaticResource SoftSurface}" Width="340" Padding="12" Effect="{StaticResource CardShadow}">
+                                <StackPanel>
+                                    <TextBlock Text="Уведомления" Style="{StaticResource CardTitle}" Margin="0,0,0,10"/>
+                                    <StackPanel x:Name="NotificationsItemsPanel"/>
+                                    <TextBlock x:Name="NotificationsEmptyText" Text="Событий пока нет" Style="{StaticResource MutedText}" Visibility="Collapsed"/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+
+                    <Grid VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Button x:Name="AccountMenuButton" Style="{StaticResource TitleBarButton}" Height="44" Width="Auto" Padding="8,0"
+                                Click="OnAccountMenuClick">
+                            <StackPanel Orientation="Horizontal">
+                                <Border Width="32" Height="32" CornerRadius="16" Background="{StaticResource TealBrush}">
+                                    <TextBlock x:Name="AccountInitialsText" Text="DM" Foreground="White" FontWeight="Bold" FontSize="11"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Margin="8,0,6,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="AccountNameText" Text="Аккаунт DoubleMark" Foreground="{StaticResource HeaderTextBrush}" FontWeight="SemiBold" FontSize="12"/>
+                                    <TextBlock x:Name="AccountOrgText" Text="Войдите в аккаунт" Foreground="{StaticResource HeaderMutedBrush}" FontSize="11"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <Path Width="9" Height="6" Stretch="Uniform" Stroke="{StaticResource HeaderMutedBrush}" StrokeThickness="1.5"
+                                      VerticalAlignment="Center" Data="M1,1 L4.5,4.5 L8,1"/>
+                            </StackPanel>
+                        </Button>
+                        <Popup x:Name="AccountPopup" PlacementTarget="{Binding ElementName=AccountMenuButton}" Placement="Bottom"
+                               AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="False">
+                            <Border Style="{StaticResource SoftSurface}" Width="260" Padding="10" Effect="{StaticResource CardShadow}">
+                                <StackPanel>
+                                    <TextBlock x:Name="AccountPopupNameText" Text="Аккаунт DoubleMark" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="AccountPopupEmailText" Text="Войдите в аккаунт" Style="{StaticResource MutedText}" Margin="0,2,0,10"/>
+                                    <Button Style="{StaticResource SidebarButton}" Content="Личный кабинет DoubleMark" Click="OnAccountProfileClick"/>
+                                    <Button Style="{StaticResource SidebarButton}" Content="Настройки аккаунта" Click="OnAccountProfileClick"/>
+                                    <Button x:Name="AccountPlanButton" Style="{StaticResource SidebarButton}" Content="Подписка DoubleMark" Click="OnAccountProfileClick"/>
+                                    <Button Style="{StaticResource DangerButton}" Content="Выйти" Click="OnAccountSignOutClick" Margin="0,8,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+                    </Grid>
+
+                    <Button Style="{StaticResource WindowChromeButton}" Click="OnMinimizeClick">
+                        <Image Source="pack://application:,,,/Assets/Chrome/window-minimize.png" Width="11" Height="11"
+                               RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                    </Button>
+                    <Button x:Name="MaximizeRestoreButton" Style="{StaticResource WindowChromeButton}" Click="OnMaximizeRestoreClick">
+                        <Image Source="pack://application:,,,/Assets/Chrome/window-maximize.png" Width="12" Height="12"
+                               RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                    </Button>
+                    <Button Style="{StaticResource WindowChromeCloseButton}" Click="OnCloseClick">
+                        <Image Source="pack://application:,,,/Assets/Chrome/window-close.png" Width="10" Height="10"
+                               RenderOptions.BitmapScalingMode="HighQuality" SnapsToDevicePixels="True"/>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>
@@ -53,81 +161,85 @@
                 Background="{StaticResource SidebarBackgroundBrush}"
                 BorderBrush="{StaticResource BorderBrushSoft}"
                 BorderThickness="0,0,1,0">
-            <Grid Margin="16,22">
+            <Grid Margin="12,16,12,12">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="24"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Orientation="Horizontal" Grid.Row="0" VerticalAlignment="Center" Margin="8,0,0,0">
-                    <Border Width="34" Height="34" CornerRadius="10"
-                            Background="Transparent">
-                        <Image Source="Assets/Branding/doublemark-logo.png"
-                               Width="34"
-                               Height="34"
-                               Stretch="Uniform"
-                               SnapsToDevicePixels="True"/>
-                    </Border>
-                    <TextBlock Text="DoubleMark" Foreground="{StaticResource TextBrush}"
-                               FontSize="20" FontWeight="SemiBold" Margin="12,0,0,0"
-                               VerticalAlignment="Center"/>
-                </StackPanel>
-
-                <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel>
-                    <Button x:Name="NavDashboardButton" Style="{StaticResource SidebarButtonActive}" Margin="0,0,0,10" Click="OnNavigateDashboardClick">
+                    <Button x:Name="NavDashboardButton" Style="{StaticResource SidebarButtonActive}" Margin="0,0,0,6" Click="OnNavigateDashboardClick">
                         <StackPanel Orientation="Horizontal">
-                            <Path Style="{StaticResource IconPath}" Stroke="{StaticResource AccentBrush}"
+                            <Path Style="{StaticResource IconPath}"
                                   Data="M3,10 L10,3 L17,10 M5,9 L5,17 L15,17 L15,9 M8,17 L8,12 L12,12 L12,17"/>
-                            <TextBlock Text="Главная" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                            <TextBlock Text="Главная" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="NavScanButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateScanClick">
+                    <Button x:Name="NavScanButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigateScanClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Data="M4,7 L4,4 L7,4 M13,4 L16,4 L16,7 M16,13 L16,16 L13,16 M7,16 L4,16 L4,13 M8,8 L12,8 L12,12 L8,12 Z"/>
-                            <TextBlock Text="Сканирование" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                            <TextBlock Text="Сканирование" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
                     <Button x:Name="NavPrintButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigatePrintClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Data="M5,8 L5,3 L15,3 L15,8 M5,14 L3,14 L3,8 L17,8 L17,14 L15,14 M6,12 L14,12 L14,18 L6,18 Z"/>
-                            <TextBlock Text="Печать" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                            <TextBlock Text="Печать" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="NavPdfPrintButton" Style="{StaticResource SidebarButton}" Margin="16,0,0,10" Click="OnNavigatePdfPrintClick">
+                    <Button x:Name="NavTemplatesButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigateTemplatesClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M4,4 L16,4 L16,16 L4,16 Z M7,7 L9,7 M11,7 L13,7 M7,10 L9,10 M11,10 L13,10 M7,13 L9,13 M11,13 L13,13"/>
+                            <TextBlock Text="Шаблоны" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavPdfPrintButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigatePdfPrintClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Data="M4,4 L16,4 L16,16 L4,16 Z M7,7 L13,7 M7,10 L13,10 M7,13 L11,13"/>
                             <TextBlock Text="PDF-пакет" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="NavTemplatesButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateTemplatesClick">
-                        <StackPanel Orientation="Horizontal">
-                            <Path Style="{StaticResource IconPath}" Data="M4,4 L16,4 L16,16 L4,16 Z M7,7 L9,7 M11,7 L13,7 M7,10 L9,10 M11,10 L13,10 M7,13 L9,13 M11,13 L13,13"/>
-                            <TextBlock Text="Шаблоны" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
-                    <Button x:Name="NavHistoryButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateHistoryClick">
+                    <Button x:Name="NavHistoryButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigateHistoryClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Data="M10,3 A7,7 0 1 0 10,17 A7,7 0 1 0 10,3 M10,6 L10,10 L13,12"/>
-                            <TextBlock Text="История" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                            <TextBlock Text="История" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="NavExportButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateExportClick">
+                    <Button x:Name="NavExportButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigateExportClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Data="M4,7 L4,4 L7,4 M13,4 L16,4 L16,7 M16,13 L16,16 L13,16 M7,16 L4,16 L4,13 M10,6 L10,14 M6,10 L14,10"/>
-                            <TextBlock Text="Экспорт" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                            <TextBlock Text="Экспорт" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="NavDiagnosticsButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateDiagnosticsClick">
+                    <Button x:Name="NavDiagnosticsButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigateDiagnosticsClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Data="M3,10 C5,3 8,8 10,4 C12,8 15,3 17,10 C15,16 12,14 10,17 C8,14 5,16 3,10"/>
-                            <TextBlock Text="Диагностика" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
+                            <TextBlock Text="Диагностика" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="NavAccountButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateAccountClick">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="M10,10 A3.5,3.5 0 1 0 10,3 A3.5,3.5 0 1 0 10,10 M4,17 C4.8,13.8 7,12.5 10,12.5 C13,12.5 15.2,13.8 16,17"/>
+                            <TextBlock Text="ЛК" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
 
-                    <TextBlock Text="Маркировка CRPT" Style="{StaticResource MutedText}" FontSize="11" Margin="8,8,0,8"/>
+                    <Expander x:Name="CrptNavExpander" IsExpanded="False" Margin="0,4,0,10">
+                        <Expander.Header>
+                            <StackPanel Orientation="Horizontal" Margin="4,0,0,0">
+                                <TextBlock Text="Маркировка CRPT" Foreground="{StaticResource MutedTextBrush}"
+                                           FontSize="11" VerticalAlignment="Center"/>
+                                <Border Margin="8,0,0,0" Padding="6,2" CornerRadius="6"
+                                        Background="{StaticResource AccentSoftBrush}"
+                                        BorderBrush="{StaticResource AccentBrush}" BorderThickness="1"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="в разработке" Foreground="{StaticResource AccentBrush}"
+                                               FontSize="10" FontWeight="SemiBold"/>
+                                </Border>
+                            </StackPanel>
+                        </Expander.Header>
+                        <StackPanel Margin="0,8,0,0">
                     <Button x:Name="NavCrptSettingsButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigateCrptSettingsClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Data="M10,2 L12,7 L17,7 L13,10 L14,15 L10,12 L6,15 L7,10 L3,7 L8,7 Z"/>
@@ -146,69 +258,41 @@
                             <TextBlock Text="Заказы кодов" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-                    <Button x:Name="NavCrptPrintQueueButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateCrptPrintQueueClick">
+                    <Button x:Name="NavCrptPrintQueueButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,6" Click="OnNavigateCrptPrintQueueClick">
                         <StackPanel Orientation="Horizontal">
                             <Path Style="{StaticResource IconPath}" Data="M6,5 L14,5 L16,9 L16,16 L6,16 Z M8,11 L14,11"/>
                             <TextBlock Text="Очередь печати" Margin="12,0,0,0" FontSize="14" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Button>
-
-                    <Button x:Name="NavAccountButton" Style="{StaticResource SidebarButton}" Margin="0,0,0,10" Click="OnNavigateAccountClick">
-                        <StackPanel Orientation="Horizontal">
-                            <Path Style="{StaticResource IconPath}" Data="M10,10 A3.5,3.5 0 1 0 10,3 A3.5,3.5 0 1 0 10,10 M4,17 C4.8,13.8 7,12.5 10,12.5 C13,12.5 15.2,13.8 16,17"/>
-                            <TextBlock Text="ЛК" Margin="12,0,0,0" FontSize="15" VerticalAlignment="Center"/>
                         </StackPanel>
-                    </Button>
+                    </Expander>
                 </StackPanel>
                 </ScrollViewer>
 
-                <Border Grid.Row="3" Style="{StaticResource SoftSurface}" Padding="12" Margin="0,0,0,2">
-                    <StackPanel Orientation="Horizontal" Margin="8,0,0,0">
-                        <Border Width="34" Height="34" CornerRadius="17" Background="Transparent">
-                            <Image Source="Assets/Branding/doublemark-logo.png"
-                                   Width="30"
-                                   Height="30"
-                                   Stretch="Uniform"
-                                   SnapsToDevicePixels="True"/>
-                        </Border>
-                        <StackPanel Margin="12,0,0,0">
-                            <TextBlock x:Name="SidebarVersionText" Text="DoubleMark" Style="{StaticResource MutedText}" FontSize="12"/>
-                            <TextBlock Text="© 2026" Style="{StaticResource MutedText}" FontSize="12"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-            </Grid>
-        </Border>
-
-        <Grid Grid.Row="1" Grid.Column="1">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="96"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <Grid Grid.Row="0" Margin="28,14,28,12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="360"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="58"/>
-                    <ColumnDefinition Width="240"/>
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock x:Name="PageTitleText" Text="Главная панель" Style="{StaticResource SectionTitle}" Margin="0,0,0,4"/>
-                    <Button x:Name="WorkspaceButton" Style="{StaticResource SidebarButton}" Padding="0" HorizontalAlignment="Left"
+                <Border Grid.Row="1" Style="{StaticResource SoftSurface}" Padding="12" Margin="0,8,0,0">
+                    <Grid>
+                    <Button x:Name="WorkspaceButton" Style="{StaticResource SidebarButton}" Padding="0" HorizontalAlignment="Stretch"
                             Background="Transparent" Click="OnWorkspaceClick">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse x:Name="WorkspaceStatusDot" Width="8" Height="8" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text="Рабочее пространство:" Margin="10,0,4,0" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
-                            <TextBlock x:Name="WorkspaceNameText" Text="Основное" Foreground="{StaticResource AccentBrush}" FontWeight="SemiBold" FontSize="12"/>
-                            <Path Width="9" Height="6" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.5"
-                                  Margin="8,1,0,0" Data="M1,1 L4.5,4.5 L8,1"/>
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse x:Name="WorkspaceStatusDot" Width="8" Height="8" Fill="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock x:Name="WorkspaceNameText" Text="Основное" Foreground="{StaticResource TextBrush}"
+                                               FontWeight="SemiBold" FontSize="13" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <TextBlock Text="Рабочее пространство" Style="{StaticResource MutedText}" Margin="16,2,0,0"/>
+                            </StackPanel>
+                            <Path Grid.Column="1" Width="14" Height="14" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.6"
+                                  VerticalAlignment="Center" Data="M3,7 L5,7 L6,4 L8,10 L9,7 L12,7 M10,2 L10.5,3.5 L12,4 L10.5,4.5 L10,6 L9.5,4.5 L8,4 L9.5,3.5 Z"/>
+                        </Grid>
                     </Button>
-                    <Popup x:Name="WorkspacePopup" PlacementTarget="{Binding ElementName=WorkspaceButton}" Placement="Bottom"
+                    <Popup x:Name="WorkspacePopup" PlacementTarget="{Binding ElementName=WorkspaceButton}" Placement="Top"
                            AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="False">
-                        <Border Style="{StaticResource SoftSurface}" Width="230" Padding="8" Effect="{StaticResource CardShadow}">
+                        <Border Style="{StaticResource SoftSurface}" Width="220" Padding="8" Effect="{StaticResource CardShadow}">
                             <StackPanel>
                                 <Button Style="{StaticResource SidebarButton}" Content="Основное" Click="OnWorkspaceOptionClick"/>
                                 <Button Style="{StaticResource SidebarButton}" Content="Производство" Click="OnWorkspaceOptionClick"/>
@@ -216,103 +300,19 @@
                             </StackPanel>
                         </Border>
                     </Popup>
-                </StackPanel>
-
-                <Grid Grid.Column="1" Margin="16,0" VerticalAlignment="Center">
-                    <Border x:Name="GlobalSearchFrame" Height="44" CornerRadius="12"
-                            Background="{StaticResource SoftPanelBrush}" BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1"
-                            Effect="{StaticResource CardShadow}">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="42"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <Path Grid.Column="0" Width="17" Height="17" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.7"
-                                  HorizontalAlignment="Center" VerticalAlignment="Center"
-                                  Data="M8,3 A5,5 0 1 0 8,13 A5,5 0 1 0 8,3 M12,12 L16,16"/>
-                            <Grid Grid.Column="1">
-                                <TextBox x:Name="GlobalSearchBox" Style="{StaticResource InputBox}" BorderThickness="0" Background="Transparent"
-                                         TextChanged="OnGlobalSearchTextChanged" GotKeyboardFocus="OnGlobalSearchFocused"
-                                         KeyDown="OnGlobalSearchKeyDown" Padding="0" VerticalContentAlignment="Center"/>
-                                <TextBlock x:Name="SearchPlaceholderText" Text="Поиск по сканам, GS, серийному номеру...   Ctrl+K"
-                                           Foreground="{StaticResource MutedTextBrush}" IsHitTestVisible="False"
-                                           VerticalAlignment="Center" Margin="0,0,0,0" FontSize="13"/>
-                            </Grid>
-                        </Grid>
-                    </Border>
-                    <Popup x:Name="SearchPopup" PlacementTarget="{Binding ElementName=GlobalSearchFrame}" Placement="Bottom"
-                           AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="True">
-                        <Border Style="{StaticResource SoftSurface}" Width="{Binding ActualWidth, ElementName=GlobalSearchFrame}" MaxHeight="360" Padding="12" Effect="{StaticResource CardShadow}">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <StackPanel>
-                                    <TextBlock Text="Результаты поиска" Style="{StaticResource MutedText}" Margin="0,0,0,10"/>
-                                    <StackPanel x:Name="SearchResultsPanel"/>
-                                    <TextBlock x:Name="SearchEmptyText" Text="Ничего не найдено" Style="{StaticResource MutedText}" Visibility="Collapsed"/>
-                                </StackPanel>
-                            </ScrollViewer>
-                        </Border>
-                    </Popup>
-                </Grid>
-
-                <Grid Grid.Column="2" VerticalAlignment="Center">
-                    <Button x:Name="NotificationsButton" Style="{StaticResource TitleBarButton}" Width="42" Height="42"
-                            Click="OnNotificationsClick">
-                        <Path Width="19" Height="19" Stretch="Uniform" Stroke="{StaticResource TextBrush}" StrokeThickness="1.6"
-                              Data="M10,17 C11.1,17 12,16.2 12.2,15.2 M5,12 L5,8 C5,5.5 7,3.5 10,3.5 C13,3.5 15,5.5 15,8 L15,12 L17,14 L3,14 Z"/>
-                    </Button>
-                    <Border x:Name="NotificationsBadge" Width="17" Height="17" CornerRadius="8.5" Background="{StaticResource AccentBrush}"
-                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,7,0" Visibility="Collapsed">
-                        <TextBlock x:Name="NotificationsBadgeText" Text="0" FontSize="10" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <Popup x:Name="NotificationsPopup" PlacementTarget="{Binding ElementName=NotificationsButton}" Placement="Bottom"
-                           AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="False">
-                        <Border Style="{StaticResource SoftSurface}" Width="340" Padding="12" Effect="{StaticResource CardShadow}">
-                            <StackPanel>
-                                <TextBlock Text="Уведомления" Style="{StaticResource CardTitle}" Margin="0,0,0,10"/>
-                                <StackPanel x:Name="NotificationsItemsPanel"/>
-                                <TextBlock x:Name="NotificationsEmptyText" Text="Событий пока нет" Style="{StaticResource MutedText}" Visibility="Collapsed"/>
-                            </StackPanel>
-                        </Border>
-                    </Popup>
-                </Grid>
-
-                <Grid Grid.Column="3" VerticalAlignment="Center">
-                    <Button x:Name="AccountMenuButton" Style="{StaticResource SidebarButton}" Height="54" Padding="12,0"
-                            Click="OnAccountMenuClick">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="52"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="18"/>
-                            </Grid.ColumnDefinitions>
-                            <Border Width="38" Height="38" CornerRadius="19" Background="#E7D6C5" VerticalAlignment="Center">
-                                <TextBlock x:Name="AccountInitialsText" Text="DM" Foreground="#1A2028" FontWeight="Bold" FontSize="13"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="2,0,0,0">
-                                <TextBlock x:Name="AccountNameText" Text="Аккаунт DoubleMark" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold" FontSize="13"/>
-                                <TextBlock x:Name="AccountOrgText" Text="Войдите в аккаунт" Foreground="{StaticResource MutedTextBrush}" FontSize="12"
-                                           TextTrimming="CharacterEllipsis"/>
-                            </StackPanel>
-                            <Path Grid.Column="2" Width="10" Height="7" Stretch="Uniform" Stroke="{StaticResource MutedTextBrush}" StrokeThickness="1.6"
-                                  VerticalAlignment="Center" Data="M1,1 L5,5 L9,1"/>
-                        </Grid>
-                    </Button>
-                    <Popup x:Name="AccountPopup" PlacementTarget="{Binding ElementName=AccountMenuButton}" Placement="Bottom"
-                           AllowsTransparency="True" PopupAnimation="Fade" StaysOpen="False">
-                        <Border Style="{StaticResource SoftSurface}" Width="260" Padding="10" Effect="{StaticResource CardShadow}">
-                            <StackPanel>
-                                <TextBlock x:Name="AccountPopupNameText" Text="Аккаунт DoubleMark" Foreground="{StaticResource TextBrush}" FontWeight="SemiBold"/>
-                                <TextBlock x:Name="AccountPopupEmailText" Text="Войдите в аккаунт" Style="{StaticResource MutedText}" Margin="0,2,0,10"/>
-                                <Button Style="{StaticResource SidebarButton}" Content="Личный кабинет DoubleMark" Click="OnAccountProfileClick"/>
-                                <Button Style="{StaticResource SidebarButton}" Content="Настройки аккаунта" Click="OnAccountProfileClick"/>
-                                <Button x:Name="AccountPlanButton" Style="{StaticResource SidebarButton}" Content="Подписка DoubleMark" Click="OnAccountProfileClick"/>
-                                <Button Style="{StaticResource DangerButton}" Content="Выйти" Click="OnAccountSignOutClick" Margin="0,8,0,0"/>
-                            </StackPanel>
-                        </Border>
-                    </Popup>
-                </Grid>
+                    </Grid>
+                </Border>
             </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="48"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock x:Name="PageTitleText" Text="Главная" Style="{StaticResource SectionTitle}"
+                       FontSize="20" VerticalAlignment="Center" Margin="24,0,24,0"/>
 
             <ContentControl x:Name="PageHost" Grid.Row="1" Opacity="1">
                 <ContentControl.RenderTransform>
@@ -389,7 +389,7 @@
                                         <StackPanel Orientation="Horizontal">
                                             <Path Width="16" Height="16" Stretch="Uniform" Stroke="White" StrokeThickness="1.7"
                                                   Data="M8,2 L8,7 M5,7 L11,7 M6,7 L6,11 C6,13 10,13 10,11 L10,7 M8,13 L8,16"/>
-                                            <TextBlock Text="Подключить" Margin="9,0,0,0"/>
+                                            <TextBlock Text="Подключить" Margin="9,0,0,0" Foreground="White"/>
                                         </StackPanel>
                                     </Button>
                                     <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Click="OnRefreshClick" Content="Обновить"/>
@@ -491,7 +491,7 @@
                                 <StackPanel Orientation="Horizontal">
                                     <Path Width="17" Height="17" Stretch="Uniform" Stroke="White" StrokeThickness="1.7"
                                           Data="M5,8 L5,3 L15,3 L15,8 M5,14 L3,14 L3,8 L17,8 L17,14 L15,14 M6,12 L14,12 L14,18 L6,18 Z"/>
-                                    <TextBlock Text="Печать последнего ЧЗ" Margin="9,0,0,0"/>
+                                    <TextBlock Text="Печать последнего ЧЗ" Margin="9,0,0,0" Foreground="White"/>
                                 </StackPanel>
                             </Button>
 
@@ -499,7 +499,7 @@
                                 <Button Style="{StaticResource SecondaryButton}" Click="OnPrintSettingsClick" Margin="0,0,6,0" Content="Настройки печати"/>
                                 <Button Style="{StaticResource SecondaryButton}" Click="OnOpenPrintFolderClick" Margin="6,0,0,0" Content="Папка печати"/>
                             </UniformGrid>
-                            <TextBlock x:Name="LastPrintStatusText" Style="{StaticResource MutedText}" Foreground="#8ED6FF" TextWrapping="Wrap"/>
+                            <TextBlock x:Name="LastPrintStatusText" Style="{StaticResource MutedText}" TextWrapping="Wrap"/>
                         </StackPanel>
                     </Border>
 
@@ -519,7 +519,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Grid.Column="0" Orientation="Horizontal">
-                                        <Border Width="28" Height="28" CornerRadius="14" Background="#183E2D">
+                                        <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource SuccessBadgeBackgroundBrush}">
                                             <Path Width="15" Height="15" Stretch="Uniform" Stroke="{StaticResource SuccessBrush}" StrokeThickness="2"
                                                   Data="M2,7 L5.5,10.5 L12,3"/>
                                         </Border>
@@ -530,7 +530,7 @@
                                         </StackPanel>
                                     </StackPanel>
                                     <Border x:Name="LastScanStatusBadgeBorder" Grid.Column="2" Style="{StaticResource PillBadge}"
-                                            Background="#182536" BorderBrush="{StaticResource BorderBrushSoft}" VerticalAlignment="Top" MinWidth="96">
+                                            Background="{StaticResource NeutralBadgeBackgroundBrush}" BorderBrush="{StaticResource BorderBrushSoft}" VerticalAlignment="Top" MinWidth="96">
                                         <TextBlock x:Name="LastScanStatusText" Text="Ожидание" Foreground="{StaticResource MutedTextBrush}"
                                                    FontWeight="SemiBold" FontSize="13" TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                     </Border>
@@ -589,17 +589,17 @@
 
                                 <StackPanel Orientation="Horizontal">
                                     <Button x:Name="OpenLastScanFolderButton" Style="{StaticResource SecondaryButton}" Click="OnOpenLastScanFolderClick" Padding="14,9" Content="Открыть папку"/>
-                                    <Button Style="{StaticResource SecondaryButton}" Click="OnCopyLastScanClick" Padding="14,9" Margin="10,0,0,0" Content="Копировать данные"/>
+                                    <Button Style="{StaticResource PrimaryButton}" Click="OnCopyLastScanClick" Padding="14,9" Margin="10,0,0,0" Content="Копировать данные"/>
                                 </StackPanel>
                             </StackPanel>
 
                             <StackPanel Grid.Column="2" HorizontalAlignment="Center">
                                 <TextBlock Text="DataMatrix" Style="{StaticResource MutedText}" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                                <Border Width="206" Height="206" CornerRadius="18" Background="#F7FAFC" Padding="15"
-                                        BorderBrush="#FFFFFF" BorderThickness="1">
+                                <Border Width="206" Height="206" CornerRadius="18" Background="{StaticResource PanelAltBrush}" Padding="15"
+                                        BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="1">
                                     <Grid>
                                         <Image x:Name="LastScanPreviewImage" Stretch="Uniform"/>
-                                        <TextBlock x:Name="LastScanPreviewPlaceholder" Text="Нет данных" Foreground="#293241"
+                                        <TextBlock x:Name="LastScanPreviewPlaceholder" Text="Нет данных" Foreground="{StaticResource MutedTextBrush}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="13"/>
                                     </Grid>
                                 </Border>
@@ -726,12 +726,29 @@
             </ContentControl>
         </Grid>
 
-        <Grid Grid.RowSpan="2" Grid.ColumnSpan="2" IsHitTestVisible="False" Panel.ZIndex="80">
+        <Border Grid.Row="2" Grid.ColumnSpan="2"
+                Background="{StaticResource PanelBrush}"
+                BorderBrush="{StaticResource BorderBrushSoft}"
+                BorderThickness="0,1,0,0">
+            <Grid Margin="16,0">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Path Width="14" Height="14" Stretch="Uniform" Stroke="{StaticResource SuccessBrush}" StrokeThickness="1.8"
+                          Data="M2,7 L5.5,10.5 L12,3" VerticalAlignment="Center"/>
+                    <TextBlock Text="Система готова к работе" Foreground="{StaticResource MutedTextBrush}" FontSize="12" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock x:Name="SidebarVersionText" Text="DoubleMark" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
+                    <TextBlock Text=" · обновлений нет" Foreground="{StaticResource MutedTextBrush}" FontSize="12"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid Grid.RowSpan="3" Grid.ColumnSpan="2" IsHitTestVisible="False" Panel.ZIndex="80">
             <StackPanel x:Name="ToastPanel"
                         Width="360"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Bottom"
-                        Margin="0,0,28,28"/>
+                        Margin="0,0,28,48"/>
         </Grid>
     </Grid>
 </Window>

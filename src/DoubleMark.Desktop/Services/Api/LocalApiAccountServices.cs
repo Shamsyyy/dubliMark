@@ -78,16 +78,25 @@ public sealed class LocalApiDeviceService
 
     public LocalApiDeviceService(DoubleMarkApiClient api) => _api = api;
 
-    public async Task<DeviceRegistrationResult> RegisterCurrentDevice(string userId, int devicesLimit)
+    public async Task<DeviceRegistrationResult> RegisterCurrentDevice(string userId)
     {
+        _ = userId;
         var response = await _api.UpsertDeviceAsync(
             LocalDeviceIdentity.GetDeviceId(),
             LocalDeviceIdentity.GetDeviceName(),
-            LocalDeviceIdentity.GetPlatform(),
-            devicesLimit);
+            LocalDeviceIdentity.GetPlatform());
 
         if (response == null)
             return new DeviceRegistrationResult(false, "Пустой ответ сервера.", null);
+
+        var error = response.Error;
+        if (!response.Success
+            && !string.IsNullOrWhiteSpace(error)
+            && error.Contains("лимит", StringComparison.OrdinalIgnoreCase))
+        {
+            error =
+                "Лимит устройств организации исчерпан. Отключите устройство в личном кабинете на сайте DoubleMark.";
+        }
 
         AccountDevice? device = response.Device == null
             ? null
@@ -99,7 +108,7 @@ public sealed class LocalApiDeviceService
                 response.Device.CreatedAt,
                 response.Device.LastSeenAt);
 
-        return new DeviceRegistrationResult(response.Success, response.Error, device);
+        return new DeviceRegistrationResult(response.Success, error, device);
     }
 
     public async Task<IReadOnlyList<AccountDevice>> GetUserDevices(string userId)

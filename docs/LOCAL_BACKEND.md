@@ -27,27 +27,14 @@ dotnet run --project src\DoubleMark.Api
 
 ## 3. Desktop app
 
-Default backend is **LocalApi** (`http://localhost:5080`).
+Desktop uses the DoubleMark API only (`http://localhost:5080` locally, `https://api.doublemark.ru` in production).
 
 Optional `appsettings.local.json` in repo root or next to the exe:
 
 ```json
 {
   "Backend": {
-    "Mode": "LocalApi",
     "ApiBaseUrl": "http://localhost:5080"
-  }
-}
-```
-
-To use old Supabase temporarily:
-
-```json
-{
-  "Backend": { "Mode": "Supabase" },
-  "Supabase": {
-    "Url": "https://xxx.supabase.co",
-    "AnonKey": "..."
   }
 }
 ```

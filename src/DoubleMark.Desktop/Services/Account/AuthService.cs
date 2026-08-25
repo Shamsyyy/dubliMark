@@ -4,11 +4,6 @@ public sealed class AuthService
 {
     private readonly IAuthGateway _gateway;
 
-    public AuthService(SupabaseClientFactory clientFactory)
-        : this(new SupabaseAuthGateway(clientFactory))
-    {
-    }
-
     public AuthService(IAuthGateway gateway)
     {
         _gateway = gateway;
