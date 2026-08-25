@@ -21,23 +21,12 @@ public sealed class CloudScanHistoryService
     public const int MaxScanHistory = 1000;
     private static readonly TimeSpan RecentDuplicateWindow = TimeSpan.FromSeconds(2);
 
-    private readonly SupabaseClientFactory? _clientFactory;
-    private readonly DoubleMarkApiClient? _api;
+    private readonly DoubleMarkApiClient _api;
     private readonly Func<AccountUser?> _getCurrentUser;
     private readonly Func<AppSettings> _getSettings;
 
     private string? _lastIgnoredHash;
     private DateTime _lastIgnoredHashUtc = DateTime.MinValue;
-
-    public CloudScanHistoryService(
-        SupabaseClientFactory clientFactory,
-        Func<AccountUser?> getCurrentUser,
-        Func<AppSettings> getSettings)
-    {
-        _clientFactory = clientFactory;
-        _getCurrentUser = getCurrentUser;
-        _getSettings = getSettings;
-    }
 
     public CloudScanHistoryService(
         DoubleMarkApiClient api,
@@ -48,8 +37,6 @@ public sealed class CloudScanHistoryService
         _getCurrentUser = getCurrentUser;
         _getSettings = getSettings;
     }
-
-    private bool UseLocalApi => _api != null;
 
     public int GetHistoryLimit() => MaxScanHistory;
 
@@ -114,59 +101,22 @@ public sealed class CloudScanHistoryService
         {
             LoggingService.Info("ScanHistory", "Add started source=" + source + " length=" + rawPayload.Length);
 
-            if (UseLocalApi)
+            var saved = await _api.AddScanHistoryAsync(new
             {
-                var saved = await _api!.AddScanHistoryAsync(new
-                {
-                    rawCode = rawPayload,
-                    codeHash = hash,
-                    source,
-                    gsCount,
-                    hasAi01 = !string.IsNullOrWhiteSpace(code.Gtin),
-                    hasAi21 = !string.IsNullOrWhiteSpace(code.Serial),
-                    hasAi91 = code.VerificationKey != null,
-                    hasAi92 = code.VerificationCode != null,
-                    gtin = code.Gtin,
-                    serial = code.Serial,
-                    scannedAt = DateTime.UtcNow
-                });
+                rawCode = rawPayload,
+                codeHash = hash,
+                source,
+                gsCount,
+                hasAi01 = !string.IsNullOrWhiteSpace(code.Gtin),
+                hasAi21 = !string.IsNullOrWhiteSpace(code.Serial),
+                hasAi91 = code.VerificationKey != null,
+                hasAi92 = code.VerificationCode != null,
+                gtin = code.Gtin,
+                serial = code.Serial,
+                scannedAt = DateTime.UtcNow
+            });
 
-                if (saved == null)
-                {
-                    LoggingService.Warn("ScanHistory", "Add failed: empty insert response");
-                    return (null, false);
-                }
-
-                _lastIgnoredHash = hash;
-                _lastIgnoredHashUtc = DateTime.UtcNow;
-                var usage = await GetHistoryUsageAsync();
-                LoggingService.Info("ScanHistory", "Add success count=" + usage.Count + "/" + MaxScanHistory);
-                return (ToItemFromApi(saved, status, parseError, maskedPreview, rawEscaped, normalizedEscaped, rawHex, templateName, printerName, printStatus, savedFolder), false);
-            }
-
-            var row = new UserScanHistoryRow
-            {
-                UserId = user.Id,
-                RawCode = rawPayload,
-                CodeHash = hash,
-                Source = source,
-                GsCount = gsCount,
-                HasAi01 = !string.IsNullOrWhiteSpace(code.Gtin),
-                HasAi21 = !string.IsNullOrWhiteSpace(code.Serial),
-                HasAi91 = code.VerificationKey != null,
-                HasAi92 = code.VerificationCode != null,
-                Gtin = code.Gtin,
-                Serial = code.Serial,
-                ScannedAt = DateTime.UtcNow,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            var insert = await _clientFactory!.GetClient()
-                .From<UserScanHistoryRow>()
-                .Insert(row);
-
-            var savedRow = insert.Models.FirstOrDefault();
-            if (savedRow == null)
+            if (saved == null)
             {
                 LoggingService.Warn("ScanHistory", "Add failed: empty insert response");
                 return (null, false);
@@ -174,24 +124,9 @@ public sealed class CloudScanHistoryService
 
             _lastIgnoredHash = hash;
             _lastIgnoredHashUtc = DateTime.UtcNow;
-
-            var count = await GetHistoryCountAsync();
-            LoggingService.Info("ScanHistory", "Add success count=" + count + "/" + MaxScanHistory);
-            if (count >= MaxScanHistory)
-                LoggingService.Info("ScanHistory", "Limit " + MaxScanHistory + " reached; oldest records trimmed on server");
-
-            return (ToItem(
-                savedRow,
-                status,
-                parseError,
-                maskedPreview,
-                rawEscaped,
-                normalizedEscaped,
-                rawHex,
-                templateName,
-                printerName,
-                printStatus,
-                savedFolder), false);
+            var usage = await GetHistoryUsageAsync();
+            LoggingService.Info("ScanHistory", "Add success count=" + usage.Count + "/" + MaxScanHistory);
+            return (ToItemFromApi(saved, status, parseError, maskedPreview, rawEscaped, normalizedEscaped, rawHex, templateName, printerName, printStatus, savedFolder), false);
         }
         catch (Exception ex)
         {
@@ -208,31 +143,14 @@ public sealed class CloudScanHistoryService
 
         try
         {
-            if (UseLocalApi)
-            {
-                var rows = await _api!.GetScanHistoryAsync() ?? new List<DoubleMarkApiClient.ScanHistoryDto>();
-                var items = rows
-                    .OrderByDescending(row => row.ScannedAt)
-                    .Take(limit)
-                    .Select(row => ToItemFromApi(row))
-                    .ToList();
-                LoggingService.Info("ScanHistory", "Loaded count=" + items.Count.ToString() + "/" + MaxScanHistory);
-                return items;
-            }
-
-            var result = await _clientFactory!.GetClient()
-                .From<UserScanHistoryRow>()
-                .Where(row => row.UserId == user.Id)
-                .Get();
-
-            var supabaseItems = result.Models
-                .OrderByDescending(row => row.ScannedAt ?? row.CreatedAt ?? DateTime.MinValue)
+            var rows = await _api.GetScanHistoryAsync() ?? new List<DoubleMarkApiClient.ScanHistoryDto>();
+            var items = rows
+                .OrderByDescending(row => row.ScannedAt)
                 .Take(limit)
-                .Select(row => ToItem(row))
+                .Select(row => ToItemFromApi(row))
                 .ToList();
-
-            LoggingService.Info("ScanHistory", "Loaded count=" + supabaseItems.Count.ToString() + "/" + MaxScanHistory);
-            return supabaseItems;
+            LoggingService.Info("ScanHistory", "Loaded count=" + items.Count.ToString() + "/" + MaxScanHistory);
+            return items;
         }
         catch (Exception ex)
         {
@@ -249,18 +167,8 @@ public sealed class CloudScanHistoryService
 
         try
         {
-            if (UseLocalApi)
-            {
-                var usage = await _api!.GetScanHistoryCountAsync();
-                return usage?.Count ?? 0;
-            }
-
-            var result = await _clientFactory!.GetClient()
-                .From<UserScanHistoryRow>()
-                .Where(row => row.UserId == user.Id)
-                .Get();
-
-            return result.Models.Count;
+            var usage = await _api.GetScanHistoryCountAsync();
+            return usage?.Count ?? 0;
         }
         catch (Exception ex)
         {
@@ -283,17 +191,7 @@ public sealed class CloudScanHistoryService
 
         try
         {
-            if (UseLocalApi)
-            {
-                await _api!.DeleteScanHistoryItemAsync(Guid.Parse(id));
-                return true;
-            }
-
-            await _clientFactory!.GetClient()
-                .From<UserScanHistoryRow>()
-                .Where(row => row.Id == id && row.UserId == user.Id)
-                .Delete();
-
+            await _api.DeleteScanHistoryItemAsync(Guid.Parse(id));
             return true;
         }
         catch (Exception ex)
@@ -311,18 +209,7 @@ public sealed class CloudScanHistoryService
 
         try
         {
-            if (UseLocalApi)
-            {
-                await _api!.ClearScanHistoryAsync();
-                LoggingService.Info("ScanHistory", "History cleared for user");
-                return true;
-            }
-
-            await _clientFactory!.GetClient()
-                .From<UserScanHistoryRow>()
-                .Where(row => row.UserId == user.Id)
-                .Delete();
-
+            await _api.ClearScanHistoryAsync();
             LoggingService.Info("ScanHistory", "History cleared for user");
             return true;
         }
@@ -345,7 +232,19 @@ public sealed class CloudScanHistoryService
     }
 
     private static ScanHistoryItem ToItem(
-        UserScanHistoryRow row,
+        string id,
+        string userId,
+        string rawCode,
+        string? source,
+        int? gsCount,
+        bool hasAi01,
+        bool hasAi21,
+        bool hasAi91,
+        bool hasAi92,
+        string? gtin,
+        string? serial,
+        DateTime? scannedAtUtc,
+        DateTime? createdAtUtc,
         string? status = null,
         string? parseError = null,
         string? maskedPreview = null,
@@ -357,36 +256,36 @@ public sealed class CloudScanHistoryService
         string? printStatus = null,
         string? savedFolder = null)
     {
-        var scannedAt = row.ScannedAt ?? row.CreatedAt ?? DateTime.UtcNow;
+        var scannedAt = scannedAtUtc ?? createdAtUtc ?? DateTime.UtcNow;
         var displayStatus = status ?? "Успешно";
         return new ScanHistoryItem
         {
-            CloudId = row.Id,
+            CloudId = id,
             Timestamp = scannedAt.ToLocalTime(),
             Status = displayStatus,
             StatusKind = UiStatusKind.Success,
-            Gtin = row.Gtin ?? "—",
-            Serial = row.Serial ?? "—",
-            Ai91 = row.HasAi91 ? "✓" : "—",
-            Ai92 = row.HasAi92 ? "✓" : "—",
+            Gtin = gtin ?? "—",
+            Serial = serial ?? "—",
+            Ai91 = hasAi91 ? "✓" : "—",
+            Ai92 = hasAi92 ? "✓" : "—",
             Ai93 = "—",
-            HasAi01 = row.HasAi01,
-            HasAi21 = row.HasAi21,
-            HasAi91Flag = row.HasAi91,
-            HasAi92Flag = row.HasAi92,
-            GsCount = (row.GsCount ?? 0).ToString(),
-            Source = row.Source ?? "—",
+            HasAi01 = hasAi01,
+            HasAi21 = hasAi21,
+            HasAi91Flag = hasAi91,
+            HasAi92Flag = hasAi92,
+            GsCount = (gsCount ?? 0).ToString(),
+            Source = source ?? "—",
             CodeType = "Full",
-            RawEscaped = rawEscaped ?? ScanHistoryMasking.BuildMaskedPreview(row.RawCode),
-            RawPayload = row.RawCode,
-            NormalizedEscaped = normalizedEscaped ?? ScanHistoryMasking.BuildMaskedPreview(row.RawCode),
+            RawEscaped = rawEscaped ?? ScanHistoryMasking.BuildMaskedPreview(rawCode),
+            RawPayload = rawCode,
+            NormalizedEscaped = normalizedEscaped ?? ScanHistoryMasking.BuildMaskedPreview(rawCode),
             RawHex = rawHex ?? "—",
             Error = parseError ?? "",
             SavedFolder = savedFolder ?? "—",
             Template = templateName ?? "—",
             Printer = printerName ?? "—",
             PrintStatus = printStatus ?? "—",
-            MaskedPreview = maskedPreview ?? ScanHistoryMasking.BuildMaskedPreview(row.RawCode),
+            MaskedPreview = maskedPreview ?? ScanHistoryMasking.BuildMaskedPreview(rawCode),
             PreviewImage = null
         };
     }
@@ -404,23 +303,30 @@ public sealed class CloudScanHistoryService
         string? printStatus = null,
         string? savedFolder = null)
     {
-        return ToItem(new UserScanHistoryRow
-        {
-            Id = row.Id.ToString(),
-            UserId = row.UserId.ToString(),
-            RawCode = row.RawCode,
-            CodeHash = row.CodeHash,
-            Source = row.Source,
-            GsCount = row.GsCount,
-            HasAi01 = row.HasAi01,
-            HasAi21 = row.HasAi21,
-            HasAi91 = row.HasAi91,
-            HasAi92 = row.HasAi92,
-            Gtin = row.Gtin,
-            Serial = row.Serial,
-            ScannedAt = row.ScannedAt,
-            CreatedAt = row.CreatedAt
-        }, status, parseError, maskedPreview, rawEscaped, normalizedEscaped, rawHex, templateName, printerName, printStatus, savedFolder);
+        return ToItem(
+            row.Id.ToString(),
+            row.UserId.ToString(),
+            row.RawCode,
+            row.Source,
+            row.GsCount,
+            row.HasAi01,
+            row.HasAi21,
+            row.HasAi91,
+            row.HasAi92,
+            row.Gtin,
+            row.Serial,
+            row.ScannedAt,
+            row.CreatedAt,
+            status,
+            parseError,
+            maskedPreview,
+            rawEscaped,
+            normalizedEscaped,
+            rawHex,
+            templateName,
+            printerName,
+            printStatus,
+            savedFolder);
     }
 
 }

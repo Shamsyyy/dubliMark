@@ -40,7 +40,7 @@
                     <StackPanel>
                         <TextBlock Text="Хранение и режим просмотра" Style="{StaticResource MetricLabel}" Margin="0,0,0,8"/>
                         <WrapPanel>
-                            <CheckBox x:Name="CloudStorageCheck" Content="Supabase (облако)" Margin="0,0,16,6"
+                            <CheckBox x:Name="CloudStorageCheck" Content="Аккаунт DoubleMark (облако)" Margin="0,0,16,6"
                                       Checked="OnSettingsControlChanged" Unchecked="OnSettingsControlChanged"/>
                             <CheckBox x:Name="LocalStorageCheck" Content="Локально на ПК" Margin="0,0,16,6"
                                       Checked="OnSettingsControlChanged" Unchecked="OnSettingsControlChanged"/>

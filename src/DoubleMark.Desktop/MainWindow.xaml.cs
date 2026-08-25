@@ -60,6 +60,12 @@ public partial class MainWindow : Window
         if (_isScannerSetupInProgress || _setupWindow != null)
             return;
 
+        if (PageHost.Content is LoginView)
+            return;
+
+        if (System.Windows.Input.Keyboard.FocusedElement is TextBox or PasswordBox)
+            return;
+
         if (_scanner == null)
             return;
 
@@ -180,7 +186,7 @@ public partial class MainWindow : Window
     private void SetStatus(string text, bool isError)
     {
         StatusText.Text = text;
-        StatusText.Foreground = isError ? Brushes.OrangeRed : Brushes.LightGreen;
+        StatusText.Foreground = isError ? BrushFromResource("DangerBrush") : BrushFromResource("SuccessBrush");
         ScannerStatusDot.Fill = isError ? BrushFromResource("DangerBrush") : BrushFromResource("SuccessBrush");
         WorkspaceStatusDot.Fill = isError ? BrushFromResource("WarningBrush") : BrushFromResource("SuccessBrush");
         DiagnosticStatusText.Text = text;
@@ -744,7 +750,7 @@ public partial class MainWindow : Window
         new()
         {
             Text = $"{label}: {value}",
-            Foreground = Brushes.White,
+            Foreground = (Brush)Application.Current.FindResource("TextBrush"),
             FontSize = small ? 11 : 14,
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 2, 0, 2)

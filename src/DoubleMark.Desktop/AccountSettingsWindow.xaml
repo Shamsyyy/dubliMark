@@ -4,7 +4,8 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         xmlns:ui="clr-namespace:DoubleMark.Desktop"
         Title="Настройки аккаунта DoubleMark"
-        Height="430"
+        Height="520"
+        MinHeight="480"
         Width="620"
         WindowStyle="None"
         ResizeMode="CanResize"
@@ -19,8 +20,9 @@
     <Border Style="{StaticResource DialogWindowFrame}">
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="42"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Border Grid.Row="0" Style="{StaticResource DialogTitleBar}" ui:DialogWindowChrome.IsDragArea="True">
                 <Grid>
@@ -29,7 +31,7 @@
                             ui:DialogWindowChrome.WindowCommand="Close"/>
                 </Grid>
             </Border>
-            <StackPanel Grid.Row="1" Margin="20">
+            <StackPanel Grid.Row="1" Margin="20,20,20,8">
                 <TextBlock Text="Организация" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>
                 <TextBox x:Name="OrganizationText" Style="{StaticResource InputBox}" Margin="0,0,0,14"/>
                 <TextBlock Text="ИНН" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>
@@ -37,15 +39,15 @@
                 <TextBlock Text="Телефон" Style="{StaticResource MutedText}" Margin="0,0,0,6"/>
                 <TextBox x:Name="PhoneText" Style="{StaticResource InputBox}" Margin="0,0,0,14"/>
                 <TextBlock Text="Email, роль, статус подписки и платежи редактируются только на сервере DoubleMark."
-                           Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,18"/>
-                <DockPanel LastChildFill="False">
-                    <Button Content="Сменить пароль" Style="{StaticResource SecondaryButton}" Click="OnResetPasswordClick" DockPanel.Dock="Left"/>
-                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
-                        <Button Content="Сохранить" Style="{StaticResource PrimaryButton}" Click="OnSaveClick" MinWidth="110" Margin="0,0,8,0"/>
-                        <Button Content="Отмена" Style="{StaticResource SecondaryButton}" Click="OnCancelClick" MinWidth="100"/>
-                    </StackPanel>
-                </DockPanel>
+                           Style="{StaticResource MutedText}" TextWrapping="Wrap"/>
             </StackPanel>
+            <DockPanel Grid.Row="2" LastChildFill="False" Margin="20,8,20,20">
+                <Button Content="Сменить пароль" Style="{StaticResource SecondaryButton}" Click="OnResetPasswordClick" DockPanel.Dock="Left"/>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                    <Button Content="Сохранить" Style="{StaticResource PrimaryButton}" Click="OnSaveClick" MinWidth="110" Margin="0,0,8,0"/>
+                    <Button Content="Отмена" Style="{StaticResource SecondaryButton}" Click="OnCancelClick" MinWidth="100"/>
+                </StackPanel>
+            </DockPanel>
         </Grid>
     </Border>
 </Window>

@@ -30,23 +30,12 @@ public sealed class UserTemplateService
 {
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = false };
 
-    private readonly SupabaseClientFactory? _clientFactory;
-    private readonly DoubleMarkApiClient? _api;
+    private readonly DoubleMarkApiClient _api;
     private readonly Func<AccountUser?> _getCurrentUser;
     private readonly PrintTemplateService _localTemplateService;
 
     public TemplateSyncStatus Status { get; private set; } = TemplateSyncStatus.Idle;
     public string? StatusMessage { get; private set; }
-
-    public UserTemplateService(
-        SupabaseClientFactory clientFactory,
-        Func<AccountUser?> getCurrentUser,
-        PrintTemplateService localTemplateService)
-    {
-        _clientFactory = clientFactory;
-        _getCurrentUser = getCurrentUser;
-        _localTemplateService = localTemplateService;
-    }
 
     public UserTemplateService(
         DoubleMarkApiClient api,
@@ -57,8 +46,6 @@ public sealed class UserTemplateService
         _getCurrentUser = getCurrentUser;
         _localTemplateService = localTemplateService;
     }
-
-    private bool UseLocalApi => _api != null;
 
     public async Task<IReadOnlyList<CloudPrintTemplate>> GetTemplatesAsync()
     {
@@ -74,25 +61,8 @@ public sealed class UserTemplateService
             SetStatus(TemplateSyncStatus.Loading, "Загрузка шаблонов...");
             LoggingService.Info("Templates", "Loading user templates userId=" + user.Id);
 
-            List<CloudPrintTemplate> templates;
-            if (UseLocalApi)
-            {
-                var rows = await _api!.GetTemplatesAsync() ?? new List<DoubleMarkApiClient.TemplateDto>();
-                templates = rows.Select(ToCloudTemplateFromApi).Where(t => t != null).Cast<CloudPrintTemplate>().ToList();
-            }
-            else
-            {
-                var result = await _clientFactory!.GetClient()
-                    .From<UserPrintTemplateRow>()
-                    .Where(row => row.UserId == user.Id)
-                    .Get();
-
-                templates = result.Models
-                    .Select(ToCloudTemplate)
-                    .Where(t => t != null)
-                    .Cast<CloudPrintTemplate>()
-                    .ToList();
-            }
+            var rows = await _api.GetTemplatesAsync() ?? new List<DoubleMarkApiClient.TemplateDto>();
+            var templates = rows.Select(ToCloudTemplateFromApi).Where(t => t != null).Cast<CloudPrintTemplate>().ToList();
 
             LoggingService.Info("Templates", "Loaded count=" + templates.Count);
             SetStatus(TemplateSyncStatus.Synced, "Шаблоны синхронизированы");
@@ -141,58 +111,31 @@ public sealed class UserTemplateService
             SetStatus(TemplateSyncStatus.Saving, "Сохранение...");
             LoggingService.Info("Templates", "Save started template=" + template.Name);
 
-            if (UseLocalApi)
+            Guid? id = Guid.TryParse(cloudId, out var parsed) ? parsed : null;
+            var saved = await _api.UpsertTemplateAsync(new
             {
-                Guid? id = Guid.TryParse(cloudId, out var parsed) ? parsed : null;
-                var saved = await _api!.UpsertTemplateAsync(new
-                {
-                    id,
-                    name = template.Name,
-                    description,
-                    widthMm = (decimal)template.LabelWidthMm,
-                    heightMm = (decimal)template.LabelHeightMm,
-                    printerName = (string?)null,
-                    templateData = JsonSerializer.Serialize(template, JsonOptions),
-                    isDefault = isDefault ?? false
-                });
+                id,
+                name = template.Name,
+                description,
+                widthMm = (decimal)template.LabelWidthMm,
+                heightMm = (decimal)template.LabelHeightMm,
+                printerName = (string?)null,
+                templateData = JsonSerializer.Serialize(template, JsonOptions),
+                isDefault = isDefault ?? false
+            });
 
-                if (saved == null)
-                {
-                    SetStatus(TemplateSyncStatus.Error, "Ошибка синхронизации");
-                    return null;
-                }
-
-                if (saved.IsDefault)
-                    await SetDefaultTemplateAsync(saved.Id.ToString());
-
-                LoggingService.Info("Templates", "Save success id=" + saved.Id);
-                SetStatus(TemplateSyncStatus.Synced, "Шаблоны синхронизированы");
-                return ToCloudTemplateFromApi(saved);
+            if (saved == null)
+            {
+                SetStatus(TemplateSyncStatus.Error, "Ошибка синхронизации");
+                return null;
             }
 
-            var now = DateTime.UtcNow;
-            var row = new UserPrintTemplateRow
-            {
-                Id = string.IsNullOrWhiteSpace(cloudId) ? Guid.NewGuid().ToString() : cloudId,
-                UserId = user.Id,
-                Name = template.Name,
-                Description = description,
-                WidthMm = (decimal)template.LabelWidthMm,
-                HeightMm = (decimal)template.LabelHeightMm,
-                TemplateData = JsonSerializer.Serialize(template, JsonOptions),
-                IsDefault = isDefault ?? false,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
+            if (saved.IsDefault)
+                await SetDefaultTemplateAsync(saved.Id.ToString());
 
-            await _clientFactory!.GetClient().From<UserPrintTemplateRow>().Upsert(row);
-
-            if (row.IsDefault)
-                await SetDefaultTemplateAsync(row.Id);
-
-            LoggingService.Info("Templates", "Save success id=" + row.Id);
+            LoggingService.Info("Templates", "Save success id=" + saved.Id);
             SetStatus(TemplateSyncStatus.Synced, "Шаблоны синхронизированы");
-            return ToCloudTemplate(row);
+            return ToCloudTemplateFromApi(saved);
         }
         catch (Exception ex)
         {
@@ -241,18 +184,9 @@ public sealed class UserTemplateService
 
         try
         {
-            if (UseLocalApi)
-            {
-                if (!Guid.TryParse(cloudId, out var id))
-                    return false;
-                await _api!.DeleteTemplateAsync(id);
-                return true;
-            }
-
-            await _clientFactory!.GetClient()
-                .From<UserPrintTemplateRow>()
-                .Where(row => row.Id == cloudId && row.UserId == user.Id)
-                .Delete();
+            if (!Guid.TryParse(cloudId, out var id))
+                return false;
+            await _api.DeleteTemplateAsync(id);
             return true;
         }
         catch (Exception ex)
@@ -270,26 +204,9 @@ public sealed class UserTemplateService
 
         try
         {
-            if (UseLocalApi)
-            {
-                if (!Guid.TryParse(cloudId, out var id))
-                    return false;
-                await _api!.SetDefaultTemplateAsync(id);
-                return true;
-            }
-
-            var all = await _clientFactory!.GetClient()
-                .From<UserPrintTemplateRow>()
-                .Where(row => row.UserId == user.Id)
-                .Get();
-
-            foreach (var row in all.Models)
-            {
-                row.IsDefault = string.Equals(row.Id, cloudId, StringComparison.OrdinalIgnoreCase);
-                row.UpdatedAt = DateTime.UtcNow;
-                await _clientFactory.GetClient().From<UserPrintTemplateRow>().Upsert(row);
-            }
-
+            if (!Guid.TryParse(cloudId, out var id))
+                return false;
+            await _api.SetDefaultTemplateAsync(id);
             return true;
         }
         catch (Exception ex)
@@ -339,37 +256,6 @@ public sealed class UserTemplateService
     {
         Status = status;
         StatusMessage = message;
-    }
-
-    private static CloudPrintTemplate? ToCloudTemplate(UserPrintTemplateRow row)
-    {
-        try
-        {
-            var json = row.TemplateData switch
-            {
-                string s => s,
-                JsonElement el => el.GetRawText(),
-                _ => JsonSerializer.Serialize(row.TemplateData)
-            };
-
-            var template = JsonSerializer.Deserialize<PrintTemplate>(json, JsonOptions);
-            if (template == null || string.IsNullOrWhiteSpace(template.Name))
-                return null;
-
-            return new CloudPrintTemplate
-            {
-                CloudId = row.Id,
-                Template = template,
-                Description = row.Description,
-                PrinterName = row.PrinterName,
-                IsDefault = row.IsDefault,
-                UpdatedAt = row.UpdatedAt ?? row.CreatedAt
-            };
-        }
-        catch
-        {
-            return null;
-        }
     }
 
     private static CloudPrintTemplate? ToCloudTemplateFromApi(DoubleMarkApiClient.TemplateDto? row)

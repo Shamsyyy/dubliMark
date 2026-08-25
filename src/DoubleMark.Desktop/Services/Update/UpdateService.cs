@@ -12,25 +12,13 @@ public sealed class UpdateService
     public const string UpdateJsonUrlPrimary =
         "https://doublemark.ru/updates/update.json";
 
-    public const string UpdateJsonUrlFallback =
-        "https://shamsyyy.github.io/doublemarksite/updates/update.json";
-
     public const string DownloadsPageUrl =
         "https://doublemark.ru/download";
-
-    public const string DownloadsPageUrlFallback =
-        "https://shamsyyy.github.io/doublemarksite/download";
 
     private static readonly string[] AllowedHosts =
     {
         "doublemark.ru",
-        "www.doublemark.ru",
-        "shamsyyy.github.io",
-        "github.com",
-        "www.github.com",
-        "raw.githubusercontent.com",
-        "objects.githubusercontent.com",
-        "githubusercontent.com"
+        "www.doublemark.ru"
     };
 
     private static readonly HttpClient Http = CreateHttpClient();
@@ -428,30 +416,26 @@ public sealed class UpdateService
 
     private static async Task<UpdateManifest?> TryFetchManifestAsync(CancellationToken cancellationToken)
     {
-        foreach (var url in new[] { UpdateJsonUrlPrimary, UpdateJsonUrlFallback })
+        Log("Checking: " + UpdateJsonUrlPrimary);
+        try
         {
-            Log("Checking: " + url);
-            try
+            using var response = await Http.GetAsync(UpdateJsonUrlPrimary, cancellationToken).ConfigureAwait(false);
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
-                using var response = await Http.GetAsync(url, cancellationToken).ConfigureAwait(false);
-                if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    Log("Manifest not found: " + url);
-                    continue;
-                }
+                Log("Manifest not found: " + UpdateJsonUrlPrimary);
+                return null;
+            }
 
-                response.EnsureSuccessStatusCode();
-                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-                return await JsonSerializer.DeserializeAsync<UpdateManifest>(stream, JsonOptions, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Log("Manifest fetch failed for " + url + ": " + ex.Message);
-            }
+            response.EnsureSuccessStatusCode();
+            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            return await JsonSerializer.DeserializeAsync<UpdateManifest>(stream, JsonOptions, cancellationToken)
+                .ConfigureAwait(false);
         }
-
-        return null;
+        catch (Exception ex)
+        {
+            Log("Manifest fetch failed for " + UpdateJsonUrlPrimary + ": " + ex.Message);
+            return null;
+        }
     }
 
     public static bool TryValidateInstallerUrl(string url, out Uri uri, out string error)

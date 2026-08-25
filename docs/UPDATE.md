@@ -24,7 +24,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\build-installer.ps1
 
 ## 3. Загрузить на сайт
 
-На GitHub Pages проекта `doublemarksite`:
+На production-сайт `doublemark.ru`:
 
 ```text
 public/downloads/DoubleMarkSetup-2.1.1.exe
@@ -33,8 +33,8 @@ public/updates/update.json
 
 Публичные URL:
 
-- `https://shamsyyy.github.io/doublemarksite/downloads/DoubleMarkSetup-2.1.1.exe`
-- `https://shamsyyy.github.io/doublemarksite/updates/update.json`
+- `https://doublemark.ru/downloads/DoubleMarkSetup-2.1.1.exe`
+- `https://doublemark.ru/updates/update.json`
 
 ## 4. Проверить в приложении
 
@@ -56,7 +56,7 @@ public/updates/update.json
 ## Безопасность
 
 - В приложении нет GitHub token и `service_role`.
-- Установщик скачивается только с `shamsyyy.github.io` / `github.com` / `githubusercontent.com`.
+- Установщик скачивается только с `doublemark.ru` / `www.doublemark.ru`.
 - Перед запуском проверяется SHA256.
 - При несовпадении hash файл удаляется.
 

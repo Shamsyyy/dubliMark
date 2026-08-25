@@ -11,8 +11,8 @@
 
             <Border Style="{StaticResource HeroCard}" Margin="0,0,16,0">
                 <StackPanel>
-                    <Border Width="96" Height="96" CornerRadius="48" Background="#E7D6C5" HorizontalAlignment="Left">
-                        <TextBlock x:Name="InitialsText" Text="DM" Foreground="#1A2028" FontSize="30" FontWeight="Bold"
+                    <Border Width="96" Height="96" CornerRadius="48" Background="{StaticResource AccentSoftBrush}" HorizontalAlignment="Left">
+                        <TextBlock x:Name="InitialsText" Text="DM" Foreground="{StaticResource TextBrush}" FontSize="30" FontWeight="Bold"
                                    HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <TextBlock x:Name="AccountTitleText" Text="Аккаунт DoubleMark" Foreground="{StaticResource TextBrush}" FontSize="26" FontWeight="SemiBold" Margin="0,20,0,2"/>
@@ -81,7 +81,7 @@
                     </Border>
                     <Border Style="{StaticResource DataPill}" Margin="8,0,0,0">
                         <StackPanel>
-                            <TextBlock Text="Устройства" Style="{StaticResource MutedText}"/>
+                            <TextBlock Text="Устройства компании" Style="{StaticResource MutedText}"/>
                             <TextBlock x:Name="DevicesLimitText" Text="—" Style="{StaticResource MetricValue}" FontSize="16"/>
                         </StackPanel>
                     </Border>
@@ -96,7 +96,7 @@
                     </Border>
                     <Border Style="{StaticResource Card}" Margin="8,0,0,0">
                         <StackPanel>
-                            <TextBlock Text="Устройства" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
+                            <TextBlock Text="Устройства организации" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
                             <StackPanel x:Name="DevicesPanel"/>
                         </StackPanel>
                     </Border>

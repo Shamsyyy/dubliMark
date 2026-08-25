@@ -102,7 +102,7 @@
                                 <TextBlock x:Name="PrintTemplateSizeText" Text="—" Style="{StaticResource MutedText}"/>
                             </Border>
                         </Grid>
-                        <Border Background="#F7FAFC" CornerRadius="18" Width="320" Height="220" Padding="16"
+                        <Border Background="{StaticResource PanelAltBrush}" CornerRadius="18" Width="320" Height="220" Padding="16"
                                 HorizontalAlignment="Center" ClipToBounds="True">
                             <Grid>
                                 <TextBlock x:Name="PrintPreviewPlaceholder"

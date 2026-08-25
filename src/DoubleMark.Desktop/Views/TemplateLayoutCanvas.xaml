@@ -67,7 +67,7 @@
             </Grid>
         </Grid>
 
-        <Border Grid.Row="2" Background="#F7FAFC" CornerRadius="18" Padding="8" ClipToBounds="True"
+        <Border Grid.Row="2" Background="{StaticResource PanelAltBrush}" CornerRadius="18" Padding="8" ClipToBounds="True"
                 Height="340" MinHeight="340" MaxHeight="340">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                           Background="Transparent">

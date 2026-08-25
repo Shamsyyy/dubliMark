@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace DoubleMark.Desktop;
 
@@ -28,6 +29,13 @@ public static class DialogWindowChrome
             typeof(DialogWindowChrome),
             new PropertyMetadata(DialogWindowCommand.None, OnWindowCommandChanged));
 
+    public static readonly DependencyProperty AutoFitContentProperty =
+        DependencyProperty.RegisterAttached(
+            "AutoFitContent",
+            typeof(bool),
+            typeof(DialogWindowChrome),
+            new PropertyMetadata(false, OnAutoFitContentChanged));
+
     public static bool GetIsDragArea(DependencyObject obj) =>
         (bool)obj.GetValue(IsDragAreaProperty);
 
@@ -39,6 +47,100 @@ public static class DialogWindowChrome
 
     public static void SetWindowCommand(DependencyObject obj, DialogWindowCommand value) =>
         obj.SetValue(WindowCommandProperty, value);
+
+    public static bool GetAutoFitContent(DependencyObject obj) =>
+        (bool)obj.GetValue(AutoFitContentProperty);
+
+    public static void SetAutoFitContent(DependencyObject obj, bool value) =>
+        obj.SetValue(AutoFitContentProperty, value);
+
+    private static void OnAutoFitContentChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not FrameworkElement element)
+            return;
+
+        element.Loaded -= OnAutoFitLoaded;
+        if (e.NewValue is true)
+            element.Loaded += OnAutoFitLoaded;
+    }
+
+    private static void OnAutoFitLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement element)
+            return;
+
+        var window = Window.GetWindow(element);
+        if (window == null)
+            return;
+
+        window.Dispatcher.BeginInvoke(
+            () => FitWindowToContent(window, element),
+            DispatcherPriority.Loaded);
+    }
+
+    internal static void FitWindowToContent(Window window, FrameworkElement content)
+    {
+        if (!window.IsLoaded)
+            return;
+
+        window.UpdateLayout();
+        var width = window.ActualWidth > 1 ? window.ActualWidth : window.Width;
+        if (double.IsNaN(width) || width <= 1)
+            width = content.ActualWidth > 1 ? content.ActualWidth : 480;
+
+        content.Measure(new Size(width, double.PositiveInfinity));
+        var work = WindowWorkAreaHelper.GetWorkAreaDip(window);
+        var maxHeight = Math.Max(160, work.Height - 48);
+        var fitted = CalculateFittedHeight(window.Height, content.DesiredSize.Height, maxHeight);
+        if (Math.Abs(fitted - window.Height) > 0.5)
+            window.Height = fitted;
+
+        ClampToWorkArea(window, work);
+    }
+
+    internal static double CalculateFittedHeight(
+        double currentHeight,
+        double contentDesiredHeight,
+        double maxWorkAreaHeight,
+        double extraPadding = 20)
+    {
+        if (double.IsNaN(currentHeight) || currentHeight < 0)
+            currentHeight = 0;
+        if (double.IsNaN(contentDesiredHeight) || contentDesiredHeight < 0)
+            contentDesiredHeight = 0;
+        if (maxWorkAreaHeight < 160)
+            maxWorkAreaHeight = 160;
+
+        var target = Math.Ceiling(contentDesiredHeight + extraPadding);
+        target = Math.Max(target, currentHeight);
+        return Math.Min(target, maxWorkAreaHeight);
+    }
+
+    private static void ClampToWorkArea(Window window, Rect work)
+    {
+        if (work.Width <= 0 || work.Height <= 0)
+            return;
+
+        var width = window.ActualWidth > 1 ? window.ActualWidth : window.Width;
+        var height = window.Height;
+        if (double.IsNaN(width) || double.IsNaN(height))
+            return;
+
+        if (window.Owner != null && window.WindowStartupLocation == WindowStartupLocation.CenterOwner)
+        {
+            window.Left = window.Owner.Left + (window.Owner.ActualWidth - width) / 2;
+            window.Top = window.Owner.Top + (window.Owner.ActualHeight - height) / 2;
+        }
+
+        if (window.Left < work.Left)
+            window.Left = work.Left;
+        if (window.Top < work.Top)
+            window.Top = work.Top;
+        if (window.Left + width > work.Right)
+            window.Left = Math.Max(work.Left, work.Right - width);
+        if (window.Top + height > work.Bottom)
+            window.Top = Math.Max(work.Top, work.Bottom - height);
+    }
 
     private static void OnIsDragAreaChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {

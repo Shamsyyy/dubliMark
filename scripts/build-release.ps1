@@ -30,8 +30,8 @@ function Read-JsonConfigValue([string]$Path, [string[]]$Names) {
     if (-not (Test-Path $Path)) { return $null }
     $json = Get-Content $Path -Raw | ConvertFrom-Json
     foreach ($name in $Names) {
-        if ($name -eq "Supabase:Url" -and $json.Supabase.Url) { return [string]$json.Supabase.Url }
-        if ($name -eq "Supabase:AnonKey" -and $json.Supabase.AnonKey) { return [string]$json.Supabase.AnonKey }
+        if ($name -eq "Backend:ApiBaseUrl" -and $json.Backend.ApiBaseUrl) { return [string]$json.Backend.ApiBaseUrl }
+        if ($name -eq "ApiBaseUrl" -and $json.ApiBaseUrl) { return [string]$json.ApiBaseUrl }
         if ($json.PSObject.Properties.Name -contains $name) { return [string]$json.$name }
     }
     return $null
@@ -83,35 +83,29 @@ if (Test-Path $desktopExe) {
 $envFiles = @((Join-Path $root ".env.local"), (Join-Path $root ".env"))
 $jsonFiles = @((Join-Path $root "appsettings.local.json"), (Join-Path $root "appsettings.json"))
 
-$supabaseUrl = $env:SUPABASE_URL
-if (-not $supabaseUrl) { $supabaseUrl = $env:VITE_SUPABASE_URL }
-$supabaseAnonKey = $env:SUPABASE_ANON_KEY
-if (-not $supabaseAnonKey) { $supabaseAnonKey = $env:VITE_SUPABASE_ANON_KEY }
+$apiBaseUrl = $env:DOUBLEMARK_API_URL
+if (-not $apiBaseUrl) { $apiBaseUrl = $env:VITE_API_BASE_URL }
 
 foreach ($file in $envFiles) {
-    if (-not $supabaseUrl) { $supabaseUrl = Read-EnvFileValue $file @("SUPABASE_URL", "VITE_SUPABASE_URL") }
-    if (-not $supabaseAnonKey) { $supabaseAnonKey = Read-EnvFileValue $file @("SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY") }
+    if (-not $apiBaseUrl) { $apiBaseUrl = Read-EnvFileValue $file @("DOUBLEMARK_API_URL", "VITE_API_BASE_URL") }
 }
 foreach ($file in $jsonFiles) {
-    if (-not $supabaseUrl) { $supabaseUrl = Read-JsonConfigValue $file @("SUPABASE_URL", "VITE_SUPABASE_URL", "Supabase:Url") }
-    if (-not $supabaseAnonKey) { $supabaseAnonKey = Read-JsonConfigValue $file @("SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY", "Supabase:AnonKey") }
+    if (-not $apiBaseUrl) { $apiBaseUrl = Read-JsonConfigValue $file @("Backend:ApiBaseUrl", "ApiBaseUrl") }
 }
 
-if ($supabaseAnonKey -and $supabaseAnonKey.Contains("service_role")) {
-    throw "Refusing to package Supabase service_role key. Use only anon/public key."
+if (-not $apiBaseUrl) {
+    $apiBaseUrl = "https://api.doublemark.ru"
+    Write-Host "DOUBLEMARK_API_URL not set; using production default $apiBaseUrl"
 }
 
+$apiBaseUrl = $apiBaseUrl.TrimEnd("/")
 $buildUtc = (Get-Date).ToUniversalTime().ToString("o")
 $buildId = (Get-Date).ToString("yyyyMMdd-HHmmss")
 
-if ($supabaseUrl -and $supabaseAnonKey) {
-    [ordered]@{ Supabase = [ordered]@{ Url = $supabaseUrl; AnonKey = $supabaseAnonKey } } |
-        ConvertTo-Json -Depth 4 |
-        Set-Content -Path (Join-Path $dist "appsettings.json") -Encoding UTF8
-    Write-Host "Generated dist\DoubleMark\appsettings.json (Supabase anon key only)."
-} else {
-    Write-Warning "Supabase URL/anon key not found. Installed app will show configuration error on login."
-}
+[ordered]@{ Backend = [ordered]@{ ApiBaseUrl = $apiBaseUrl } } |
+    ConvertTo-Json -Depth 4 |
+    Set-Content -Path (Join-Path $dist "appsettings.json") -Encoding UTF8
+Write-Host "Generated dist\DoubleMark\appsettings.json (API $apiBaseUrl)."
 
 function Get-ProjectVersion {
     param([string]$DefaultVersion = "2.1.0")

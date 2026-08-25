@@ -192,12 +192,6 @@ public partial class MainWindow
             })
             .ToList();
 
-        if (blocks.Count == 0)
-        {
-            ShowToast("Добавьте хотя бы одну строку текста", ToastKind.Warning);
-            return false;
-        }
-
         updated = ResolveActiveTemplate() with { TextBlocks = blocks };
         if (!PrintTemplateService.IsUsable(updated))
         {

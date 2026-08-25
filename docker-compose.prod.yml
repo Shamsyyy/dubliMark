@@ -35,8 +35,37 @@ services:
       Jwt__SigningKey: ${Jwt__SigningKey:?Set Jwt__SigningKey in .env (min 32 chars)}
       Jwt__AccessTokenMinutes: ${Jwt__AccessTokenMinutes:-60}
       Jwt__RefreshTokenDays: ${Jwt__RefreshTokenDays:-30}
+      Mail__SmtpHost: ${Mail__SmtpHost:-}
+      Mail__SmtpPort: ${Mail__SmtpPort:-587}
+      Mail__SmtpUser: ${Mail__SmtpUser:-}
+      Mail__SmtpPass: ${Mail__SmtpPass:-}
+      Mail__MailFrom: ${Mail__MailFrom:-support@doublemark.ru}
+      Mail__SiteBaseUrl: ${Mail__SiteBaseUrl:-https://doublemark.ru}
+      Mail__SmtpSecure: ${Mail__SmtpSecure:-true}
+      AlphaBank__UserName: ${AlphaBank__UserName:-}
+      AlphaBank__Password: ${AlphaBank__Password:-}
+      AlphaBank__ApiBaseUrl: ${AlphaBank__ApiBaseUrl:-https://pay.alfabank.ru/payment/rest/}
+      AlphaBank__ReturnUrl: ${AlphaBank__ReturnUrl:-https://doublemark.ru/checkout/result}
+      AlphaBank__WebhookSecret: ${AlphaBank__WebhookSecret:-}
+      AlphaBank__SandboxMode: ${AlphaBank__SandboxMode:-true}
     ports:
       - "127.0.0.1:5080:5080"
+    networks:
+      - doublemark
+
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: doublemark-pgweb
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGWEB_DATABASE_URL: ${PGWEB_DATABASE_URL:?Set PGWEB_DATABASE_URL in .env}
+      PGWEB_AUTH_USER: ${PGWEB_AUTH_USER:-dbadmin}
+      PGWEB_AUTH_PASS: ${PGWEB_AUTH_PASS:?Set PGWEB_AUTH_PASS in .env}
+    ports:
+      - "127.0.0.1:8081:8081"
     networks:
       - doublemark
 

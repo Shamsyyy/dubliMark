@@ -164,28 +164,35 @@
                         <TextBlock Text="Текст на этикетке" Style="{StaticResource CardTitle}" Margin="0,0,0,10"/>
                         <TextBlock Text="Плейсхолдеры: {date}, {time}, {shipment}, {order}, {gtin}, {serial}"
                                    Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
-                        <TextBlock Text="Строки шаблона — X/Y в мм от левого верхнего угла этикетки"
+                        <TextBlock Text="Строки шаблона — X/Y в мм от левого верхнего угла этикетки. Текст необязателен: шаблон может содержать только DataMatrix."
                                    Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
-                        <Grid Margin="0,0,0,10">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="Шрифт" VerticalAlignment="Center"
-                                       Style="{StaticResource CardTitle}" FontSize="13"/>
-                            <ComboBox x:Name="LabelFontCombo" Grid.Column="2" MinWidth="220"
-                                      DisplayMemberPath="DisplayName"
-                                      SelectionChanged="OnLabelFontSelectionChanged"/>
-                        </Grid>
-                        <TextBlock Text="Arial и Verdana — максимальная читаемость при дефектах печати; Segoe UI, Calibri и Georgia — декоративные."
-                                   Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                        <Expander IsExpanded="False" Margin="0,0,0,12">
+                            <Expander.Header>
+                                <TextBlock Text="Шрифт и строки текста" Style="{StaticResource CardTitle}" FontSize="13" VerticalAlignment="Center"/>
+                            </Expander.Header>
+                            <StackPanel Margin="0,12,0,0">
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="12"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="Шрифт" VerticalAlignment="Center"
+                                               Style="{StaticResource CardTitle}" FontSize="13"/>
+                                    <ComboBox x:Name="LabelFontCombo" Grid.Column="2" MinWidth="220"
+                                              DisplayMemberPath="DisplayName"
+                                              SelectionChanged="OnLabelFontSelectionChanged"/>
+                                </Grid>
+                                <TextBlock Text="Arial и Verdana — максимальная читаемость при дефектах печати; Segoe UI, Calibri и Georgia — декоративные."
+                                           Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,10"/>
 
-                        <StackPanel x:Name="TextBlocksEditorPanel" Margin="0,0,0,10"/>
+                                <StackPanel x:Name="TextBlocksEditorPanel" Margin="0,0,0,10"/>
 
-                        <Button Style="{StaticResource SecondaryButton}" Content="Создать новый текст"
-                                Click="OnAddTextBlockClick" HorizontalAlignment="Left" Margin="0,0,0,10"/>
+                                <Button Style="{StaticResource SecondaryButton}" Content="Создать новый текст"
+                                        Click="OnAddTextBlockClick" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </Expander>
 
                         <TextBlock Text="Подстановки из QR — нажмите, чтобы вставить в выбранную строку:"
                                    Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,0,0,8"/>
@@ -223,7 +230,7 @@
                                 <RowDefinition Height="340"/>
                                 <RowDefinition Height="Auto" SharedSizeGroup="LayoutHint"/>
                             </Grid.RowDefinitions>
-                            <Border Grid.Row="2" Background="#F7FAFC" CornerRadius="18"
+                            <Border Grid.Row="2" Background="{StaticResource PanelAltBrush}" CornerRadius="18"
                                     Padding="18" ClipToBounds="True"
                                     Height="340" MinHeight="340" MaxHeight="340">
                                 <Grid VerticalAlignment="Center" HorizontalAlignment="Center">

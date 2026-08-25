@@ -191,7 +191,7 @@
                                             Height="220"
                                             HorizontalAlignment="Right"
                                             Background="White"
-                                            BorderBrush="#D6DEE8"
+                                            BorderBrush="{StaticResource BorderBrushSoft}"
                                             BorderThickness="1"
                                             CornerRadius="12"
                                             Padding="8">

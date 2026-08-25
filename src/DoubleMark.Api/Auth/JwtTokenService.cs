@@ -17,14 +17,28 @@ public sealed class JwtTokenService
         _options = options.Value;
     }
 
-    public string CreateAccessToken(Guid userId, string email)
+    public string CreateAccessToken(
+        Guid userId,
+        string email,
+        Guid? orgId = null,
+        string? orgRole = null,
+        string? planId = null,
+        string? subscriptionStatus = null)
     {
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email, email),
-            new Claim(ClaimTypes.NameIdentifier, userId.ToString())
+            new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new(JwtRegisteredClaimNames.Email, email),
+            new(ClaimTypes.NameIdentifier, userId.ToString())
         };
+        if (orgId is { } oid)
+            claims.Add(new Claim("org_id", oid.ToString()));
+        if (!string.IsNullOrWhiteSpace(orgRole))
+            claims.Add(new Claim("org_role", orgRole));
+        if (!string.IsNullOrWhiteSpace(planId))
+            claims.Add(new Claim("plan_id", planId));
+        if (!string.IsNullOrWhiteSpace(subscriptionStatus))
+            claims.Add(new Claim("subscription_status", subscriptionStatus));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

@@ -126,7 +126,7 @@ public partial class MainWindow
         var text = new TextBlock
         {
             Text = message,
-            Foreground = Brushes.White,
+            Foreground = (Brush)Application.Current.FindResource("TextBrush"),
             FontSize = 13,
             FontWeight = FontWeights.SemiBold,
             TextWrapping = TextWrapping.Wrap,

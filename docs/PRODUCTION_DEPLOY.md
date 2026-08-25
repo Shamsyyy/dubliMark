@@ -61,6 +61,7 @@ openssl rand -base64 48   # Jwt__SigningKey
 cd /opt/doublemark
 docker compose -f docker-compose.prod.yml up -d --build
 curl -s http://127.0.0.1:5080/health
+bash db/apply-migrations.sh
 ```
 
 ---

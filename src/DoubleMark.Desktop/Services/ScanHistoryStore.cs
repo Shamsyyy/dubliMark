@@ -37,7 +37,7 @@ internal sealed class ScanHistoryFile
 
 public static class ScanHistoryStore
 {
-    /// <summary>Local offline cache cap (cloud history uses Supabase limit of 100).</summary>
+    /// <summary>Local offline cache cap (cloud history uses account API limit of 1000).</summary>
     public const int MaxEntries = 100;
 
     private static readonly ReaderWriterLockSlim _lock = new();

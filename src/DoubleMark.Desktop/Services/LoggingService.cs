@@ -24,7 +24,7 @@ public static class LoggingService
         "logs");
 
     private static readonly Regex SecretPattern = new(
-        @"(access_token|refresh_token|password|SUPABASE_ANON_KEY|apikey|bearer|service_role)\s*[:=]\s*\S+",
+        @"(access_token|refresh_token|password|apikey|bearer|service_role|anon_key)\s*[:=]\s*\S+",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     private static readonly Regex RawPayloadPattern = new(
